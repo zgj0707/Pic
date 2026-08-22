@@ -193,29 +193,27 @@ export function closeDatabase(): void {
 
 export const dbAdapter: DbAdapter = {
   get: (sql: string, params: unknown[] = []): DbRow | null => {
-    const processedSql = substituteParams(sql, params)
-    const results = getDatabase().exec(processedSql)
-    if (results.length === 0 || results[0].values.length === 0) return null
-    const columns = results[0].columns
-    const row: DbRow = {}
-    columns.forEach((col: string, idx: number) => {
-      row[col] = results[0].values[0][idx]
-    })
-    return row
+    const stmt = getDatabase().prepare(sql)
+    try {
+      stmt.bind(params)
+      return stmt.step() ? stmt.getAsObject() : null
+    } finally {
+      stmt.free()
+    }
   },
 
   query: (sql: string, params: unknown[] = []): DbRow[] => {
-    const processedSql = substituteParams(sql, params)
-    const results = getDatabase().exec(processedSql)
-    if (results.length === 0) return []
-    const columns = results[0].columns
-    return results[0].values.map((row: unknown[]) => {
-      const obj: DbRow = {}
-      columns.forEach((col: string, idx: number) => {
-        obj[col] = row[idx]
-      })
-      return obj
-    })
+    const stmt = getDatabase().prepare(sql)
+    try {
+      stmt.bind(params)
+      const rows: DbRow[] = []
+      while (stmt.step()) {
+        rows.push(stmt.getAsObject())
+      }
+      return rows
+    } finally {
+      stmt.free()
+    }
   },
 
   run: (sql: string, params: unknown[] = []): RunResult => {
@@ -252,22 +250,4 @@ export const dbAdapter: DbAdapter = {
   }
 }
 
-/**
- * Substitute ? placeholders in SQL with properly escaped values.
- * This is needed because sql.js's exec() does not support parameter
- * binding directly — only run() does.
- */
-function substituteParams(sql: string, params: unknown[]): string {
-  let paramIndex = 0
-  return sql.replace(/\?/g, () => {
-    if (paramIndex >= params.length) return 'NULL'
-    const param = params[paramIndex++]
-    if (param === null || param === undefined) {
-      return 'NULL'
-    } else if (typeof param === 'string') {
-      return `'${param.replace(/'/g, "''")}'`
-    } else {
-      return String(param)
-    }
-  })
-}
+
