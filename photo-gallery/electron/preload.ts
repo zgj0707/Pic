@@ -24,6 +24,7 @@ export interface ElectronAPI {
     delete: (ids: number[]) => Promise<{ success: boolean; error?: string }>
     openInExplorer: (filePath: string) => Promise<{ success: boolean }>
     generateThumbnails: () => Promise<{ success: boolean; generated: number }>
+    getThumbnail: (id: number, size?: 'grid' | 'preview') => Promise<{ success: boolean; data?: { path: string }; error?: string }>
     copyToDesktopFolder: (filePaths: string[], folderName: string) =>
       Promise<{ success: boolean; folderPath?: string; copied?: number; failed?: number; error?: string }>
     copyImageToClipboard: (filePath: string) => Promise<{ success: boolean; error?: string }>
@@ -102,6 +103,7 @@ const api: ElectronAPI = {
     delete: (ids: number[]) => ipcRenderer.invoke('photos:delete', ids),
     openInExplorer: (filePath: string) => ipcRenderer.invoke('photos:openInExplorer', filePath),
     generateThumbnails: () => ipcRenderer.invoke('photos:generateThumbnails'),
+    getThumbnail: (id: number, size?: 'grid' | 'preview') => ipcRenderer.invoke('photos:getThumbnail', id, size),
     copyToDesktopFolder: (filePaths: string[], folderName: string) => ipcRenderer.invoke('photos:copyToDesktopFolder', filePaths, folderName),
     copyImageToClipboard: (filePath: string) => ipcRenderer.invoke('photos:copyImageToClipboard', filePath)
   },

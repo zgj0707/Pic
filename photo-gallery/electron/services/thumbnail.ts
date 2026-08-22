@@ -1,49 +1,71 @@
 import { createHash } from 'crypto'
 import { join } from 'path'
-import { existsSync, mkdirSync } from 'fs'
+import { existsSync, mkdirSync, statSync } from 'fs'
+import { getCacheDir } from './cacheManager'
 
+export type ThumbnailSize = 'grid' | 'preview'
+
+interface SizeConfig {
+  width: number
+  quality: number
+}
+
+const SIZE_CONFIG: Record<ThumbnailSize, SizeConfig> = {
+  grid: { width: 320, quality: 80 },
+  preview: { width: 1200, quality: 85 }
+}
+
+function getThumbnailHash(filePath: string, mtimeMs: number, size: ThumbnailSize): string {
+  return createHash('md5').update(`${filePath}|${mtimeMs}|${size}`).digest('hex')
+}
+
+/**
+ * 生成或复用缩略图。
+ * 缓存键包含文件路径、修改时间和尺寸，文件变更后会自动重新生成。
+ * 输出格式为 WebP，相同视觉质量下体积更小。
+ */
 export async function generateThumbnail(
   filePath: string,
-  photoId: number,
-  thumbDir: string,
-  width: number = 300,
-  height: number = 200
+  size: ThumbnailSize = 'grid'
 ): Promise<string> {
-  const hash = createHash('md5').update(filePath).digest('hex')
-  const thumbPath = join(thumbDir, `${hash}.jpg`)
-  
+  const stats = statSync(filePath)
+  const mtimeMs = stats.mtimeMs
+  const thumbDir = getCacheDir()
+  const hash = getThumbnailHash(filePath, mtimeMs, size)
+  const thumbPath = join(thumbDir, `${hash}.webp`)
+
   if (existsSync(thumbPath)) {
     return thumbPath
   }
-  
-  try {
-    if (!existsSync(thumbDir)) {
-      mkdirSync(thumbDir, { recursive: true })
-    }
-    
-    const sharp = await import('sharp')
-    const image = sharp.default(filePath)
-    const metadata = await image.metadata()
-    
-    // 固定宽度，高度自适应，保持原始宽高比
-    const thumbWidth = Math.min(width, metadata.width || width)
-    
-    await sharp.default(filePath)
-      .resize(thumbWidth, null, {
-        fit: 'inside',
-        withoutEnlargement: true
-      })
-      .jpeg({ quality: 80 })
-      .toFile(thumbPath)
-    
-    return thumbPath
-  } catch {
-    // 缩略图生成失败时返回原文件路径作为降级方案
-    return filePath
+
+  if (!existsSync(thumbDir)) {
+    mkdirSync(thumbDir, { recursive: true })
   }
+
+  const sharp = await import('sharp')
+  const config = SIZE_CONFIG[size]
+
+  await sharp.default(filePath)
+    .resize(config.width, null, {
+      fit: 'inside',
+      withoutEnlargement: true
+    })
+    .webp({ quality: config.quality })
+    .toFile(thumbPath)
+
+  return thumbPath
 }
 
-export function getThumbnailPath(filePath: string, thumbDir: string): string {
-  const hash = createHash('md5').update(filePath).digest('hex')
-  return join(thumbDir, `${hash}.jpg`)
+/**
+ * 仅获取缩略图路径，不触发生成。
+ * 若文件不存在或无法读取，返回原图路径。
+ */
+export function getThumbnailPath(filePath: string, size: ThumbnailSize = 'grid'): string {
+  try {
+    const stats = statSync(filePath)
+    const hash = getThumbnailHash(filePath, stats.mtimeMs, size)
+    return join(getCacheDir(), `${hash}.webp`)
+  } catch {
+    return filePath
+  }
 }

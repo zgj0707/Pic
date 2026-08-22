@@ -3,8 +3,6 @@ import { join, basename } from 'path'
 import { existsSync, mkdirSync, statSync, promises as fsPromises } from 'fs'
 import { dbAdapter, saveDatabase } from '../services/database'
 import { importPhotoToDatabase } from './import'
-import { generateThumbnail } from '../services/thumbnail'
-import { getCacheDir } from '../services/cacheManager'
 import { addTagToPhoto } from './tagManager'
 import { getDownloadDir, setDownloadDir } from '../services/config'
 import { getUniqueFilePath, isSupportedFile } from '../utils/fileSystem'
@@ -128,14 +126,7 @@ export function registerMaterialBrowserIpc(mainWindow: BrowserWindow | null) {
       const photo = await importPhotoToDatabase(filePath)
 
       if (photo) {
-        // Generate thumbnail
-        try {
-          const thumbDir = getCacheDir()
-          const thumbPath = await generateThumbnail(filePath, photo.id, thumbDir, 300, 200)
-          dbAdapter.run('UPDATE photos SET thumbnail_path = ? WHERE id = ?', [thumbPath, photo.id])
-        } catch {
-          // thumbnail errors are non-fatal
-        }
+        // 缩略图改为按需生成，导入时不再同步生成
 
         // Add user-specified tags
         for (const tag of tags || []) {

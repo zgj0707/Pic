@@ -2,8 +2,6 @@ import { ipcMain } from 'electron'
 import { dbAdapter, saveDatabase } from '../services/database'
 import { existsSync } from 'fs'
 import { basename } from 'path'
-import { generateThumbnail } from '../services/thumbnail'
-import { getCacheDir } from '../services/cacheManager'
 import exifr from 'exifr'
 import { isSupportedFile, scanDirectory, getValidFileStat } from '../utils/fileSystem'
 import { wrapAsyncHandler } from '../utils/ipcHandler'
@@ -77,31 +75,6 @@ export async function importPhotoToDatabase(filePath: string): Promise<{ id: num
 }
 
 /**
- * Generate thumbnails for a batch of photos.
- * Updates the progress tracker and database as it goes.
- */
-async function generateThumbnailsForPhotos(
-  photosToProcess: { id: number; filepath: string }[],
-  thumbDir: string
-): Promise<number> {
-  let generated = 0
-  for (let i = 0; i < photosToProcess.length; i++) {
-    const photo = photosToProcess[i]
-    importProgress.current = i + 1
-    importProgress.message = `生成缩略图中... ${i + 1}/${photosToProcess.length}`
-
-    try {
-      const thumbPath = await generateThumbnail(photo.filepath, photo.id, thumbDir, 300, 200)
-      dbAdapter.run('UPDATE photos SET thumbnail_path = ? WHERE id = ?', [thumbPath, photo.id])
-      generated++
-    } catch {
-      // thumbnail generation errors are non-fatal
-    }
-  }
-  return generated
-}
-
-/**
  * Core import logic shared by import:fromDirectory and import:fromFiles.
  */
 async function performImport(
@@ -115,7 +88,6 @@ async function performImport(
 
   let imported = 0
   let skipped = 0
-  const newPhotos: { id: number; filepath: string }[] = []
 
   for (let i = 0; i < filePaths.length; i++) {
     const filePath = filePaths[i]
@@ -128,30 +100,17 @@ async function performImport(
         skipped++
       } else {
         imported++
-        newPhotos.push({ id: photo.id, filepath: filePath })
       }
     }
   }
 
-  let thumbnailsGenerated = 0
-  if (newPhotos.length > 0) {
-    const thumbDir = getCacheDir()
-    importProgress.status = 'generating_thumbnails'
-    importProgress.total = newPhotos.length
-    importProgress.current = 0
-    importProgress.message = `生成缩略图中... 0/${newPhotos.length}`
-
-    thumbnailsGenerated = await generateThumbnailsForPhotos(newPhotos, thumbDir)
-  }
-
   let message = `完成，新增 ${imported} 张`
   if (skipped > 0) message += `，跳过 ${skipped} 张重复`
-  if (thumbnailsGenerated > 0) message += `，生成 ${thumbnailsGenerated} 张缩略图`
 
   importProgress.status = 'done'
   importProgress.message = message
 
-  return { success: true, imported, skipped, thumbnailsGenerated, total: filePaths.length }
+  return { success: true, imported, skipped, thumbnailsGenerated: 0, total: filePaths.length }
 }
 
 export function registerImportIpc(): void {

@@ -43,14 +43,14 @@ export async function getCacheStats(): Promise<CacheStats> {
     let newestFile: string | null = null
     
     for (const file of files) {
-      if (!file.endsWith('.jpg') && !file.endsWith('.png')) continue
-      
+      if (!file.endsWith('.jpg') && !file.endsWith('.png') && !file.endsWith('.webp')) continue
+
       const filePath = join(cacheDir, file)
       try {
         const stat = statSync(filePath)
         totalSize += stat.size
         entries.push({ path: filePath, size: stat.size, mtime: stat.mtimeMs })
-        
+
         if (stat.mtimeMs < oldestMtime) {
           oldestMtime = stat.mtimeMs
           oldestFile = file
@@ -84,8 +84,8 @@ export async function cleanOldThumbnails(): Promise<{ deleted: number; freedSpac
     const files = readdirSync(cacheDir)
     
     for (const file of files) {
-      if (!file.endsWith('.jpg') && !file.endsWith('.png')) continue
-      
+      if (!file.endsWith('.jpg') && !file.endsWith('.png') && !file.endsWith('.webp')) continue
+
       const filePath = join(cacheDir, file)
       try {
         const stat = statSync(filePath)
@@ -155,8 +155,8 @@ export async function enforceMaxCacheSize(): Promise<{ deleted: number; freedSpa
     const files = readdirSync(cacheDir)
     
     for (const file of files) {
-      if (!file.endsWith('.jpg') && !file.endsWith('.png')) continue
-      
+      if (!file.endsWith('.jpg') && !file.endsWith('.png') && !file.endsWith('.webp')) continue
+
       const filePath = join(cacheDir, file)
       try {
         const stat = statSync(filePath)

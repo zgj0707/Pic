@@ -1012,7 +1012,17 @@
       };
       
       img.src = imgSrc;
-      
+
+      // 没有缩略图时，按需从后端生成并替换为更小的缩略图
+      if (!photo.thumbnail_path && photo.filepath && window.electronAPI?.photos?.getThumbnail) {
+        window.electronAPI.photos.getThumbnail(photo.id, 'grid').then(result => {
+          if (result.success && result.data?.path && item.isConnected) {
+            photo.thumbnail_path = result.data.path;
+            img.src = result.data.path;
+          }
+        }).catch(() => {});
+      }
+
       item.addEventListener('click', (e) => handlePhotoClick(e, photo, index));
       item.addEventListener('dblclick', (e) => { e.preventDefault(); openLightbox(photo, index); });
       item.addEventListener('contextmenu', (e) => {

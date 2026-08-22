@@ -170,10 +170,10 @@ export function registerPhotoIpc(): void {
       let generated = 0
 
       for (const photo of photos) {
-        if (!photo.thumbnail_path && photo.filepath) {
+        if (photo.filepath) {
           try {
             const { generateThumbnail } = await import('../services/thumbnail')
-            const thumbPath = await generateThumbnail(photo.filepath, photo.id, thumbDir, 300, 200)
+            const thumbPath = await generateThumbnail(photo.filepath, 'grid')
             dbAdapter.run('UPDATE photos SET thumbnail_path = ? WHERE id = ?', [thumbPath, photo.id])
             generated++
           } catch {
@@ -184,6 +184,18 @@ export function registerPhotoIpc(): void {
 
       saveDatabase()
       return { success: true, generated }
+    }
+  ))
+
+  ipcMain.handle('photos:getThumbnail', wrapAsyncHandler('photos:getThumbnail',
+    async (_event, id: number, size: import('../services/thumbnail').ThumbnailSize = 'grid') => {
+      const photo = dbAdapter.get('SELECT filepath FROM photos WHERE id = ?', [id])
+      if (!photo || !photo.filepath) {
+        return { success: false, error: 'Photo not found' }
+      }
+      const { generateThumbnail } = await import('../services/thumbnail')
+      const thumbPath = await generateThumbnail(photo.filepath, size)
+      return { success: true, data: { path: thumbPath } }
     }
   ))
 
