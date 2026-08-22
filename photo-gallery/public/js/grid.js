@@ -50,10 +50,8 @@ function createPhotoItem(photo, index, layout = null) {
     const skeleton = item.querySelector('.skeleton');
     if (skeleton) skeleton.remove();
     imageLoadCount++;
-    // 非虚拟滚动模式下，图片加载后使用实际宽高比重新布局
-    if (!isVirtualScrollEnabled) {
-      scheduleLayout();
-    }
+    // 图片加载后使用实际宽高比重新布局（瀑布流/虚拟滚动模式下尤为重要）
+    scheduleLayout();
   };
 
   img.onerror = () => {

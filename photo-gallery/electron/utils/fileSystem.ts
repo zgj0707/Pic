@@ -108,3 +108,20 @@ export function getValidFileStat(filePath: string): { mtime: Date; size: number 
     return null
   }
 }
+
+/**
+ * 读取图片的实际像素尺寸。
+ * 优先使用 sharp，失败则返回 null。
+ */
+export async function getImageDimensions(filePath: string): Promise<{ width: number; height: number } | null> {
+  try {
+    const sharp = await import('sharp')
+    const metadata = await sharp.default(filePath).metadata()
+    if (metadata.width && metadata.height) {
+      return { width: metadata.width, height: metadata.height }
+    }
+    return null
+  } catch {
+    return null
+  }
+}

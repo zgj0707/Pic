@@ -3,7 +3,7 @@ import { dbAdapter } from '../services/database'
 import { existsSync } from 'fs'
 import { basename } from 'path'
 import exifr from 'exifr'
-import { isSupportedFile, scanDirectory, getValidFileStat } from '../utils/fileSystem'
+import { isSupportedFile, scanDirectory, getValidFileStat, getImageDimensions } from '../utils/fileSystem'
 import { wrapAsyncHandler } from '../utils/ipcHandler'
 import type { ImportProgress, ImportResult } from '../types'
 
@@ -62,6 +62,19 @@ export async function importPhotoToDatabase(filePath: string): Promise<{ id: num
     }
   } catch {
     // EXIF parsing is best-effort; fall back to file mtime
+  }
+
+  // 如果 EXIF 没有给出尺寸，使用 sharp 读取实际像素，保证瀑布流布局能使用真实宽高比
+  if (width === 0 || height === 0) {
+    try {
+      const dims = await getImageDimensions(filePath)
+      if (dims) {
+        width = dims.width
+        height = dims.height
+      }
+    } catch {
+      // 读取实际尺寸失败时保留 0，前端会使用默认比例
+    }
   }
 
   const photoId = dbAdapter.insert('photos', {
