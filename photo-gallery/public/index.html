@@ -1591,11 +1591,10 @@
         });
         
         selectedPhotos.clear();
-        renderPhotoGrid(); // 先渲染得到新的 filteredPhotos
         updateSelectedCount();
         hideProgress();
         showToast(`已删除 ${ids.length} 张照片，已移入回收站`, 'success');
-        await loadPhotos(); // loadPhotos 会重新调整 currentPhotoIndex
+        await loadPhotos(); // loadPhotos 内部会 renderPhotoGrid 并调整 currentPhotoIndex
       } catch (e) {
         hideProgress();
         showToast('删除失败: ' + e, 'error');
