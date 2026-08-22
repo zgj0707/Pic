@@ -36,7 +36,7 @@ export async function importPhotoToDatabase(filePath: string): Promise<{ id: num
   const statInfo = getValidFileStat(filePath)
   if (!statInfo) return null
 
-  const existing = dbAdapter.get('SELECT id FROM photos WHERE filepath = ?', [filePath])
+  const existing = dbAdapter.get('SELECT id FROM photos WHERE filepath = ? AND deleted_at IS NULL', [filePath])
   if (existing) {
     return { id: existing.id, filename: '', filepath: filePath, rating: 0, tags: [], alreadyImported: true }
   }

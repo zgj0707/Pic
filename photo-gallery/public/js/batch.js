@@ -4,10 +4,10 @@
 async function deleteSelectedPhotos() {
   if (selectedPhotos.size === 0) return;
 
-  const confirmed = confirm(`确定要删除选中的 ${selectedPhotos.size} 张照片吗？\n照片将被移入回收站，可从回收站恢复。`);
+  const confirmed = confirm(`确定要将选中的 ${selectedPhotos.size} 张照片移入回收站吗？\n移入回收站后可在 30 天内恢复。`);
   if (!confirmed) return;
 
-  showProgress('删除照片', `正在删除 ${selectedPhotos.size} 张照片...`, '');
+  showProgress('移入回收站', `正在移动 ${selectedPhotos.size} 张照片...`, '');
 
   try {
     const ids = Array.from(selectedPhotos);
@@ -16,19 +16,60 @@ async function deleteSelectedPhotos() {
       await window.electronAPI.photos.delete(ids);
     }
 
-    selectedPhotos.forEach(id => {
-      const idx = photos.findIndex(p => p.id === id);
-      if (idx > -1) photos.splice(idx, 1);
-    });
+    selectedPhotos.clear();
+    updateSelectedCount();
+    hideProgress();
+    showToast(`已将 ${ids.length} 张照片移入回收站`, 'success');
+    await loadPhotos(true);
+  } catch (e) {
+    hideProgress();
+    showToast('移入回收站失败: ' + e, 'error');
+  }
+}
+
+async function restoreSelectedPhotos() {
+  if (selectedPhotos.size === 0) return;
+
+  const confirmed = confirm(`确定要恢复选中的 ${selectedPhotos.size} 张照片吗？`);
+  if (!confirmed) return;
+
+  showProgress('恢复照片', `正在恢复 ${selectedPhotos.size} 张照片...`, '');
+
+  try {
+    const ids = Array.from(selectedPhotos);
+    const result = await window.electronAPI.photos.restore(ids);
 
     selectedPhotos.clear();
     updateSelectedCount();
     hideProgress();
-    showToast(`已删除 ${ids.length} 张照片，已移入回收站`, 'success');
-    await loadPhotos(); // loadPhotos 内部会 renderPhotoGrid 并调整 currentPhotoIndex
+    showToast(`已恢复 ${result.restored || ids.length} 张照片`, 'success');
+    await loadPhotos(true);
   } catch (e) {
     hideProgress();
-    showToast('删除失败: ' + e, 'error');
+    showToast('恢复失败: ' + e, 'error');
+  }
+}
+
+async function permanentlyDeleteSelectedPhotos() {
+  if (selectedPhotos.size === 0) return;
+
+  const confirmed = confirm(`确定要彻底删除选中的 ${selectedPhotos.size} 张照片吗？\n此操作不可恢复！`);
+  if (!confirmed) return;
+
+  showProgress('彻底删除', `正在彻底删除 ${selectedPhotos.size} 张照片...`, '');
+
+  try {
+    const ids = Array.from(selectedPhotos);
+    await window.electronAPI.photos.deletePermanently(ids);
+
+    selectedPhotos.clear();
+    updateSelectedCount();
+    hideProgress();
+    showToast(`已彻底删除 ${ids.length} 张照片`, 'success');
+    await loadPhotos(true);
+  } catch (e) {
+    hideProgress();
+    showToast('彻底删除失败: ' + e, 'error');
   }
 }
 

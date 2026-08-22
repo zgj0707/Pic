@@ -118,7 +118,7 @@ export function registerMaterialBrowserIpc(_mainWindow: BrowserWindow | null) {
         return { success: false, error: '文件不存在或无法访问' }
       }
 
-      const existing = dbAdapter.get('SELECT id FROM photos WHERE filepath = ?', [filePath])
+      const existing = dbAdapter.get('SELECT id FROM photos WHERE filepath = ? AND deleted_at IS NULL', [filePath])
       if (existing) {
         return { success: true, data: { photoId: existing.id, alreadyImported: true } }
       }

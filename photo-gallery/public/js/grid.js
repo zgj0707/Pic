@@ -325,6 +325,13 @@ function togglePhotoSelection(photoId, item) {
 
 function updatePhotoCount() {
   const hasMore = window.electronAPI && photoTotalCount > 0 && photoLoadedCount < photoTotalCount;
+  if (isRecycleBinView) {
+    const base = window.electronAPI
+      ? `${photoLoadedCount}/${photoTotalCount} 张已删除照片`
+      : `${photos.length} 张已删除照片`;
+    document.getElementById('photoCount').textContent = hasMore ? `${base}（加载中…）` : base;
+    return;
+  }
   const base = window.electronAPI
     ? `${photoLoadedCount}/${photoTotalCount} 张照片`
     : (filteredPhotos.length === photos.length
@@ -336,9 +343,16 @@ function updatePhotoCount() {
 function updateSelectedCount() {
   const count = selectedPhotos.size;
   document.getElementById('selectedCount').textContent = `已选择 ${count} 张照片`;
-  document.getElementById('deleteBtn').disabled = count === 0;
-  document.getElementById('exportPdfBtn').disabled = count === 0;
-  document.getElementById('copyToDesktopBtn').disabled = count === 0;
+  if (isRecycleBinView) {
+    const restoreBtn = document.getElementById('restoreBtn');
+    const permanentDeleteBtn = document.getElementById('permanentDeleteBtn');
+    if (restoreBtn) restoreBtn.disabled = count === 0;
+    if (permanentDeleteBtn) permanentDeleteBtn.disabled = count === 0;
+  } else {
+    document.getElementById('deleteBtn').disabled = count === 0;
+    document.getElementById('exportPdfBtn').disabled = count === 0;
+    document.getElementById('copyToDesktopBtn').disabled = count === 0;
+  }
   updateApplyButtons();
 }
 

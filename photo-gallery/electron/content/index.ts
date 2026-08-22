@@ -181,7 +181,7 @@ export async function onQuit(): Promise<void> {
 export async function syncTagsToExif(): Promise<void> {
   console.log('[content] Starting EXIF tag synchronization...')
   try {
-    const photos = dbAdapter.query('SELECT id, filepath FROM photos WHERE filepath IS NOT NULL')
+    const photos = dbAdapter.query('SELECT id, filepath FROM photos WHERE filepath IS NOT NULL AND deleted_at IS NULL')
     console.log(`[content] Found ${photos.length} photos to sync`)
 
     let synced = 0

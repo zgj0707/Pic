@@ -14,7 +14,7 @@
  */
 
 import { build } from 'esbuild'
-import { mkdirSync, copyFileSync, writeFileSync, readFileSync, existsSync, cpSync } from 'fs'
+import { mkdirSync, writeFileSync, readFileSync, existsSync, cpSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 

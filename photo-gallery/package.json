@@ -1,6 +1,6 @@
 {
   "name": "photo-gallery",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "独立摄影师样片库管理软件",
   "main": "./dist-app/main/main.js",
   "author": "",

@@ -42,6 +42,7 @@ let importProgressUnsubscribe = null;
 let currentPanel = 'gallery';
 let browserMode = localStorage.getItem('browserMode') || 'xiaohongshu';
 let currentViewMode = localStorage.getItem('photoViewMode') || 'masonry';
+let isRecycleBinView = false;
 
 // ─── DOM 缓存 ───
 const photoGrid = document.getElementById('photoGrid');
@@ -82,16 +83,26 @@ async function loadPhotos(reset = true) {
   isLoadingPhotos = true;
 
   try {
-    const filter = buildBackendPhotoFilter();
-    if (reset) {
-      photoTotalCount = await window.electronAPI.photos.count(filter);
+    let data = [];
+    if (isRecycleBinView) {
+      if (reset) {
+        photoTotalCount = await window.electronAPI.photos.countDeleted();
+      }
+      data = await window.electronAPI.photos.getDeleted({
+        limit: PAGE_SIZE,
+        offset: photoCurrentPage * PAGE_SIZE
+      });
+    } else {
+      const filter = buildBackendPhotoFilter();
+      if (reset) {
+        photoTotalCount = await window.electronAPI.photos.count(filter);
+      }
+      data = await window.electronAPI.photos.getAll({
+        filter,
+        limit: PAGE_SIZE,
+        offset: photoCurrentPage * PAGE_SIZE
+      });
     }
-
-    const data = await window.electronAPI.photos.getAll({
-      filter,
-      limit: PAGE_SIZE,
-      offset: photoCurrentPage * PAGE_SIZE
-    });
 
     if (reset) {
       photos.length = 0;
@@ -110,7 +121,9 @@ async function loadPhotos(reset = true) {
   } finally {
     isLoadingPhotos = false;
   }
-  await updateTagFilter();
+  if (!isRecycleBinView) {
+    await updateTagFilter();
+  }
 }
 
 async function loadMorePhotos() {
@@ -342,6 +355,8 @@ const observer = new MutationObserver(() => {
 observer.observe(metadataPanel, { attributes: true, attributeFilter: ['class'] });
 
 document.getElementById('deleteBtn').onclick = deleteSelectedPhotos;
+document.getElementById('restoreBtn').onclick = restoreSelectedPhotos;
+document.getElementById('permanentDeleteBtn').onclick = permanentlyDeleteSelectedPhotos;
 
 // 复制选中图片到桌面文件夹
 document.getElementById('copyToDesktopBtn').onclick = copySelectedToDesktop;
@@ -516,6 +531,7 @@ document.getElementById('changelogModal').onclick = (e) => {
 
 // ─── 视图切换 ───
 document.getElementById('nav-gallery').onclick = switchToGallery;
+document.getElementById('nav-recycle').onclick = switchToRecycleBin;
 document.getElementById('nav-browser').onclick = switchToBrowser;
 
 // ─── 浏览器控制 ───

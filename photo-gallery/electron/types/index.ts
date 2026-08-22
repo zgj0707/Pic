@@ -19,6 +19,7 @@ export interface Photo {
   is_favorite: number
   thumbnail_path: string | null
   exif_json: string | null
+  deleted_at?: number | null
   tags?: string[]
 }
 
@@ -77,6 +78,7 @@ export interface PhotoFilter {
   dateFrom?: number
   dateTo?: number
   tags?: string[]
+  deletedOnly?: boolean
 }
 
 export interface PhotoQueryOptions {

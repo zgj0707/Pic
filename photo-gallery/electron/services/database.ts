@@ -41,13 +41,15 @@ CREATE TABLE IF NOT EXISTS photos (
   rating INTEGER DEFAULT 0,
   is_favorite INTEGER DEFAULT 0,
   thumbnail_path TEXT,
-  exif_json TEXT
+  exif_json TEXT,
+  deleted_at INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS idx_photos_rating ON photos(rating);
 CREATE INDEX IF NOT EXISTS idx_photos_favorite ON photos(is_favorite);
 CREATE INDEX IF NOT EXISTS idx_photos_created ON photos(created_at);
 CREATE INDEX IF NOT EXISTS idx_photos_imported ON photos(imported_at);
+CREATE INDEX IF NOT EXISTS idx_photos_deleted ON photos(deleted_at);
 
 CREATE TABLE IF NOT EXISTS albums (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -156,6 +158,17 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
   }
 
   db.exec(SCHEMA)
+
+  // 迁移：为旧表添加 deleted_at 列（忽略已存在的错误）
+  try {
+    db.exec('ALTER TABLE photos ADD COLUMN deleted_at INTEGER')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (!message.includes('duplicate column name')) {
+      console.error('[database] Migration failed:', error)
+    }
+  }
+
   saveDatabase()
   console.log('Database initialized at', dbPath)
 }

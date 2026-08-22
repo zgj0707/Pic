@@ -29,13 +29,47 @@ function initializeWebview() {
   }
 }
 
+function updateNavActiveState(activeId) {
+  ['nav-gallery', 'nav-recycle', 'nav-browser'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (id === activeId) {
+      el.classList.add('active', 'text-textPrimary');
+      el.classList.remove('text-textSecondary');
+    } else {
+      el.classList.remove('active', 'text-textPrimary');
+      el.classList.add('text-textSecondary');
+    }
+  });
+}
+
+function resetToolbarForGallery() {
+  document.getElementById('deleteBtn').classList.remove('hidden');
+  document.getElementById('restoreBtn').classList.add('hidden');
+  document.getElementById('permanentDeleteBtn').classList.add('hidden');
+  document.getElementById('importFolderBtn').classList.remove('hidden');
+  document.getElementById('importFilesBtn').classList.remove('hidden');
+  document.getElementById('searchInput').parentElement.classList.remove('hidden');
+  document.getElementById('ratingFilter').parentElement.parentElement.classList.remove('hidden');
+}
+
+function setEmptyStateForGallery() {
+  document.getElementById('emptyStateTitle').textContent = '还没有导入任何照片';
+  document.getElementById('emptyStateSubtitle').textContent = '点击下方按钮开始导入您的样片';
+  document.getElementById('emptyStateActions').classList.remove('hidden');
+}
+
+function setEmptyStateForRecycleBin() {
+  document.getElementById('emptyStateTitle').textContent = '回收站为空';
+  document.getElementById('emptyStateSubtitle').textContent = '删除的照片会在这里保留 30 天';
+  document.getElementById('emptyStateActions').classList.add('hidden');
+}
+
 function switchToGallery() {
+  isRecycleBinView = false;
   document.getElementById('galleryPanel').classList.remove('hidden');
   document.getElementById('browserPanel').classList.add('hidden');
-  document.getElementById('nav-gallery').classList.add('active', 'text-textPrimary');
-  document.getElementById('nav-gallery').classList.remove('text-textSecondary');
-  document.getElementById('nav-browser').classList.remove('active', 'text-textPrimary');
-  document.getElementById('nav-browser').classList.add('text-textSecondary');
+  updateNavActiveState('nav-gallery');
   currentPanel = 'gallery';
   document.getElementById('searchInput').value = '';
   document.getElementById('ratingFilter').value = '';
@@ -45,18 +79,41 @@ function switchToGallery() {
   document.getElementById('exportPdfBtn').disabled = true;
   document.getElementById('deleteBtn').disabled = true;
   document.getElementById('copyToDesktopBtn').disabled = true;
+  resetToolbarForGallery();
+  setEmptyStateForGallery();
+  if (window.electronAPI) loadPhotos(true);
+  else renderPhotoGrid();
+}
+
+function switchToRecycleBin() {
+  isRecycleBinView = true;
+  document.getElementById('galleryPanel').classList.remove('hidden');
+  document.getElementById('browserPanel').classList.add('hidden');
+  updateNavActiveState('nav-recycle');
+  currentPanel = 'recycle';
+  selectedPhotos.clear();
+  document.getElementById('selectedCount').textContent = '已选择 0 张照片';
+  document.getElementById('deleteBtn').classList.add('hidden');
+  document.getElementById('restoreBtn').classList.remove('hidden');
+  document.getElementById('permanentDeleteBtn').classList.remove('hidden');
+  document.getElementById('restoreBtn').disabled = true;
+  document.getElementById('permanentDeleteBtn').disabled = true;
+  document.getElementById('importFolderBtn').classList.add('hidden');
+  document.getElementById('importFilesBtn').classList.add('hidden');
+  document.getElementById('searchInput').parentElement.classList.add('hidden');
+  document.getElementById('ratingFilter').parentElement.parentElement.classList.add('hidden');
+  setEmptyStateForRecycleBin();
   if (window.electronAPI) loadPhotos(true);
   else renderPhotoGrid();
 }
 
 function switchToBrowser() {
+  isRecycleBinView = false;
   document.getElementById('galleryPanel').classList.add('hidden');
   document.getElementById('browserPanel').classList.remove('hidden');
-  document.getElementById('nav-gallery').classList.remove('active', 'text-textPrimary');
-  document.getElementById('nav-gallery').classList.add('text-textSecondary');
-  document.getElementById('nav-browser').classList.add('active', 'text-textPrimary');
-  document.getElementById('nav-browser').classList.remove('text-textSecondary');
+  updateNavActiveState('nav-browser');
   currentPanel = 'browser';
+  resetToolbarForGallery();
 }
 
 function updateBrowserModeUI() {

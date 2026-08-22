@@ -21,7 +21,7 @@ import { writeExifTags } from '../ipc/exifTool'
  */
 export async function syncTagsToPhotoExif(photoId: number): Promise<void> {
   try {
-    const photoResult = dbAdapter.get('SELECT filepath FROM photos WHERE id = ?', [photoId])
+    const photoResult = dbAdapter.get('SELECT filepath FROM photos WHERE id = ? AND deleted_at IS NULL', [photoId])
     if (!photoResult) return
 
     const filepath = photoResult.filepath as string
