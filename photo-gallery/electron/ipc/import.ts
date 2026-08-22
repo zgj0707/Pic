@@ -1,5 +1,5 @@
 import { ipcMain, BrowserWindow } from 'electron'
-import { dbAdapter, saveDatabase } from '../services/database'
+import { dbAdapter } from '../services/database'
 import { existsSync } from 'fs'
 import { basename } from 'path'
 import exifr from 'exifr'

@@ -1,4 +1,4 @@
-import { existsSync, statSync, mkdirSync, readdirSync, unlinkSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, statSync, mkdirSync, readdirSync, unlinkSync } from 'fs'
 import { join } from 'path'
 import { app } from 'electron'
 

@@ -54,7 +54,7 @@ function getAllTagsWithCounts(): { tag: Tag; count: number }[] {
 }
 
 export function addTagToPhoto(photoId: number, tagName: string): IpcResponse<Tag> {
-  let rawTag = dbAdapter.get('SELECT * FROM tags WHERE name = ? LIMIT 1', [tagName])
+  const rawTag = dbAdapter.get('SELECT * FROM tags WHERE name = ? LIMIT 1', [tagName])
   let tag: Tag
 
   if (!rawTag) {

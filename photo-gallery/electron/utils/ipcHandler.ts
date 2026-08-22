@@ -20,7 +20,7 @@
  *   ))
  */
 
-import type { IpcResponse } from '../types'
+import type { IpcErrorResponse } from '../types'
 
 /**
  * Wrap a synchronous IPC handler with unified error handling.
@@ -30,7 +30,7 @@ import type { IpcResponse } from '../types'
 export function wrapHandler<T extends (...args: any[]) => any>(
   channel: string,
   handler: T
-): (...args: Parameters<T>) => IpcResponse<ReturnType<T>> {
+): (...args: Parameters<T>) => ReturnType<T> | IpcErrorResponse {
   return (...args: Parameters<T>) => {
     try {
       return handler(...args)
@@ -49,7 +49,7 @@ export function wrapHandler<T extends (...args: any[]) => any>(
 export function wrapAsyncHandler<T extends (...args: any[]) => Promise<any>>(
   channel: string,
   handler: T
-): (...args: Parameters<T>) => Promise<IpcResponse<Awaited<ReturnType<T>>>> {
+): (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>> | IpcErrorResponse> {
   return async (...args: Parameters<T>) => {
     try {
       return await handler(...args)

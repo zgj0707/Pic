@@ -60,8 +60,9 @@ export const capabilities = {
   db: true
 }
 
-let ctx: ContentContext | null = null
-let mainWindow: BrowserWindow | null = null
+let _ctx: ContentContext | null = null
+// mainWindow is managed by the shell via ContentContext.getMainWindow()
+const _mainWindow: BrowserWindow | null = null
 
 /**
  * Context injected by the shell — only Electron primitives + shared helpers
@@ -83,7 +84,7 @@ export interface ContentContext {
  * Called by the shell BEFORE creating the window. Initializes DB + config.
  */
 export async function init(c: ContentContext): Promise<void> {
-  ctx = c
+  _ctx = c
   app.commandLine.appendSwitch('high-dpi-support', '1')
   app.commandLine.appendSwitch('force-device-scale-factor', '1')
   app.commandLine.appendSwitch('disable-features', 'HardwareMediaKeyHandling')
@@ -110,7 +111,7 @@ export async function init(c: ContentContext): Promise<void> {
  * Register ALL IPC handlers. Called by the shell after init.
  */
 export function registerIpc(c: ContentContext): void {
-  ctx = c
+  _ctx = c
   registerPhotoIpc()
   registerAlbumIpc()
   registerImportIpc(c.getMainWindow())

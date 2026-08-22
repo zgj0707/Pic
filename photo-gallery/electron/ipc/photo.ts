@@ -1,8 +1,7 @@
 import { ipcMain, app } from 'electron'
 import { join, basename } from 'path'
-import { existsSync, mkdirSync, writeFileSync, renameSync, copyFileSync } from 'fs'
+import { existsSync, mkdirSync, writeFileSync, renameSync } from 'fs'
 import { dbAdapter, saveDatabase } from '../services/database'
-import { getCacheDir } from '../services/cacheManager'
 import { getDownloadDir } from '../services/config'
 import { syncTagsToPhotoExif } from '../utils/exifSync'
 import { buildInPlaceholders } from '../utils/dbHelpers'
@@ -164,8 +163,6 @@ export function registerPhotoIpc(): void {
 
   ipcMain.handle('photos:generateThumbnails', wrapAsyncHandler('photos:generateThumbnails',
     async (_event) => {
-      const thumbDir = getCacheDir()
-
       const photos = dbAdapter.query('SELECT id, filepath, thumbnail_path FROM photos')
       let generated = 0
 

@@ -62,7 +62,7 @@ function loadContentModule(): { exports: any; dir: string; isExternal: boolean }
     return null
   }
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const exports = require(entry)
     console.log(`[shell] Content module loaded from ${isExternal ? 'external' : 'bundled'}: ${entry}`)
     return { exports, dir, isExternal }

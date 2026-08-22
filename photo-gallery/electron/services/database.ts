@@ -1,7 +1,6 @@
 import initSqlJs from 'sql.js'
 import { join } from 'path'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
-import type { Photo, Tag, Album } from '../types'
 
 let db: any = null
 let dbPath: string = ''

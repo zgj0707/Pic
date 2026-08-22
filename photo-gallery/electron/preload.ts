@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
-  Photo, PhotoQueryOptions, PhotoFilter, Tag, Album, ExifData,
-  ImportResult, ImportProgress, RenameOptions, RenameResult,
+  Photo, PhotoQueryOptions, PhotoFilter, Tag, ExifData,
+  ImportResult, ImportProgress,
   CacheStats, CacheCleanResult, IpcResponse, ChangelogEntry
 } from './types'
 

@@ -3,7 +3,7 @@ import { statSync, copyFileSync, existsSync, mkdirSync } from 'fs'
 import { join, extname, basename } from 'path'
 import exifr from 'exifr'
 import { isSupportedFile, scanDirectory, getUniqueFilePath } from '../utils/fileSystem'
-import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
+import { wrapAsyncHandler } from '../utils/ipcHandler'
 import type { RenameOptions, RenameResult } from '../types'
 
 function padNumber(num: number, length: number): string {

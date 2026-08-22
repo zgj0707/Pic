@@ -1,5 +1,5 @@
 import { ipcMain, BrowserWindow, DownloadItem, shell } from 'electron'
-import { join, basename } from 'path'
+import { join } from 'path'
 import { existsSync, mkdirSync, statSync, promises as fsPromises } from 'fs'
 import { dbAdapter, saveDatabase } from '../services/database'
 import { importPhotoToDatabase } from './import'
@@ -9,9 +9,9 @@ import { getUniqueFilePath, isSupportedFile } from '../utils/fileSystem'
 import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
 import type { IpcResponse } from '../types'
 
-let activeDownloads: Map<string, DownloadItem> = new Map()
+const activeDownloads: Map<string, DownloadItem> = new Map()
 
-export function registerMaterialBrowserIpc(mainWindow: BrowserWindow | null) {
+export function registerMaterialBrowserIpc(_mainWindow: BrowserWindow | null) {
   ipcMain.handle('material-browser:open-external', wrapHandler('material-browser:open-external',
     (_event, url: string) => {
       shell.openExternal(url)
