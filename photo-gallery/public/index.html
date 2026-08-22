@@ -1697,7 +1697,11 @@
     document.getElementById('tagInputField').onkeydown = (e) => { if (e.key === 'Enter') confirmAddTag(); };
     document.getElementById('tagInputModal').onclick = (e) => { if (e.target === document.getElementById('tagInputModal')) document.getElementById('tagInputModal').classList.add('hidden'); };
 
-    document.getElementById('searchInput').addEventListener('input', () => setTimeout(renderPhotoGrid, 300));
+    let searchDebounceTimer;
+    document.getElementById('searchInput').addEventListener('input', () => {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(renderPhotoGrid, 300);
+    });
     document.getElementById('searchInput').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') renderPhotoGrid();
     });
