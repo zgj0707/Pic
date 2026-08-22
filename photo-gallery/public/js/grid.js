@@ -50,6 +50,12 @@ function createPhotoItem(photo, index, layout = null) {
     const skeleton = item.querySelector('.skeleton');
     if (skeleton) skeleton.remove();
     imageLoadCount++;
+    // 用真实尺寸更新 photo 对象，保证后续布局使用正确宽高比
+    if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+      photo.width = img.naturalWidth;
+      photo.height = img.naturalHeight;
+      item.dataset.aspectRatio = img.naturalHeight / img.naturalWidth;
+    }
     // 图片加载后使用实际宽高比重新布局（瀑布流/虚拟滚动模式下尤为重要）
     scheduleLayout();
   };
@@ -152,12 +158,8 @@ function computeGridLayout() {
 
   const columnHeights = new Array(columns).fill(16);
   gridLayoutItems = filteredPhotos.map((photo, index) => {
-    // 优先使用数据库存储的宽高比；若照片已加载且自然尺寸可用，则使用实际值
-    const existing = photoGrid.querySelector(`.photo-item[data-index="${index}"] img`);
-    let aspectRatio = photo.width && photo.height ? photo.height / photo.width : 0.75;
-    if (existing && existing.complete && existing.naturalHeight > 0 && existing.naturalWidth > 0) {
-      aspectRatio = existing.naturalHeight / existing.naturalWidth;
-    }
+    // 使用 photo 对象中的宽高比（加载后会用真实尺寸更新），失败则用默认比例
+    const aspectRatio = photo.width && photo.height ? photo.height / photo.width : 0.75;
     const itemHeight = itemWidth * aspectRatio;
 
     let shortestColumn = 0;
@@ -213,10 +215,18 @@ function renderVisibleGridItems() {
     }
   });
 
-  // 创建/补充可视区节点
+  // 更新已有节点的位置与尺寸，并创建新节点
   visibleIndices.forEach(idx => {
-    if (photoGrid.querySelector(`.photo-item[data-index="${idx}"]`)) return;
     const layout = gridLayoutItems[idx];
+    const existing = photoGrid.querySelector(`.photo-item[data-index="${idx}"]`);
+    if (existing) {
+      existing.style.left = `${layout.left}px`;
+      existing.style.top = `${layout.top}px`;
+      existing.style.width = `${layout.width}px`;
+      existing.style.height = `${layout.height}px`;
+      existing.dataset.aspectRatio = layout.photo.height / layout.photo.width;
+      return;
+    }
     const item = createPhotoItem(layout.photo, layout.index, layout);
     photoGrid.appendChild(item);
   });
