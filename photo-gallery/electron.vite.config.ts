@@ -23,7 +23,8 @@ export default defineConfig({
     }
   },
   renderer: {
-    root: 'public',
+    root: '.',
+    publicDir: 'public',
     build: {
       outDir: 'dist-app/renderer',
       emptyOutDir: false,

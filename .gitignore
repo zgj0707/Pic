@@ -41,3 +41,6 @@ desktop.ini
 # Project specific
 .workbuddy/
 *.db-journal
+
+# Generated vendor assets (rebuilt by npm run copy-vendor)
+public/vendor/
