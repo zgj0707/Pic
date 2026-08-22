@@ -145,6 +145,16 @@
       height: auto;
       background: #1a1a1a; 
     }
+
+    .photo-grid:not(.compact-view) .photo-item .photo-content {
+      width: 100%;
+      height: 100%;
+    }
+
+    .photo-grid:not(.compact-view) .photo-item .photo-content img {
+      height: 100%;
+      object-fit: cover;
+    }
     
     .photo-item img.loaded { 
       opacity: 1; 
@@ -832,6 +842,15 @@
     let imageLoadCount = 0;
     let totalImagesToLoad = 0;
 
+    // ─── 虚拟滚动状态 ───
+    let isVirtualScrollEnabled = false;
+    let gridLayoutItems = [];
+    let gridTotalHeight = 0;
+    let gridScrollContainer = null;
+    let gridScrollListenerAdded = false;
+    let gridScrollTickPending = false;
+    const VIRTUAL_BUFFER_RATIO = 1.0; // 上下各预留一屏缓冲区
+
     const photoGrid = document.getElementById('photoGrid');
     const lightbox = document.getElementById('lightbox');
     const lightboxImage = document.getElementById('lightboxImage');
@@ -921,15 +940,24 @@
       }, 50);
     }
 
-    function createPhotoItem(photo, index) {
+    function createPhotoItem(photo, index, layout = null) {
       const item = document.createElement('div');
       item.className = `photo-item ${selectedPhotos.has(photo.id) ? 'selected' : ''}`;
       item.dataset.id = photo.id;
       item.dataset.index = index;
-      
+
       // 存储原始宽高比，用于瀑布流布局的初始计算
       const aspectRatio = photo.width && photo.height ? photo.height / photo.width : 0.75;
       item.dataset.aspectRatio = aspectRatio;
+
+      // 虚拟滚动模式下直接应用预计算位置与尺寸
+      if (layout) {
+        item.style.position = 'absolute';
+        item.style.left = `${layout.left}px`;
+        item.style.top = `${layout.top}px`;
+        item.style.width = `${layout.width}px`;
+        item.style.height = `${layout.height}px`;
+      }
       
       const imgSrc = photo.thumbnail_path || photo.filepath || '';
       
@@ -961,8 +989,10 @@
         const skeleton = item.querySelector('.skeleton');
         if (skeleton) skeleton.remove();
         imageLoadCount++;
-        // 图片加载后重新布局，使用实际宽高比
-        scheduleLayout();
+        // 非虚拟滚动模式下，图片加载后使用实际宽高比重新布局
+        if (!isVirtualScrollEnabled) {
+          scheduleLayout();
+        }
       };
       
       img.onerror = () => {
@@ -989,7 +1019,7 @@
       const searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
       const ratingFilterVal = document.getElementById('ratingFilter').value;
       const tagFilterVal = document.getElementById('tagFilter').value;
-      
+
       filteredPhotos = photos.filter(photo => {
         if (ratingFilterVal && (photo.rating || 0) < parseInt(ratingFilterVal)) return false;
         if (tagFilterVal && !photo.tags?.some(t => t === tagFilterVal)) return false;
@@ -1000,70 +1030,62 @@
         }
         return true;
       });
-      
+
       document.getElementById('emptyState').classList.toggle('hidden', photos.length > 0);
-      
+
       photoGrid.innerHTML = '';
-      
+      if (gridScrollContainer) gridScrollContainer.scrollTop = 0;
+      isVirtualScrollEnabled = false;
+
       imageLoadCount = 0;
       totalImagesToLoad = filteredPhotos.length;
-      
-      const items = [];
-      filteredPhotos.forEach((photo, index) => {
-        const item = createPhotoItem(photo, index);
-        photoGrid.appendChild(item);
-        items.push(item);
-      });
-      
+
       updatePhotoCount();
       restoreSelectedState();
-      
+
       if (currentViewMode === 'compact') {
         photoGrid.classList.add('compact-view');
         photoGrid.style.height = 'auto';
-        items.forEach(item => {
-          item.style.left = '';
-          item.style.top = '';
-          item.style.width = '';
+        filteredPhotos.forEach((photo, index) => {
+          const item = createPhotoItem(photo, index);
+          photoGrid.appendChild(item);
         });
       } else {
-        requestAnimationFrame(() => {
-          layoutMasonry();
-        });
+        photoGrid.classList.remove('compact-view');
+        isVirtualScrollEnabled = true;
+        computeGridLayout();
+        if (!gridScrollListenerAdded) {
+          gridScrollContainer = document.getElementById('photoGridContainer');
+          gridScrollContainer.addEventListener('scroll', onGridScroll, { passive: true });
+          gridScrollListenerAdded = true;
+        }
+        renderVisibleGridItems();
       }
     }
     
-    function layoutMasonry() {
+    // ─── 虚拟滚动：计算所有照片的瀑布流位置 ───
+    function computeGridLayout() {
       const containerWidth = photoGrid.clientWidth - 32;
       const gap = 12;
-      
+
       // 根据实际可用宽度调整列数（模拟窗口宽度变化的效果）
       let columns = 5;
       if (containerWidth < 600) columns = 2;
       else if (containerWidth < 900) columns = 3;
       else if (containerWidth < 1200) columns = 4;
-      
+
       const itemWidth = (containerWidth - (columns - 1) * gap) / columns;
-      
+
       const columnHeights = new Array(columns).fill(16);
-      const items = photoGrid.querySelectorAll('.photo-item');
-      
-      items.forEach((item) => {
-        const img = item.querySelector('img');
-        let itemHeight;
-        
-        // 优先使用图片加载后的自然尺寸，否则用数据库存储的宽高比
-        if (img.complete && img.naturalHeight > 0 && img.naturalWidth > 0) {
-          const ratio = img.naturalHeight / img.naturalWidth;
-          itemHeight = itemWidth * ratio;
-        } else {
-          const aspectRatio = parseFloat(item.dataset.aspectRatio) || 0.75;
-          itemHeight = itemWidth * aspectRatio;
+      gridLayoutItems = filteredPhotos.map((photo, index) => {
+        // 优先使用数据库存储的宽高比；若照片已加载且自然尺寸可用，则使用实际值
+        const existing = photoGrid.querySelector(`.photo-item[data-index="${index}"] img`);
+        let aspectRatio = photo.width && photo.height ? photo.height / photo.width : 0.75;
+        if (existing && existing.complete && existing.naturalHeight > 0 && existing.naturalWidth > 0) {
+          aspectRatio = existing.naturalHeight / existing.naturalWidth;
         }
-        
-        item.style.width = `${itemWidth}px`;
-        item.style.height = `${itemHeight}px`;
-        
+        const itemHeight = itemWidth * aspectRatio;
+
         let shortestColumn = 0;
         let minHeight = columnHeights[0];
         for (let i = 1; i < columns; i++) {
@@ -1072,15 +1094,74 @@
             shortestColumn = i;
           }
         }
-        
-        item.style.left = `${16 + shortestColumn * (itemWidth + gap)}px`;
-        item.style.top = `${columnHeights[shortestColumn]}px`;
-        
+
+        const left = 16 + shortestColumn * (itemWidth + gap);
+        const top = columnHeights[shortestColumn];
         columnHeights[shortestColumn] += itemHeight + gap;
+
+        return {
+          index,
+          photo,
+          column: shortestColumn,
+          left,
+          top,
+          width: itemWidth,
+          height: itemHeight
+        };
       });
-      
-      const maxHeight = Math.max(...columnHeights);
-      photoGrid.style.height = `${maxHeight}px`;
+
+      gridTotalHeight = Math.max(...columnHeights);
+      photoGrid.style.height = `${gridTotalHeight}px`;
+    }
+
+    // ─── 虚拟滚动：仅渲染可视区及缓冲区内的 DOM 节点 ───
+    function renderVisibleGridItems() {
+      if (!isVirtualScrollEnabled || !gridScrollContainer || gridLayoutItems.length === 0) return;
+
+      const scrollTop = gridScrollContainer.scrollTop;
+      const viewportHeight = gridScrollContainer.clientHeight;
+      const buffer = viewportHeight * VIRTUAL_BUFFER_RATIO;
+      const minTop = scrollTop - buffer;
+      const maxTop = scrollTop + viewportHeight + buffer;
+
+      const visibleIndices = new Set();
+      gridLayoutItems.forEach(item => {
+        if (item.top + item.height >= minTop && item.top <= maxTop) {
+          visibleIndices.add(item.index);
+        }
+      });
+
+      // 移除不在可视区的节点
+      photoGrid.querySelectorAll('.photo-item').forEach(el => {
+        const idx = parseInt(el.dataset.index, 10);
+        if (!visibleIndices.has(idx)) {
+          el.remove();
+        }
+      });
+
+      // 创建/补充可视区节点
+      visibleIndices.forEach(idx => {
+        if (photoGrid.querySelector(`.photo-item[data-index="${idx}"]`)) return;
+        const layout = gridLayoutItems[idx];
+        const item = createPhotoItem(layout.photo, layout.index, layout);
+        photoGrid.appendChild(item);
+      });
+    }
+
+    function onGridScroll() {
+      if (gridScrollTickPending) return;
+      gridScrollTickPending = true;
+      requestAnimationFrame(() => {
+        gridScrollTickPending = false;
+        renderVisibleGridItems();
+      });
+    }
+
+    // 保留旧函数名作为虚拟布局的兼容入口
+    function layoutMasonry() {
+      if (!isVirtualScrollEnabled) return;
+      computeGridLayout();
+      renderVisibleGridItems();
     }
     
     // 使用 requestAnimationFrame 合并多次布局请求，避免频繁重排
@@ -1098,8 +1179,9 @@
     window.addEventListener('resize', () => {
       clearTimeout(resizeDebounceTimer);
       resizeDebounceTimer = setTimeout(() => {
-        if (photoGrid.children.length > 0) {
-          layoutMasonry();
+        if (currentViewMode !== 'compact' && filteredPhotos.length > 0) {
+          computeGridLayout();
+          renderVisibleGridItems();
         }
       }, 200);
     });
@@ -1709,7 +1791,8 @@
       // 侧边栏切换后重新布局瀑布流，适配新的可用宽度
       setTimeout(() => {
         if (currentViewMode !== 'compact' && filteredPhotos.length > 0) {
-          layoutMasonry();
+          computeGridLayout();
+          renderVisibleGridItems();
         }
       }, 300); // 等待动画完成
     };
@@ -1718,7 +1801,8 @@
       // 侧边栏关闭后重新布局瀑布流，适配新的可用宽度
       setTimeout(() => {
         if (currentViewMode !== 'compact' && filteredPhotos.length > 0) {
-          layoutMasonry();
+          computeGridLayout();
+          renderVisibleGridItems();
         }
       }, 300); // 等待动画完成
     };
@@ -1748,7 +1832,8 @@
         document.documentElement.style.setProperty('--sidebar-width', `${newWidth}px`);
         // 拖拽时实时重新布局瀑布流
         if (currentViewMode !== 'compact' && filteredPhotos.length > 0) {
-          layoutMasonry();
+          computeGridLayout();
+          renderVisibleGridItems();
         }
       };
       
@@ -2582,22 +2667,22 @@
     function setViewMode(mode) {
       currentViewMode = mode;
       localStorage.setItem('photoViewMode', mode);
-      
-      const photoGrid = document.getElementById('photoGrid');
-      
+
       if (mode === 'compact') {
+        isVirtualScrollEnabled = false;
         photoGrid.classList.add('compact-view');
         photoGrid.style.height = 'auto';
-        photoGrid.querySelectorAll('.photo-item').forEach(item => {
-          item.style.left = '';
-          item.style.top = '';
-          item.style.width = '';
+        photoGrid.innerHTML = '';
+        filteredPhotos.forEach((photo, index) => {
+          const item = createPhotoItem(photo, index);
+          photoGrid.appendChild(item);
         });
+        restoreSelectedState();
       } else {
         photoGrid.classList.remove('compact-view');
-        layoutMasonry();
+        renderPhotoGrid();
       }
-      
+
       updateViewToggleButton();
     }
     
