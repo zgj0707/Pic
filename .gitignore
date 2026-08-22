@@ -43,4 +43,4 @@ desktop.ini
 *.db-journal
 
 # Generated vendor assets (rebuilt by npm run copy-vendor)
-public/vendor/
+photo-gallery/public/vendor/

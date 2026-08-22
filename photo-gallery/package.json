@@ -9,7 +9,7 @@
     "dev": "node scripts/copy-vendor.mjs && node scripts/build-content.mjs && electron-vite dev",
     "build": "npm run typecheck && node scripts/copy-vendor.mjs && electron-vite build && node scripts/build-content.mjs",
     "copy-vendor": "node scripts/copy-vendor.mjs",
-    "git:push": "cd .. && C:\\Users\\Administrator\\.workbuddy\\vendor\\PortableGit\\cmd\\git.exe add -A && C:\\Users\\Administrator\\.workbuddy\\vendor\\PortableGit\\cmd\\git.exe commit -m \"feat: CDN 资源本地化，移除外部 CDN 依赖\" && C:\\Users\\Administrator\\.workbuddy\\vendor\\PortableGit\\cmd\\git.exe push origin main",
+    "git:clean-vendor": "cd .. && C:\\Users\\Administrator\\.workbuddy\\vendor\\PortableGit\\cmd\\git.exe rm -r --cached photo-gallery/public/vendor && C:\\Users\\Administrator\\.workbuddy\\vendor\\PortableGit\\cmd\\git.exe add -A && C:\\Users\\Administrator\\.workbuddy\\vendor\\PortableGit\\cmd\\git.exe commit -m \"chore: 忽略生成的 vendor 资源\" && C:\\Users\\Administrator\\.workbuddy\\vendor\\PortableGit\\cmd\\git.exe push origin main",
     "preview": "electron-vite preview",
     "postinstall": "electron-builder install-app-deps",
     "build:win": "npm run build && electron-builder --win",
