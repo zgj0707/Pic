@@ -2261,32 +2261,32 @@
       }
     });
 
-    // 轮询导入进度更新
-    let progressPollTimer = null;
+    // 导入进度事件推送
+    let importProgressUnsubscribe = null;
 
-    function startProgressPolling() {
-      if (progressPollTimer) clearInterval(progressPollTimer);
-      progressPollTimer = setInterval(async () => {
-        if (window.electronAPI?.import?.getProgress) {
-          try {
-            const prog = await window.electronAPI.import.getProgress();
-            if (prog.status === 'generating_thumbnails' && prog.total > 0) {
-              const percent = Math.round((prog.current / prog.total) * 100);
-              document.getElementById('progressTitle').textContent = '生成缩略图';
-              document.getElementById('progressText').textContent = prog.message;
-              updateProgress(percent, `${prog.current}/${prog.total}`);
-            }
-          } catch (e) {
-            // ignore
+    function startImportProgressListener() {
+      stopImportProgressListener();
+      if (window.electronAPI?.import?.onProgress) {
+        const handler = (prog) => {
+          if (prog.status === 'importing' && prog.total > 0) {
+            const percent = Math.round((prog.current / prog.total) * 100);
+            document.getElementById('progressTitle').textContent = '导入照片';
+            document.getElementById('progressText').textContent = prog.message;
+            updateProgress(percent, `${prog.current}/${prog.total}`);
+          } else if (prog.status === 'scanning') {
+            document.getElementById('progressTitle').textContent = '导入照片';
+            document.getElementById('progressText').textContent = prog.message;
+            updateProgress(0, '扫描中...');
           }
-        }
-      }, 500);
+        };
+        importProgressUnsubscribe = window.electronAPI.import.onProgress(handler);
+      }
     }
 
-    function stopProgressPolling() {
-      if (progressPollTimer) {
-        clearInterval(progressPollTimer);
-        progressPollTimer = null;
+    function stopImportProgressListener() {
+      if (importProgressUnsubscribe) {
+        importProgressUnsubscribe();
+        importProgressUnsubscribe = null;
       }
     }
 
@@ -2295,9 +2295,9 @@
       const dir = await window.electronAPI.dialog.openDirectory();
       if (!dir) return;
       showProgress('导入照片', '正在扫描...', '');
-      startProgressPolling();
+      startImportProgressListener();
       const result = await window.electronAPI.import.fromDirectory(dir);
-      stopProgressPolling();
+      stopImportProgressListener();
       hideProgress();
       if (result.success) {
         let message = `成功导入 ${result.imported} 张照片`;
@@ -2322,9 +2322,9 @@
       const files = await window.electronAPI.dialog.openFile();
       if (!files || files.length === 0) return;
       showProgress('导入照片', '正在导入...', '');
-      startProgressPolling();
+      startImportProgressListener();
       const result = await window.electronAPI.import.fromFiles(files);
-      stopProgressPolling();
+      stopImportProgressListener();
       hideProgress();
       if (result.success) {
         let message = `成功导入 ${result.imported} 张照片`;

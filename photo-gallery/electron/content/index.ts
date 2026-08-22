@@ -113,7 +113,7 @@ export function registerIpc(c: ContentContext): void {
   ctx = c
   registerPhotoIpc()
   registerAlbumIpc()
-  registerImportIpc()
+  registerImportIpc(c.getMainWindow())
   registerRenameIpc()
   registerTagManagerIpc()
   registerExifToolIpc()

@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { ipcMain, BrowserWindow } from 'electron'
 import { dbAdapter, saveDatabase } from '../services/database'
 import { existsSync } from 'fs'
 import { basename } from 'path'
@@ -12,6 +12,13 @@ let importProgress: ImportProgress = {
   current: 0,
   status: 'idle',
   message: ''
+}
+
+let mainWindowRef: BrowserWindow | null = null
+
+function notifyProgress(progress: ImportProgress): void {
+  importProgress = progress
+  mainWindowRef?.webContents.send('import:progress', progress)
 }
 
 /**
@@ -81,18 +88,20 @@ async function performImport(
   filePaths: string[],
   statusLabel: string
 ): Promise<ImportResult> {
-  importProgress = { total: 0, current: 0, status: 'scanning', message: '扫描文件中...' }
-  importProgress.total = filePaths.length
-  importProgress.status = 'importing'
-  importProgress.message = `${statusLabel}... 0/${filePaths.length}`
+  notifyProgress({ total: 0, current: 0, status: 'scanning', message: '扫描文件中...' })
+  notifyProgress({ total: filePaths.length, current: 0, status: 'importing', message: `${statusLabel}... 0/${filePaths.length}` })
 
   let imported = 0
   let skipped = 0
 
   for (let i = 0; i < filePaths.length; i++) {
     const filePath = filePaths[i]
-    importProgress.current = i + 1
-    importProgress.message = `${statusLabel}... ${i + 1}/${filePaths.length} (新增: ${imported}, 跳过: ${skipped})`
+    notifyProgress({
+      total: filePaths.length,
+      current: i + 1,
+      status: 'importing',
+      message: `${statusLabel}... ${i + 1}/${filePaths.length} (新增: ${imported}, 跳过: ${skipped})`
+    })
 
     const photo = await importPhotoToDatabase(filePath)
     if (photo) {
@@ -107,13 +116,14 @@ async function performImport(
   let message = `完成，新增 ${imported} 张`
   if (skipped > 0) message += `，跳过 ${skipped} 张重复`
 
-  importProgress.status = 'done'
-  importProgress.message = message
+  notifyProgress({ total: filePaths.length, current: filePaths.length, status: 'done', message })
 
   return { success: true, imported, skipped, thumbnailsGenerated: 0, total: filePaths.length }
 }
 
-export function registerImportIpc(): void {
+export function registerImportIpc(mainWindow: BrowserWindow | null): void {
+  mainWindowRef = mainWindow
+
   ipcMain.handle('import:fromDirectory', wrapAsyncHandler('import:fromDirectory',
     async (_event, dirPath: string): Promise<ImportResult> => {
       const filePaths = scanDirectory(dirPath)

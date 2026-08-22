@@ -33,6 +33,7 @@ export interface ElectronAPI {
     fromDirectory: (dirPath: string) => Promise<ImportResult>
     fromFiles: (filePaths: string[]) => Promise<ImportResult>
     getProgress: () => Promise<ImportProgress>
+    onProgress: (callback: (progress: ImportProgress) => void) => () => void
   }
   path: {
     join: (...paths: string[]) => Promise<string>
@@ -110,7 +111,12 @@ const api: ElectronAPI = {
   import: {
     fromDirectory: (dirPath: string) => ipcRenderer.invoke('import:fromDirectory', dirPath),
     fromFiles: (filePaths: string[]) => ipcRenderer.invoke('import:fromFiles', filePaths),
-    getProgress: () => ipcRenderer.invoke('import:getProgress')
+    getProgress: () => ipcRenderer.invoke('import:getProgress'),
+    onProgress: (callback) => {
+      const wrapped = (_event: unknown, data: ImportProgress) => callback(data)
+      ipcRenderer.on('import:progress', wrapped)
+      return () => ipcRenderer.removeListener('import:progress', wrapped)
+    }
   },
   path: {
     join: (...paths: string[]) => ipcRenderer.invoke('path:join', ...paths),
