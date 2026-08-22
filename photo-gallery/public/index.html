@@ -1,0 +1,2653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pic</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/masonry/4.2.2/masonry.pkgd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.4.4/photoswipe-lightbox.esm.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bgPrimary: '#0a0a0a',
+            bgSecondary: '#141414',
+            textPrimary: '#f0ede8',
+            textSecondary: '#9a9791',
+            textDisabled: '#6b6864',
+            accent: '#c9955a',
+            borderColor: '#1e1e1e',
+            disabled: '#555555',
+            scrollbar: '#333333'
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    :root {
+      --sidebar-width: 280px;
+      --sidebar-min-width: 200px;
+      --sidebar-max-width: 400px;
+      --accent: #c9955a;
+      --accent-glow: rgba(201, 149, 90, 0.3);
+      --bg-deep: #0a0a0a;
+      --bg-surface: #141414;
+      --bg-elevated: #1a1a1a;
+      --border-subtle: #1e1e1e;
+      --text-warm: #f0ede8;
+      --text-muted: #9a9791;
+    }
+    
+    * { transform: translateZ(0); backface-visibility: hidden; }
+    
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    
+    /* === Noise Texture Overlay === */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9998;
+      opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 256px 256px;
+    }
+    
+    /* === Scrollbar === */
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #333333; border-radius: 3px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555555; }
+    
+    /* === Photo Grid === */
+    .photo-grid { 
+      padding: 20px; 
+      position: relative;
+    }
+    
+    .photo-grid .photo-item {
+      background: #141414;
+      border-radius: 4px;
+      overflow: hidden;
+      cursor: pointer;
+      position: absolute;
+      opacity: 1;
+      transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.3s ease;
+      will-change: transform;
+    }
+    
+    .photo-grid .photo-item::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 3;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+      transition: box-shadow 0.3s ease;
+    }
+    
+    .photo-grid.compact-view {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 20px;
+    }
+    
+    .photo-grid.compact-view .photo-item {
+      position: relative;
+      width: 160px;
+      height: 107px;
+      flex-shrink: 0;
+    }
+    
+    .photo-grid.compact-view .photo-item .photo-content {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    
+    .photo-grid.compact-view .photo-item .photo-content img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    /* === Photo Hover Glow === */
+    .photo-grid .photo-item:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 0 1px rgba(201, 149, 90, 0.15), 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 60px rgba(201, 149, 90, 0.06);
+      z-index: 5;
+    }
+    
+    .photo-grid .photo-item:hover::after {
+      box-shadow: inset 0 0 0 1px rgba(201, 149, 90, 0.2);
+    }
+    
+    .photo-grid .photo-item.selected {
+      box-shadow: 0 0 0 2px var(--accent), 0 0 0 4px rgba(201, 149, 90, 0.15), 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 60px rgba(201, 149, 90, 0.08);
+      z-index: 4;
+    }
+    
+    .photo-grid .photo-item.selected::after {
+      box-shadow: inset 0 0 0 1px rgba(201, 149, 90, 0.3);
+    }
+    
+    .photo-grid .photo-item.selected::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(201, 149, 90, 0.05);
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    .photo-grid .photo-item img { 
+      display: block; 
+      width: 100%; 
+      height: auto;
+      background: #1a1a1a; 
+    }
+    
+    .photo-item img.loaded { 
+      opacity: 1; 
+      transition: opacity 0.4s ease;
+    }
+    
+    .photo-item img:not(.loaded) { 
+      opacity: 0; 
+    }
+    
+    .photo-item .skeleton {
+      position: absolute; 
+      inset: 0;
+      background: linear-gradient(90deg, #141414 25%, #1e1e1e 50%, #141414 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      z-index: 0;
+    }
+    
+    @keyframes shimmer { 
+      0% { background-position: 200% 0; } 
+      100% { background-position: -200% 0; } 
+    }
+    
+    .photo-item .photo-content {
+      position: relative;
+      z-index: 2;
+    }
+    
+    .photo-item .photo-content img {
+      width: 100%;
+      display: block;
+    }
+    
+    /* === Selection Indicator === */
+    .photo-item .selection-indicator {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 22px;
+      height: 22px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+      border: 2px solid rgba(255,255,255,0.2);
+      transform: scale(0.85);
+    }
+    
+    .photo-item:hover .selection-indicator {
+      opacity: 1;
+      transform: scale(1);
+    }
+    
+    .photo-item.selected .selection-indicator {
+      opacity: 1;
+      transform: scale(1);
+      background: var(--accent);
+      border-color: #fff;
+      box-shadow: 0 0 12px rgba(201, 149, 90, 0.4);
+    }
+    
+    .photo-item .selection-indicator i {
+      color: #fff;
+      font-size: 11px;
+    }
+    
+    .photo-item .rating-overlay {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      display: flex;
+      gap: 1px;
+      z-index: 10;
+    }
+    
+    .photo-item .tags-overlay {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      right: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      z-index: 10;
+      max-height: 60px;
+      overflow: hidden;
+    }
+    
+    .photo-item .tags-overlay .tag-badge {
+      font-size: 9px;
+      padding: 2px 6px;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+      border-radius: 3px;
+      color: #f0ede8;
+      letter-spacing: 0.02em;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    
+    /* === Lightbox === */
+    .lightbox-viewer {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.96); z-index: 1000;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .lightbox-viewer img { max-width: 95vw; max-height: 90vh; object-fit: contain; cursor: grab; }
+    .lightbox-viewer img:active { cursor: grabbing; }
+    
+    /* === Metadata Panel === */
+    .metadata-panel {
+      flex-shrink: 0;
+      width: 0;
+      overflow: hidden;
+      background: #141414;
+      border-left: 1px solid #1e1e1e;
+      transition: width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.25s ease;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+    }
+    .metadata-panel.open {
+      width: var(--sidebar-width);
+      opacity: 1;
+    }
+    .metadata-panel .panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.25rem;
+      min-width: var(--sidebar-min-width);
+    }
+    .resize-handle {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      cursor: col-resize;
+      background: transparent;
+      transition: background 0.15s ease;
+      z-index: 10;
+    }
+    .resize-handle:hover,
+    .resize-handle:active {
+      background: var(--accent);
+    }
+    
+    /* === Toast === */
+    .toast-container {
+      position: fixed; bottom: 24px; right: 24px; z-index: 2000;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .toast {
+      padding: 14px 22px; background: rgba(26, 26, 26, 0.92); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+      animation: slideIn 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      backdrop-filter: blur(16px);
+      font-size: 13px;
+      color: #f0ede8;
+    }
+    @keyframes slideIn { from { transform: translateY(8px) scale(0.96); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+    @keyframes slideOut { from { transform: translateY(0) scale(1); opacity: 1; } to { transform: translateY(8px) scale(0.96); opacity: 0; } }
+    
+    /* === Progress Overlay === */
+    .progress-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(8px);
+      z-index: 1500; display: flex; align-items: center; justify-content: center;
+    }
+    .progress-card { background: rgba(20, 20, 20, 0.95); padding: 32px; border-radius: 14px; min-width: 400px; border: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(16px); box-shadow: 0 16px 48px rgba(0,0,0,0.5); }
+    
+    /* === Context Menu === */
+    .context-menu { 
+      position: fixed; 
+      background: rgba(20, 20, 20, 0.96); 
+      border: 1px solid rgba(255,255,255,0.08); 
+      border-radius: 8px; 
+      z-index: 3000; 
+      min-width: 180px; 
+      box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+      backdrop-filter: blur(20px);
+      padding: 4px;
+    }
+    .context-menu-item { 
+      padding: 9px 14px; 
+      cursor: pointer; 
+      font-size: 13px; 
+      color: #e0ddd8; 
+      display: flex; 
+      align-items: center;
+      border-radius: 4px;
+      transition: background 0.15s ease;
+    }
+    .context-menu-item:hover { 
+      background: var(--accent); 
+      color: #fff; 
+    }
+    
+    /* === Modal === */
+    .modal-overlay { 
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; 
+      display: flex; align-items: center; justify-content: center; 
+      backdrop-filter: blur(8px);
+    }
+    .modal-content { 
+      background: rgba(20, 20, 20, 0.97); 
+      padding: 28px; 
+      border-radius: 14px; 
+      min-width: 400px; 
+      max-width: 90vw; 
+      border: 1px solid rgba(255,255,255,0.06); 
+      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+      animation: modalIn 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.96) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    
+    .zoom-controls { 
+      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); 
+      display: flex; gap: 8px; z-index: 1002; 
+      background: rgba(20,20,20,0.85); 
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 6px;
+    }
+    
+    .tag-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 4px;
+      font-size: 11px;
+      color: #f0ede8;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    
+    /* === Photo item entrance animation === */
+    .photo-item {
+      animation: photoEntrance 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+    }
+    @keyframes photoEntrance {
+      from { opacity: 0; transform: scale(0.95) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    
+    /* === Nav item active indicator === */
+    .nav-item {
+      position: relative;
+      font-family: 'DM Sans', sans-serif;
+      letter-spacing: 0.02em;
+    }
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 20px;
+      height: 2px;
+      background: var(--accent);
+      border-radius: 1px;
+    }
+    
+    /* === Header Glass Effect === */
+    header {
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(10, 10, 10, 0.85) !important;
+      border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+    }
+    
+    /* === Main content area background === */
+    .bg-bgPrimary {
+      background-color: var(--bg-deep);
+    }
+    
+    /* === Accent button hover refinement === */
+    .hover\\:bg-accent\\/80:hover {
+      background-color: rgba(201, 149, 90, 0.8) !important;
+    }
+    
+    .focus\\:border-accent:focus {
+      border-color: var(--accent) !important;
+    }
+    
+    /* === Scrollbar for lightbox === */
+    .lightbox-viewer .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    
+    /* === Smooth transition for view changes === */
+    .photo-grid {
+      transition: opacity 0.2s ease;
+    }
+    
+    /* === Hamburger/right sidebar === */
+    .w-16.bg-bgPrimary {
+      background: transparent !important;
+      border-left: 1px solid rgba(255,255,255,0.04) !important;
+    }
+  </style>
+</head>
+<body class="bg-bgPrimary text-textPrimary h-screen overflow-hidden select-none">
+  <div class="flex flex-col h-screen">
+    <header class="h-12 bg-bgSecondary flex items-center px-4 border-b border-borderColor shrink-0">
+      <nav class="flex items-center space-x-6 mr-4">
+        <button id="nav-gallery" class="nav-item active text-textPrimary font-medium py-3 text-sm">样片库</button>
+        <button id="nav-browser" class="nav-item text-textSecondary hover:text-textPrimary py-3 text-sm">素材浏览器</button>
+      </nav>
+      <button id="importFolderBtn" class="px-3 py-1.5 bg-accent text-white text-sm rounded hover:bg-accent/80 mr-3">
+        <i class="fa-solid fa-folder-open mr-1"></i>导入文件夹
+      </button>
+      <button id="importFilesBtn" class="px-3 py-1.5 bg-bgPrimary border border-borderColor text-textPrimary text-sm rounded hover:bg-bgSecondary mr-4">
+        <i class="fa-solid fa-file-import mr-1"></i>导入文件
+      </button>
+      <div class="relative flex-1 max-w-sm">
+        <input type="text" id="searchInput" placeholder="搜索关键词、标签、评级..." 
+          class="w-full h-8 bg-bgPrimary border border-borderColor rounded px-10 text-sm text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent">
+        <i class="fa-solid fa-magnifying-glass absolute right-3 top-1/2 -translate-y-1/2 text-textDisabled"></i>
+      </div>
+      <div class="flex items-center space-x-3 ml-4">
+        <button id="deleteBtn" class="p-2 hover:bg-bgPrimary rounded text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed" title="删除选中" disabled>
+          <i class="fa-solid fa-trash"></i>
+        </button>
+        <button id="exportPdfBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary disabled:opacity-50 disabled:cursor-not-allowed" title="导出为PDF" disabled>
+          <i class="fa-solid fa-file-pdf"></i>
+        </button>
+        <button id="copyToDesktopBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary disabled:opacity-50 disabled:cursor-not-allowed" title="复制选中到桌面" disabled>
+          <i class="fa-solid fa-folder-plus"></i>
+        </button>
+        <button id="viewToggleBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary" title="切换到紧凑视图">
+          <i class="fa-solid fa-th-large" id="viewToggleIcon"></i>
+        </button>
+        <button id="settingsBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary" title="设置">
+          <i class="fa-solid fa-cog"></i>
+        </button>
+        <button id="metadataPanelBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary" title="批量操作">
+          <i class="fa-solid fa-sliders-h"></i>
+        </button>
+        <button id="aboutBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary" title="关于">
+          <i class="fa-solid fa-info-circle"></i>
+        </button>
+      </div>
+    </header>
+    
+    <main class="flex-1 overflow-hidden flex">
+      <div id="galleryPanel" class="flex-1 flex flex-col overflow-hidden">
+        <div class="h-10 bg-bgPrimary flex items-center justify-between px-4 border-b border-borderColor shrink-0">
+          <div class="flex items-center space-x-3">
+            <span class="text-textSecondary text-sm">筛选:</span>
+            <select id="ratingFilter" class="bg-bgSecondary border border-borderColor rounded px-3 py-1.5 text-sm text-textPrimary focus:outline-none cursor-pointer">
+              <option value="">全部评级</option>
+              <option value="5">5星</option>
+              <option value="4">4星及以上</option>
+              <option value="3">3星及以上</option>
+              <option value="2">2星及以上</option>
+              <option value="1">1星及以上</option>
+            </select>
+            <select id="tagFilter" class="bg-bgSecondary border border-borderColor rounded px-3 py-1.5 text-sm text-textPrimary focus:outline-none cursor-pointer">
+              <option value="">全部标签</option>
+            </select>
+            <button id="clearFilterBtn" class="px-2 py-1 text-xs text-textSecondary hover:text-textPrimary">
+              <i class="fa-solid fa-undo mr-1"></i>重置
+            </button>
+            <span id="photoCount" class="text-textSecondary text-sm ml-4"></span>
+          </div>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto custom-scrollbar" id="photoGridContainer">
+          <div id="emptyState" class="hidden absolute inset-0 flex flex-col items-center justify-center text-textSecondary">
+            <div class="w-20 h-20 rounded-full bg-white/[0.03] flex items-center justify-center mb-6 border border-white/[0.04]">
+              <i class="fa-regular fa-images text-3xl text-accent/60"></i>
+            </div>
+            <p class="text-lg mb-1" style="font-family: 'DM Serif Display', serif; color: #f0ede8;">还没有导入任何照片</p>
+            <p class="text-sm text-textDisabled mb-6">点击下方按钮开始导入您的样片</p>
+            <div class="flex gap-3">
+              <button id="emptyImportFolderBtn2" class="px-5 py-2.5 bg-accent text-white text-sm rounded-lg hover:bg-accent/90 transition-all duration-200 shadow-lg shadow-accent/20">
+                <i class="fa-solid fa-folder-open mr-2"></i>导入文件夹
+              </button>
+            </div>
+          </div>
+          <div id="photoGrid" class="photo-grid"></div>
+        </div>
+      </div>
+      
+      <div id="browserPanel" class="flex-1 flex flex-col overflow-hidden hidden">
+        <div class="h-10 bg-bgPrimary flex items-center px-4 border-b border-borderColor shrink-0">
+          <div class="flex items-center space-x-2 mr-4">
+            <button id="browserBack" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="后退">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <button id="browserForward" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="前进">
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+            <button id="browserRefresh" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="刷新">
+              <i class="fa-solid fa-rotate-right"></i>
+            </button>
+          </div>
+          <div class="flex-1 flex items-center space-x-2">
+            <input id="browserUrl" type="text" value="https://www.xiaohongshu.com" 
+              class="flex-1 h-8 bg-bgSecondary border border-borderColor rounded px-3 text-sm text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent">
+            <button id="browserGo" class="px-3 py-1.5 bg-accent text-white text-sm rounded hover:bg-accent/80">
+              <i class="fa-solid fa-paper-plane"></i>
+            </button>
+          </div>
+          <div class="flex items-center space-x-2 ml-4">
+            <button id="browserModeToggle" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="切换浏览器模式">
+              <i class="fa-solid fa-globe" id="browserModeIcon"></i>
+            </button>
+            <button id="takeScreenshot" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="截图并保存">
+              <i class="fa-solid fa-camera"></i>
+            </button>
+            <button id="openDownloadDir" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="打开下载目录">
+              <i class="fa-solid fa-folder-open"></i>
+            </button>
+            <button id="clearDownloadCache" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="清空下载缓存">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="flex-1 overflow-hidden">
+          <webview id="materialWebview" src="https://www.xiaohongshu.com"
+            class="w-full h-full"
+            webpreferences="webviewTag=true;plugins=false;nodeIntegration=false;contextIsolation=true;javascript=yes;webSecurity=yes;spellcheck=false"
+            allowpopups></webview>
+        </div>
+        
+        <div id="downloadProgressBar" class="hidden h-2 bg-bgSecondary border-t border-borderColor">
+          <div id="downloadProgressInner" class="h-full bg-accent transition-all" style="width: 0%"></div>
+        </div>
+      </div>
+      <div id="metadataPanel" class="metadata-panel">
+        <div class="resize-handle"></div>
+        <div class="panel-content custom-scrollbar">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">批量操作</h3>
+            <button id="closeMetadataPanel" class="p-1 hover:bg-white/10 rounded"><i class="fa-solid fa-times"></i></button>
+          </div>
+          <div id="selectedCount" class="text-textSecondary text-sm mb-4">已选择 0 张照片</div>
+          <div class="mb-6">
+            <h4 class="text-sm font-medium mb-2">批量评级</h4>
+            <div class="star-rating" id="batchRating">
+              <span class="star" data-rating="1"><i class="fa-regular fa-star"></i></span>
+              <span class="star" data-rating="2"><i class="fa-regular fa-star"></i></span>
+              <span class="star" data-rating="3"><i class="fa-regular fa-star"></i></span>
+              <span class="star" data-rating="4"><i class="fa-regular fa-star"></i></span>
+              <span class="star" data-rating="5"><i class="fa-regular fa-star"></i></span>
+            </div>
+            <div class="flex gap-2 mt-2">
+              <button id="applyBatchRatingBtn" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">应用评级</button>
+              <button id="clearBatchRatingBtn" class="px-3 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700">清空</button>
+            </div>
+          </div>
+          <div class="mb-6">
+            <h4 class="text-sm font-medium mb-2">批量添加标签</h4>
+            <div class="flex gap-2 mb-2">
+              <input type="text" id="batchTagInput" placeholder="输入标签名" class="flex-1 h-8 bg-bgPrimary border border-borderColor rounded px-3 text-sm focus:outline-none focus:border-accent">
+              <button id="addBatchTagBtn" class="px-3 h-8 bg-accent text-white text-sm rounded hover:bg-accent/80"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <div id="batchTags" class="flex flex-wrap gap-2 mb-2"></div>
+            <button id="applyBatchTagsBtn" class="w-full py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>应用标签到选中照片</button>
+          </div>
+          <div class="mb-6">
+            <h4 class="text-sm font-medium mb-2">批量移除标签</h4>
+            <div class="flex gap-2 mb-2">
+              <input type="text" id="removeTagInput" placeholder="输入要移除的标签名" class="flex-1 h-8 bg-bgPrimary border border-borderColor rounded px-3 text-sm focus:outline-none focus:border-accent">
+              <button id="addRemoveTagBtn" class="px-3 h-8 bg-red-600 text-white text-sm rounded hover:bg-red-700"><i class="fa-solid fa-minus"></i></button>
+            </div>
+            <div id="removeTags" class="flex flex-wrap gap-2 mb-2"></div>
+            <button id="applyRemoveTagsBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>移除选中照片的标签</button>
+          </div>
+          <div class="mb-6">
+            <h4 class="text-sm font-medium mb-2">现有标签</h4>
+            <div id="existingTags" class="flex flex-wrap gap-2"></div>
+          </div>
+        </div>
+      </div>
+      <div class="w-16 bg-bgPrimary border-l border-borderColor flex flex-col items-center py-4 shrink-0">
+        <span class="text-textSecondary text-xs">2026</span>
+      </div>
+    </main>
+  </div>
+  
+  <div id="lightbox" class="lightbox-viewer hidden">
+    <button id="closeLightbox" class="absolute top-4 right-4 p-2 hover:bg-white/10 rounded text-white text-2xl z-10">
+      <i class="fa-solid fa-times"></i>
+    </button>
+    <button id="prevPhoto" class="absolute left-4 top-1/2 -translate-y-1/2 p-3 hover:bg-white/10 rounded text-white text-2xl z-10">
+      <i class="fa-solid fa-chevron-left"></i>
+    </button>
+    <button id="nextPhoto" class="absolute right-4 top-1/2 -translate-y-1/2 p-3 hover:bg-white/10 rounded text-white text-2xl z-10">
+      <i class="fa-solid fa-chevron-right"></i>
+    </button>
+    <button id="rotateLeft" class="absolute top-4 left-1/2 -translate-x-1/2 p-2 hover:bg-white/10 rounded text-white text-xl z-10" title="向左旋转">
+      <i class="fa-solid fa-rotate-left"></i>
+    </button>
+    <button id="rotateRight" class="absolute top-4 left-[calc(50%+48px)] p-2 hover:bg-white/10 rounded text-white text-xl z-10" title="向右旋转">
+      <i class="fa-solid fa-rotate-right"></i>
+    </button>
+    <div id="imageContainer" class="flex items-center justify-center w-full h-full overflow-hidden">
+      <img id="lightboxImage" src="" alt="">
+    </div>
+    <div class="zoom-controls bg-bgSecondary rounded-full px-4 py-2">
+      <button id="zoomOut" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white"><i class="fa-solid fa-minus"></i></button>
+      <span id="zoomLevel" class="px-3 py-1 text-white">100%</span>
+      <button id="zoomIn" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white"><i class="fa-solid fa-plus"></i></button>
+      <button id="zoomReset" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white ml-2">重置</button>
+    </div>
+    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 p-4 z-10">
+      <div class="flex items-center justify-between">
+        <div>
+          <p id="lightboxFilename" class="text-white text-sm"></p>
+          <p id="lightboxInfo" class="text-gray-400 text-xs mt-1"></p>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="star-rating" id="lightboxRating">
+              <span class="star" data-rating="1"><i class="fa-regular fa-star"></i></span>
+              <span class="star" data-rating="2"><i class="fa-regular fa-star"></i></span>
+              <span class="star" data-rating="3"><i class="fa-regular fa-star"></i></span>
+              <span class="star" data-rating="4"><i class="fa-regular fa-star"></i></span>
+              <span class="star" data-rating="5"><i class="fa-regular fa-star"></i></span>
+            </div>
+            <button id="addTagBtn" class="px-3 py-1 bg-accent text-white text-sm rounded hover:bg-accent/80">
+              <i class="fa-solid fa-tag mr-1"></i>添加标签
+            </button>
+          </div>
+      </div>
+      <div id="lightboxTags" class="flex flex-wrap gap-2 mt-3"></div>
+    </div>
+  </div>
+  
+  <div id="settingsModal" class="modal-overlay hidden">
+    <div class="modal-content max-w-lg">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-semibold">设置</h3>
+        <button id="closeSettingsBtn" class="p-1 hover:bg-white/10 rounded"><i class="fa-solid fa-times"></i></button>
+      </div>
+      <div class="bg-bgPrimary rounded-lg p-4 border border-borderColor mb-4">
+        <h4 class="text-sm font-medium mb-3">缩略图缓存管理</h4>
+        <div id="cacheStats" class="mb-4 p-3 bg-bgSecondary rounded">
+          <div class="flex justify-between text-sm mb-2"><span class="text-textSecondary">当前缓存大小:</span><span id="cacheSize" class="text-textPrimary font-medium">加载中...</span></div>
+          <div class="flex justify-between text-sm"><span class="text-textSecondary">缓存文件数:</span><span id="cacheFileCount" class="text-textPrimary">-</span></div>
+        </div>
+        <button id="cleanOldCacheBtn" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 mb-2"><i class="fa-solid fa-clock-rotate-left mr-2"></i>清理30天前的缓存</button>
+        <button id="clearAllCacheBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700"><i class="fa-solid fa-trash-alt mr-2"></i>清空全部缩略图缓存</button>
+      </div>
+      
+      <div class="bg-bgPrimary rounded-lg p-4 border border-borderColor">
+        <h4 class="text-sm font-medium mb-3">素材下载设置</h4>
+        <div class="mb-3">
+          <label class="text-sm text-textSecondary block mb-2">素材默认下载地址</label>
+          <div class="flex items-center gap-2">
+            <input type="text" id="downloadPath" readonly class="flex-1 h-8 bg-bgSecondary border border-borderColor rounded px-3 text-sm text-textPrimary">
+            <button id="browseDownloadPath" class="px-3 py-2 bg-accent text-white text-sm rounded hover:bg-accent/80">浏览</button>
+          </div>
+          <a href="#" id="openDownloadPathLink" class="text-sm text-accent hover:text-accent/80 flex items-center gap-1 mt-1">
+            <i class="fa-solid fa-external-link"></i>点击打开下载目录
+          </a>
+        </div>
+        <button id="clearDownloadCacheBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700"><i class="fa-solid fa-trash-alt mr-2"></i>清空下载缓存</button>
+      </div>
+    </div>
+  </div>
+  
+  <div id="aboutModal" class="modal-overlay hidden">
+    <div class="modal-content max-w-md">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold">关于</h3>
+        <button id="closeAboutBtn" class="p-1 hover:bg-white/10 rounded text-textSecondary hover:text-textPrimary">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="text-center">
+        <div class="w-20 h-20 mx-auto mb-4 rounded-lg bg-bgSecondary flex items-center justify-center">
+          <i class="fa-solid fa-images text-4xl text-accent"></i>
+        </div>
+        <h2 id="aboutAppName" class="text-xl font-bold mb-1">Pic</h2>
+        <p id="aboutVersion" class="text-textSecondary text-sm mb-4">版本 1.0.0</p>
+        <div class="text-left bg-bgPrimary rounded-lg p-4 border border-borderColor text-xs text-textSecondary space-y-1 mb-4">
+          <p><span class="text-textPrimary">Electron:</span> <span id="aboutElectronVersion"></span></p>
+          <p><span class="text-textPrimary">Chrome:</span> <span id="aboutChromeVersion"></span></p>
+          <p><span class="text-textPrimary">Node.js:</span> <span id="aboutNodeVersion"></span></p>
+        </div>
+        <button id="changelogBtn" class="w-full py-2 bg-accent text-white text-sm rounded hover:bg-accent/80 mb-4">
+          <i class="fa-solid fa-newspaper mr-2"></i>更新公告
+        </button>
+        <p class="text-xs text-textDisabled">
+          © 2026 Pic. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div id="changelogModal" class="modal-overlay hidden">
+    <div class="modal-content max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold">更新公告</h3>
+        <button id="closeChangelogBtn" class="p-1 hover:bg-white/10 rounded text-textSecondary hover:text-textPrimary">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto custom-scrollbar">
+        <div id="changelogContent" class="space-y-4">
+          <div class="text-center text-textSecondary py-8 text-sm">加载中...</div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-borderColor text-center">
+          <p class="text-xs text-textDisabled">
+            <i class="fa-solid fa-circle-info mr-1"></i>
+            更新公告由外部文件驱动，编辑 changelog.json 后重新打开此窗口即可生效
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div id="progressOverlay" class="progress-overlay hidden">
+    <div class="progress-card">
+      <div class="text-center mb-4">
+        <p id="progressTitle" class="text-lg font-semibold mb-2">处理中...</p>
+        <p id="progressText" class="text-sm text-textSecondary">请稍候...</p>
+      </div>
+      <div class="w-full bg-bgPrimary rounded-full h-2 mb-2">
+        <div id="progressBar" class="bg-accent h-2 rounded-full" style="width: 0%"></div>
+      </div>
+      <p id="progressStatus" class="text-xs text-center text-textSecondary"></p>
+    </div>
+  </div>
+  
+  <div id="toastContainer" class="toast-container"></div>
+
+  <div id="contextMenu" class="context-menu hidden">
+    <div class="context-menu-item" data-action="copyImage">
+      <i class="fa-regular fa-copy mr-2"></i>复制图片到剪贴板
+    </div>
+  </div>
+  
+  <div id="tagInputModal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <h3 class="text-lg font-semibold mb-4">添加标签</h3>
+      <div class="mb-4">
+        <p class="text-sm text-textSecondary mb-2">快速选择已使用的标签：</p>
+        <div id="usedTagsList" class="flex flex-wrap gap-2 mb-3"></div>
+      </div>
+      <div class="mb-4">
+        <p class="text-sm text-textSecondary mb-2">或输入新标签：</p>
+        <input type="text" id="tagInputField" placeholder="请输入标签名称" class="w-full h-10 bg-bgPrimary border border-borderColor rounded px-3 text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent" autocomplete="off">
+      </div>
+      <div class="flex justify-end gap-3">
+        <button id="tagInputCancel" class="px-4 py-2 text-textSecondary hover:text-textPrimary hover:bg-bgPrimary rounded">取消</button>
+        <button id="tagInputConfirm" class="px-4 py-2 bg-accent text-white rounded hover:bg-accent/80">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // HTML 转义：防止用户数据（文件名/路径/标签等）注入 innerHTML 造成 XSS
+    function escapeHtml(value) {
+      if (value === null || value === undefined) return '';
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    const photos = [];
+    let selectedPhotos = new Set();
+    let currentPhotoIndex = 0;
+    let filteredPhotos = [];
+    let lastClickedIndex = -1;
+    let batchTags = [];
+    let removeTags = [];
+    let zoomScale = 1;
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+    let imageOffset = { x: 0, y: 0 };
+    let masonryInstance = null;
+    let imageLoadCount = 0;
+    let totalImagesToLoad = 0;
+
+    const photoGrid = document.getElementById('photoGrid');
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImage = document.getElementById('lightboxImage');
+    const imageContainer = document.getElementById('imageContainer');
+    const toastContainer = document.getElementById('toastContainer');
+    const contextMenu = document.getElementById('contextMenu');
+    let contextMenuFilePath = '';
+
+    function showContextMenu(x, y, filePath) {
+      contextMenuFilePath = filePath;
+      contextMenu.style.left = x + 'px';
+      contextMenu.style.top = y + 'px';
+      contextMenu.classList.remove('hidden');
+      const rect = contextMenu.getBoundingClientRect();
+      if (rect.right > window.innerWidth) {
+        contextMenu.style.left = (window.innerWidth - rect.width - 10) + 'px';
+      }
+      if (rect.bottom > window.innerHeight) {
+        contextMenu.style.top = (window.innerHeight - rect.height - 10) + 'px';
+      }
+    }
+    function hideContextMenu() {
+      contextMenu.classList.add('hidden');
+      contextMenuFilePath = '';
+    }
+    document.addEventListener('click', (e) => {
+      if (!contextMenu.classList.contains('hidden') && !contextMenu.contains(e.target)) {
+        hideContextMenu();
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') hideContextMenu();
+    });
+    contextMenu.querySelectorAll('.context-menu-item').forEach(item => {
+      item.addEventListener('click', async (e) => {
+        const action = e.currentTarget.dataset.action;
+        if (action === 'copyImage' && contextMenuFilePath) {
+          if (window.electronAPI?.photos?.copyImageToClipboard) {
+            try {
+              const result = await window.electronAPI.photos.copyImageToClipboard(contextMenuFilePath);
+              if (result.success) {
+                showToast('图片已复制到剪贴板', 'success');
+              } else {
+                showToast('复制失败: ' + (result.error || '未知错误'), 'error');
+              }
+            } catch (err) {
+              showToast('复制失败: ' + err, 'error');
+            }
+          } else {
+            showToast('功能不可用', 'error');
+          }
+        }
+        hideContextMenu();
+      });
+    });
+
+    function showToast(message, type = 'info', duration = 3000) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      let icon = 'info-circle', iconColor = '#0078d4';
+      if (type === 'success') { icon = 'check-circle'; iconColor = '#10b981'; }
+      if (type === 'error') { icon = 'exclamation-circle'; iconColor = '#ef4444'; }
+      if (type === 'warning') { icon = 'exclamation-triangle'; iconColor = '#f59e0b'; }
+      toast.innerHTML = `<div class="flex items-center gap-2"><i class="fa-solid fa-${icon}" style="color: ${iconColor}"></i><span>${escapeHtml(message)}</span></div>`;
+      toastContainer.appendChild(toast);
+      setTimeout(() => { toast.style.animation = 'slideOut 0.3s ease-out forwards'; setTimeout(() => toast.remove(), 300); }, duration);
+    }
+
+    function showProgress(title, text, status = '') {
+      document.getElementById('progressTitle').textContent = title;
+      document.getElementById('progressText').textContent = text;
+      document.getElementById('progressStatus').textContent = status;
+      document.getElementById('progressBar').style.width = '0%';
+      document.getElementById('progressOverlay').classList.remove('hidden');
+    }
+    function updateProgress(percent, status = '') {
+      document.getElementById('progressBar').style.width = percent + '%';
+      if (status) document.getElementById('progressStatus').textContent = status;
+    }
+    function hideProgress() { 
+      document.getElementById('progressOverlay').classList.add('hidden');
+      setTimeout(() => {
+        const activeElement = document.activeElement;
+        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+          activeElement.focus();
+        }
+      }, 50);
+    }
+
+    function createPhotoItem(photo, index) {
+      const item = document.createElement('div');
+      item.className = `photo-item ${selectedPhotos.has(photo.id) ? 'selected' : ''}`;
+      item.dataset.id = photo.id;
+      item.dataset.index = index;
+      
+      // 存储原始宽高比，用于瀑布流布局的初始计算
+      const aspectRatio = photo.width && photo.height ? photo.height / photo.width : 0.75;
+      item.dataset.aspectRatio = aspectRatio;
+      
+      const imgSrc = photo.thumbnail_path || photo.filepath || '';
+      
+      const ratingHtml = photo.rating > 0 
+        ? Array(5).fill().map((_, i) => 
+            `<i class="fa-${i < photo.rating ? 'solid' : 'regular'} fa-star text-xs ${i < photo.rating ? 'text-yellow-400' : 'text-gray-500'}"></i>`
+          ).join('') 
+        : '';
+      
+      const tagsHtml = photo.tags?.map(tag => 
+        `<span class="tag-badge">${escapeHtml(tag)}</span>`
+      ).join('') || '';
+      
+      item.innerHTML = `
+        <div class="skeleton"></div>
+        <div class="photo-content">
+          <img data-src="${escapeHtml(imgSrc)}" alt="${escapeHtml(photo.filename)}">
+        </div>
+        <div class="selection-indicator">
+          <i class="fa-solid ${selectedPhotos.has(photo.id) ? 'fa-check' : 'fa-plus'}"></i>
+        </div>
+        <div class="rating-overlay">${ratingHtml}</div>
+        <div class="tags-overlay">${tagsHtml}</div>
+      `;
+      
+      const img = item.querySelector('img');
+      img.onload = () => {
+        img.classList.add('loaded');
+        const skeleton = item.querySelector('.skeleton');
+        if (skeleton) skeleton.remove();
+        imageLoadCount++;
+        // 图片加载后重新布局，使用实际宽高比
+        scheduleLayout();
+      };
+      
+      img.onerror = () => {
+        const skeleton = item.querySelector('.skeleton');
+        if (skeleton) skeleton.remove();
+        img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"%3E%3Crect fill="%233a3a3a" width="200" height="200"/%3E%3Ctext fill="%23666" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3E图片加载失败%3C/text%3E%3C/svg%3E';
+        img.classList.add('loaded');
+        imageLoadCount++;
+      };
+      
+      img.src = imgSrc;
+      
+      item.addEventListener('click', (e) => handlePhotoClick(e, photo, index));
+      item.addEventListener('dblclick', (e) => { e.preventDefault(); openLightbox(photo, index); });
+      item.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showContextMenu(e.clientX, e.clientY, photo.filepath || photo.thumbnail_path || '');
+      });
+      
+      return item;
+    }
+
+    function renderPhotoGrid() {
+      const searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
+      const ratingFilterVal = document.getElementById('ratingFilter').value;
+      const tagFilterVal = document.getElementById('tagFilter').value;
+      
+      filteredPhotos = photos.filter(photo => {
+        if (ratingFilterVal && (photo.rating || 0) < parseInt(ratingFilterVal)) return false;
+        if (tagFilterVal && !photo.tags?.some(t => t === tagFilterVal)) return false;
+        if (searchQuery) {
+          const matchName = photo.filename?.toLowerCase().includes(searchQuery);
+          const matchTags = photo.tags?.some(t => t.toLowerCase().includes(searchQuery));
+          if (!matchName && !matchTags) return false;
+        }
+        return true;
+      });
+      
+      document.getElementById('emptyState').classList.toggle('hidden', photos.length > 0);
+      
+      photoGrid.innerHTML = '';
+      
+      imageLoadCount = 0;
+      totalImagesToLoad = filteredPhotos.length;
+      
+      const items = [];
+      filteredPhotos.forEach((photo, index) => {
+        const item = createPhotoItem(photo, index);
+        photoGrid.appendChild(item);
+        items.push(item);
+      });
+      
+      updatePhotoCount();
+      restoreSelectedState();
+      
+      if (currentViewMode === 'compact') {
+        photoGrid.classList.add('compact-view');
+        photoGrid.style.height = 'auto';
+        items.forEach(item => {
+          item.style.left = '';
+          item.style.top = '';
+          item.style.width = '';
+        });
+      } else {
+        requestAnimationFrame(() => {
+          layoutMasonry();
+        });
+      }
+    }
+    
+    function layoutMasonry() {
+      const containerWidth = photoGrid.clientWidth - 32;
+      const gap = 12;
+      
+      // 根据实际可用宽度调整列数（模拟窗口宽度变化的效果）
+      let columns = 5;
+      if (containerWidth < 600) columns = 2;
+      else if (containerWidth < 900) columns = 3;
+      else if (containerWidth < 1200) columns = 4;
+      
+      const itemWidth = (containerWidth - (columns - 1) * gap) / columns;
+      
+      const columnHeights = new Array(columns).fill(16);
+      const items = photoGrid.querySelectorAll('.photo-item');
+      
+      items.forEach((item) => {
+        const img = item.querySelector('img');
+        let itemHeight;
+        
+        // 优先使用图片加载后的自然尺寸，否则用数据库存储的宽高比
+        if (img.complete && img.naturalHeight > 0 && img.naturalWidth > 0) {
+          const ratio = img.naturalHeight / img.naturalWidth;
+          itemHeight = itemWidth * ratio;
+        } else {
+          const aspectRatio = parseFloat(item.dataset.aspectRatio) || 0.75;
+          itemHeight = itemWidth * aspectRatio;
+        }
+        
+        item.style.width = `${itemWidth}px`;
+        item.style.height = `${itemHeight}px`;
+        
+        let shortestColumn = 0;
+        let minHeight = columnHeights[0];
+        for (let i = 1; i < columns; i++) {
+          if (columnHeights[i] < minHeight) {
+            minHeight = columnHeights[i];
+            shortestColumn = i;
+          }
+        }
+        
+        item.style.left = `${16 + shortestColumn * (itemWidth + gap)}px`;
+        item.style.top = `${columnHeights[shortestColumn]}px`;
+        
+        columnHeights[shortestColumn] += itemHeight + gap;
+      });
+      
+      const maxHeight = Math.max(...columnHeights);
+      photoGrid.style.height = `${maxHeight}px`;
+    }
+    
+    // 使用 requestAnimationFrame 合并多次布局请求，避免频繁重排
+    let layoutPending = false;
+    function scheduleLayout() {
+      if (layoutPending) return;
+      layoutPending = true;
+      requestAnimationFrame(() => {
+        layoutPending = false;
+        layoutMasonry();
+      });
+    }
+    
+    window.addEventListener('resize', () => {
+      if (photoGrid.children.length > 0) {
+        layoutMasonry();
+      }
+    });
+
+    function restoreSelectedState() {
+      selectedPhotos.forEach(id => {
+        const item = document.querySelector(`[data-id="${id}"]`);
+        if (item) {
+          item.classList.add('selected');
+          const indicator = item.querySelector('.selection-indicator i');
+          if (indicator) indicator.className = 'fa-solid fa-check';
+        }
+      });
+    }
+
+    function handlePhotoClick(e, photo, index) {
+      const item = e.currentTarget;
+      
+      if (e.target.closest('.selection-indicator')) {
+        e.stopPropagation();
+        togglePhotoSelection(photo.id, item);
+        return;
+      }
+      
+      if (e.shiftKey && lastClickedIndex >= 0) {
+        const start = Math.min(lastClickedIndex, index);
+        const end = Math.max(lastClickedIndex, index);
+        for (let i = start; i <= end; i++) {
+          const photoId = filteredPhotos[i].id;
+          const photoItem = document.querySelector(`[data-id="${photoId}"]`);
+          if (photoItem) {
+            selectedPhotos.add(photoId);
+            photoItem.classList.add('selected');
+            const indicator = photoItem.querySelector('.selection-indicator i');
+            if (indicator) indicator.className = 'fa-solid fa-check';
+          }
+        }
+        updateSelectedCount();
+      } else {
+        togglePhotoSelection(photo.id, item);
+      }
+      
+      lastClickedIndex = index;
+    }
+
+    function togglePhotoSelection(photoId, item) {
+      if (selectedPhotos.has(photoId)) {
+        selectedPhotos.delete(photoId);
+        item.classList.remove('selected');
+        const indicator = item.querySelector('.selection-indicator i');
+        if (indicator) indicator.className = 'fa-solid fa-plus';
+      } else {
+        selectedPhotos.add(photoId);
+        item.classList.add('selected');
+        const indicator = item.querySelector('.selection-indicator i');
+        if (indicator) indicator.className = 'fa-solid fa-check';
+      }
+      updateSelectedCount();
+    }
+
+    function updatePhotoCount() {
+      document.getElementById('photoCount').textContent = filteredPhotos.length === photos.length 
+        ? `${photos.length} 张照片` : `${filteredPhotos.length}/${photos.length} 张照片`;
+    }
+
+    function updateSelectedCount() {
+      const count = selectedPhotos.size;
+      document.getElementById('selectedCount').textContent = `已选择 ${count} 张照片`;
+      document.getElementById('deleteBtn').disabled = count === 0;
+      document.getElementById('exportPdfBtn').disabled = count === 0;
+      document.getElementById('copyToDesktopBtn').disabled = count === 0;
+      updateApplyButtons();
+    }
+
+    function updateApplyButtons() {
+      document.getElementById('applyBatchTagsBtn').disabled = batchTags.length === 0 || selectedPhotos.size === 0;
+      document.getElementById('applyRemoveTagsBtn').disabled = removeTags.length === 0 || selectedPhotos.size === 0;
+    }
+
+    function addBatchTag(tag) {
+      if (!tag || batchTags.includes(tag)) return;
+      batchTags.push(tag);
+      renderBatchTags();
+    }
+
+    function removeBatchTag(tag) {
+      const idx = batchTags.indexOf(tag);
+      if (idx > -1) {
+        batchTags.splice(idx, 1);
+        renderBatchTags();
+      }
+    }
+
+    function renderBatchTags() {
+      const container = document.getElementById('batchTags');
+      container.innerHTML = batchTags.map(tag => `
+        <span class="tag-badge bg-accent/30">
+          ${escapeHtml(tag)}
+          <button class="ml-1 hover:text-red-400" onclick="removeBatchTag('${escapeHtml(tag).replace(/'/g, "\\'")}')">
+            <i class="fa-solid fa-xmark text-xs"></i>
+          </button>
+        </span>
+      `).join('');
+      updateApplyButtons();
+    }
+    
+    let batchRatingValue = 0;
+    
+    document.querySelectorAll('#batchRating .star').forEach(star => {
+      star.onclick = () => {
+        const rating = parseInt(star.dataset.rating);
+        if (batchRatingValue === rating) batchRatingValue = 0;
+        else batchRatingValue = rating;
+        
+        document.querySelectorAll('#batchRating .star').forEach((s, idx) => {
+          const isActive = idx < batchRatingValue;
+          s.classList.toggle('active', isActive);
+          s.querySelector('i').className = `fa-${isActive ? 'solid' : 'regular'} fa-star`;
+        });
+      };
+    });
+    
+    document.getElementById('applyBatchRatingBtn').onclick = async () => {
+      if (selectedPhotos.size === 0 || batchRatingValue === 0) return;
+      
+      showProgress('批量评分', `正在设置 ${batchRatingValue} 星评级...`, '');
+      
+      try {
+        for (const id of selectedPhotos) {
+          const photo = photos.find(p => p.id === id);
+          if (photo && window.electronAPI) {
+            await window.electronAPI.photos.updateRating(id, batchRatingValue);
+            if (photo.filepath) await window.electronAPI.exif.writeRating(photo.filepath, batchRatingValue);
+            photo.rating = batchRatingValue;
+          }
+        }
+        
+        hideProgress();
+        renderPhotoGrid();
+        showToast(`已为 ${selectedPhotos.size} 张照片设置 ${batchRatingValue} 星评级`, 'success');
+      } catch (e) {
+        hideProgress();
+        showToast('批量评分失败: ' + e, 'error');
+      }
+    };
+    
+    document.getElementById('clearBatchRatingBtn').onclick = async () => {
+      if (selectedPhotos.size === 0) return;
+      
+      showProgress('清空评分', '正在清空评分...', '');
+      
+      try {
+        for (const id of selectedPhotos) {
+          const photo = photos.find(p => p.id === id);
+          if (photo && window.electronAPI) {
+            await window.electronAPI.photos.updateRating(id, 0);
+            if (photo.filepath) await window.electronAPI.exif.writeRating(photo.filepath, 0);
+            photo.rating = 0;
+          }
+        }
+        
+        batchRatingValue = 0;
+        document.querySelectorAll('#batchRating .star').forEach(s => {
+          s.classList.remove('active');
+          s.querySelector('i').className = 'fa-regular fa-star';
+        });
+        
+        hideProgress();
+        renderPhotoGrid();
+        showToast(`已清空 ${selectedPhotos.size} 张照片的评分`, 'success');
+      } catch (e) {
+        hideProgress();
+        showToast('清空评分失败: ' + e, 'error');
+      }
+    };
+
+    function openLightbox(photo, index) {
+      currentPhotoIndex = index;
+      lightboxImage.src = photo.filepath || photo.thumbnail_path || '';
+      document.getElementById('lightboxFilename').textContent = photo.filename || '未命名';
+      const filePath = photo.filepath || '';
+      document.getElementById('lightboxInfo').innerHTML = `<span class="text-blue-400 cursor-pointer hover:text-blue-300">${escapeHtml(filePath)}</span>`;
+      const pathSpan = document.querySelector('#lightboxInfo span');
+      if (pathSpan) {
+        pathSpan.onclick = () => {
+          if (window.electronAPI?.photos?.openInExplorer) {
+            window.electronAPI.photos.openInExplorer(filePath).then(result => {
+              if (!result.success) {
+                showToast('无法打开文件位置: ' + (result.error || '未知错误'), 'error');
+              }
+            }).catch(err => {
+              showToast('无法打开文件位置', 'error');
+            });
+          } else {
+            showToast('功能不可用', 'error');
+          }
+        };
+      }
+      updateLightboxRating(photo.rating || 0);
+      renderLightboxTags(photo.tags || []);
+      lightbox.classList.remove('hidden');
+      resetZoom();
+    }
+
+    function closeLightbox() {
+      lightbox.classList.add('hidden');
+      resetZoom();
+    }
+
+    function resetZoom() {
+      zoomScale = 1;
+      imageOffset = { x: 0, y: 0 };
+      rotateAngle = 0;
+      lightboxImage.style.transform = 'scale(1) translate(0, 0) rotate(0deg)';
+      document.getElementById('zoomLevel').textContent = '100%';
+    }
+
+    let rotateAngle = 0;
+
+    function rotateImage(direction) {
+      if (direction === 'left') {
+        rotateAngle -= 90;
+      } else {
+        rotateAngle += 90;
+      }
+      lightboxImage.style.transform = `scale(${zoomScale}) translate(${imageOffset.x}px, ${imageOffset.y}px) rotate(${rotateAngle}deg)`;
+    }
+
+    function updateLightboxRating(rating) {
+      document.querySelectorAll('#lightboxRating .star').forEach((star, idx) => {
+        const isActive = idx < rating;
+        star.classList.toggle('active', isActive);
+        star.querySelector('i').className = `fa-${isActive ? 'solid' : 'regular'} fa-star`;
+      });
+    }
+
+    function renderLightboxTags(tags) {
+      const container = document.getElementById('lightboxTags');
+      container.innerHTML = tags.map(tag => 
+        `<span class="tag-badge lightbox-tag">${escapeHtml(tag)}<button class="ml-1 hover:text-red-400 tag-delete-btn"><i class="fa-solid fa-xmark text-xs"></i></button></span>`
+      ).join('');
+      
+      container.querySelectorAll('.tag-delete-btn').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const tagBadge = e.target.closest('.lightbox-tag');
+          const tagName = tagBadge.textContent.trim();
+          removeLightboxTag(tagName);
+        };
+      });
+    }
+
+    async function removeLightboxTag(tagName) {
+      if (filteredPhotos.length === 0) {
+        showToast('没有可操作的照片', 'warning');
+        return;
+      }
+      
+      if (currentPhotoIndex >= filteredPhotos.length) {
+        currentPhotoIndex = Math.max(0, filteredPhotos.length - 1);
+      }
+      
+      const photo = filteredPhotos[currentPhotoIndex];
+      if (!photo) {
+        showToast('无法获取当前照片信息', 'error');
+        return;
+      }
+      
+      const fullPhoto = photos.find(p => p.id === photo.id);
+      if (!fullPhoto) {
+        showToast('照片数据已失效，请刷新后重试', 'error');
+        await loadPhotos();
+        return;
+      }
+      
+      const newTags = fullPhoto.tags?.filter(t => t !== tagName) || [];
+      
+      if (window.electronAPI) {
+        await window.electronAPI.photos.updateTags(fullPhoto.id, newTags);
+        if (fullPhoto.filepath) await window.electronAPI.exif.writeTags(fullPhoto.filepath, newTags);
+      }
+      
+      fullPhoto.tags = newTags;
+      await loadPhotos();
+      showToast(`已移除标签 "${tagName}"`, 'success');
+    }
+
+    async function loadPhotos() {
+      if (window.electronAPI) {
+        try {
+          const data = await window.electronAPI.photos.getAll();
+          photos.length = 0;
+          photos.push(...data);
+        } catch (e) { console.error('加载失败:', e); }
+      }
+      renderPhotoGrid();
+      // 重置 currentPhotoIndex 到有效的位置
+      if (filteredPhotos.length > 0 && currentPhotoIndex >= filteredPhotos.length) {
+        currentPhotoIndex = Math.max(0, filteredPhotos.length - 1);
+      }
+      await updateTagFilter();
+    }
+
+    async function updateTagFilter() {
+      const select = document.getElementById('tagFilter');
+      select.innerHTML = '<option value="">全部标签</option>';
+      const tags = [...new Set(photos.flatMap(p => p.tags || []))].sort((a, b) => a.localeCompare(b, 'zh-CN'));
+      tags.forEach(tag => { const opt = document.createElement('option'); opt.value = tag; opt.textContent = tag; select.appendChild(opt); });
+      
+      const existingTags = document.getElementById('existingTags');
+      existingTags.innerHTML = tags.map(tag => `<span class="tag-badge cursor-pointer hover:bg-accent/30" data-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</span>`).join('');
+      
+      existingTags.querySelectorAll('[data-tag]').forEach(el => {
+        el.addEventListener('click', () => {
+          const tag = el.dataset.tag;
+          if (!batchTags.includes(tag)) {
+            addBatchTag(tag);
+          }
+        });
+      });
+    }
+
+    async function handleAddTag() {
+      if (filteredPhotos.length === 0) {
+        showToast('没有可操作的照片', 'warning');
+        return;
+      }
+      
+      // 优先使用选中的照片，如果有多个选中则使用第一个
+      let targetPhoto = null;
+      if (selectedPhotos.size > 0) {
+        const firstSelectedId = Array.from(selectedPhotos)[0];
+        targetPhoto = filteredPhotos.find(p => p.id === firstSelectedId);
+        if (!targetPhoto) {
+          targetPhoto = photos.find(p => p.id === firstSelectedId);
+        }
+      }
+      
+      // 如果没有选中的照片，使用 currentPhotoIndex 指向的照片
+      if (!targetPhoto) {
+        if (currentPhotoIndex >= filteredPhotos.length) {
+          currentPhotoIndex = Math.max(0, filteredPhotos.length - 1);
+        }
+        targetPhoto = filteredPhotos[currentPhotoIndex];
+      }
+      
+      if (!targetPhoto) {
+        showToast('无法获取当前照片信息', 'error');
+        return;
+      }
+      
+      const fullPhoto = photos.find(p => p.id === targetPhoto.id);
+      if (!fullPhoto) {
+        showToast('照片数据已失效，请刷新后重试', 'error');
+        await loadPhotos();
+        return;
+      }
+      
+      // 更新 currentPhotoIndex 到目标照片
+      const targetIndex = filteredPhotos.findIndex(p => p.id === targetPhoto.id);
+      if (targetIndex > -1) {
+        currentPhotoIndex = targetIndex;
+      }
+      
+      const usedTags = document.getElementById('usedTagsList');
+      const allTags = [...new Set(photos.flatMap(p => p.tags || []))].sort();
+      usedTags.innerHTML = allTags.filter(t => !(fullPhoto.tags || []).includes(t)).map(tag => 
+        `<span class="tag-badge cursor-pointer hover:bg-accent/30" data-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</span>`
+      ).join('') || '<span class="text-textDisabled text-sm">没有可用标签</span>';
+      
+      usedTags.querySelectorAll('[data-tag]').forEach(el => {
+        el.onclick = () => {
+          const tag = el.dataset.tag;
+          document.getElementById('tagInputField').value = tag;
+        };
+      });
+      
+      document.getElementById('tagInputField').value = '';
+      document.getElementById('tagInputModal').classList.remove('hidden');
+      document.getElementById('tagInputField').focus();
+    }
+
+    async function confirmAddTag() {
+      const tagName = document.getElementById('tagInputField').value.trim();
+      if (!tagName) {
+        showToast('请输入标签名称', 'warning');
+        return;
+      }
+      
+      if (filteredPhotos.length === 0) {
+        showToast('没有可操作的照片', 'warning');
+        document.getElementById('tagInputModal').classList.add('hidden');
+        return;
+      }
+      
+      // 使用与 handleAddTag 相同的逻辑找到目标照片
+      let targetPhoto = null;
+      if (selectedPhotos.size > 0) {
+        const firstSelectedId = Array.from(selectedPhotos)[0];
+        targetPhoto = filteredPhotos.find(p => p.id === firstSelectedId);
+        if (!targetPhoto) {
+          targetPhoto = photos.find(p => p.id === firstSelectedId);
+        }
+      }
+      
+      if (!targetPhoto) {
+        if (currentPhotoIndex >= filteredPhotos.length) {
+          currentPhotoIndex = Math.max(0, filteredPhotos.length - 1);
+        }
+        targetPhoto = filteredPhotos[currentPhotoIndex];
+      }
+      
+      if (!targetPhoto) {
+        showToast('无法获取当前照片信息', 'error');
+        document.getElementById('tagInputModal').classList.add('hidden');
+        return;
+      }
+      
+      const fullPhoto = photos.find(p => p.id === targetPhoto.id);
+      if (!fullPhoto) {
+        showToast('照片数据已失效，请刷新后重试', 'error');
+        document.getElementById('tagInputModal').classList.add('hidden');
+        await loadPhotos();
+        return;
+      }
+      
+      // 更新 currentPhotoIndex 到目标照片
+      const targetIndex = filteredPhotos.findIndex(p => p.id === targetPhoto.id);
+      if (targetIndex > -1) {
+        currentPhotoIndex = targetIndex;
+      }
+      
+      const uniqueTags = Array.from(new Set([...(fullPhoto.tags || []), tagName]));
+      // 必须 await 两个写入，否则 loadPhotos 可能在写入完成前读取，导致标签不显示（竞态）
+      if (window.electronAPI?.photos.updateTags) {
+        await window.electronAPI.photos.updateTags(fullPhoto.id, uniqueTags);
+      }
+      if (fullPhoto.filepath && window.electronAPI?.exif.writeTags) {
+        await window.electronAPI.exif.writeTags(fullPhoto.filepath, uniqueTags);
+      }
+      fullPhoto.tags = uniqueTags;
+      
+      document.getElementById('tagInputModal').classList.add('hidden');
+      await loadPhotos();
+      showToast(`标签 "${tagName}" 添加成功`, 'success');
+    }
+
+    async function deleteSelectedPhotos() {
+      if (selectedPhotos.size === 0) return;
+      
+      const confirmed = confirm(`确定要删除选中的 ${selectedPhotos.size} 张照片吗？\n照片将被移入回收站，可从回收站恢复。`);
+      if (!confirmed) return;
+      
+      showProgress('删除照片', `正在删除 ${selectedPhotos.size} 张照片...`, '');
+      
+      try {
+        const ids = Array.from(selectedPhotos);
+        
+        if (window.electronAPI) {
+          await window.electronAPI.photos.delete(ids);
+        }
+        
+        selectedPhotos.forEach(id => {
+          const idx = photos.findIndex(p => p.id === id);
+          if (idx > -1) photos.splice(idx, 1);
+        });
+        
+        selectedPhotos.clear();
+        renderPhotoGrid(); // 先渲染得到新的 filteredPhotos
+        updateSelectedCount();
+        hideProgress();
+        showToast(`已删除 ${ids.length} 张照片，已移入回收站`, 'success');
+        await loadPhotos(); // loadPhotos 会重新调整 currentPhotoIndex
+      } catch (e) {
+        hideProgress();
+        showToast('删除失败: ' + e, 'error');
+      }
+    }
+
+    document.getElementById('zoomIn').onclick = () => {
+      zoomScale = Math.min(5, zoomScale + 0.25);
+      lightboxImage.style.transform = `scale(${zoomScale}) translate(${imageOffset.x / zoomScale}px, ${imageOffset.y / zoomScale}px)`;
+      document.getElementById('zoomLevel').textContent = Math.round(zoomScale * 100) + '%';
+    };
+    document.getElementById('zoomOut').onclick = () => {
+      zoomScale = Math.max(0.1, zoomScale - 0.25);
+      lightboxImage.style.transform = `scale(${zoomScale}) translate(${imageOffset.x / zoomScale}px, ${imageOffset.y / zoomScale}px)`;
+      document.getElementById('zoomLevel').textContent = Math.round(zoomScale * 100) + '%';
+    };
+    document.getElementById('zoomReset').onclick = resetZoom;
+
+    imageContainer.onwheel = (e) => {
+      e.preventDefault();
+      if (e.deltaY < 0) document.getElementById('zoomIn').click();
+      else document.getElementById('zoomOut').click();
+    };
+
+    lightboxImage.onmousedown = (e) => {
+      if (zoomScale > 1) {
+        isDragging = true;
+        dragStart = { x: e.clientX - imageOffset.x, y: e.clientY - imageOffset.y };
+        lightboxImage.style.cursor = 'grabbing';
+      }
+    };
+    document.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        imageOffset = { x: e.clientX - dragStart.x, y: e.clientY - dragStart.y };
+        lightboxImage.style.transform = `scale(${zoomScale}) translate(${imageOffset.x / zoomScale}px, ${imageOffset.y / zoomScale}px)`;
+      }
+    });
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+      lightboxImage.style.cursor = zoomScale > 1 ? 'grab' : 'default';
+    });
+
+    document.getElementById('closeLightbox').onclick = closeLightbox;
+    document.getElementById('prevPhoto').onclick = () => {
+      if (currentPhotoIndex > 0) openLightbox(filteredPhotos[--currentPhotoIndex], currentPhotoIndex);
+    };
+    document.getElementById('nextPhoto').onclick = () => {
+      if (currentPhotoIndex < filteredPhotos.length - 1) openLightbox(filteredPhotos[++currentPhotoIndex], currentPhotoIndex);
+    };
+    document.getElementById('rotateLeft').onclick = () => rotateImage('left');
+    document.getElementById('rotateRight').onclick = () => rotateImage('right');
+    lightbox.onclick = (e) => {
+      if (e.target === lightbox || e.target === imageContainer) closeLightbox();
+    };
+    lightboxImage.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const currentPhoto = filteredPhotos[currentPhotoIndex];
+      if (currentPhoto) {
+        showContextMenu(e.clientX, e.clientY, currentPhoto.filepath || currentPhoto.thumbnail_path || '');
+      }
+    });
+
+    document.querySelectorAll('#lightboxRating .star').forEach(star => {
+      star.onclick = async () => {
+        if (filteredPhotos.length === 0) {
+          showToast('没有可操作的照片', 'warning');
+          return;
+        }
+        
+        if (currentPhotoIndex >= filteredPhotos.length) {
+          currentPhotoIndex = Math.max(0, filteredPhotos.length - 1);
+        }
+        
+        const rating = parseInt(star.dataset.rating);
+        const photo = filteredPhotos[currentPhotoIndex];
+        if (!photo) {
+          showToast('无法获取当前照片信息', 'error');
+          return;
+        }
+        
+        const fullPhoto = photos.find(p => p.id === photo.id);
+        if (!fullPhoto) {
+          showToast('照片数据已失效，请刷新后重试', 'error');
+          await loadPhotos();
+          return;
+        }
+        
+        const newRating = fullPhoto.rating === rating ? 0 : rating;
+        
+        if (window.electronAPI) {
+          await window.electronAPI.photos.updateRating(fullPhoto.id, newRating);
+          if (fullPhoto.filepath) await window.electronAPI.exif.writeRating(fullPhoto.filepath, newRating);
+        }
+        fullPhoto.rating = newRating;
+        updateLightboxRating(newRating);
+        renderPhotoGrid();
+        showToast(newRating === 0 ? '已清除评分' : `已设置 ${newRating} 星`, 'success');
+      };
+    });
+    document.getElementById('addTagBtn').onclick = handleAddTag;
+    document.getElementById('tagInputCancel').onclick = () => document.getElementById('tagInputModal').classList.add('hidden');
+    document.getElementById('tagInputConfirm').onclick = confirmAddTag;
+    document.getElementById('tagInputField').onkeydown = (e) => { if (e.key === 'Enter') confirmAddTag(); };
+    document.getElementById('tagInputModal').onclick = (e) => { if (e.target === document.getElementById('tagInputModal')) document.getElementById('tagInputModal').classList.add('hidden'); };
+
+    document.getElementById('searchInput').addEventListener('input', () => setTimeout(renderPhotoGrid, 300));
+    document.getElementById('searchInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') renderPhotoGrid();
+    });
+    document.getElementById('ratingFilter').onchange = renderPhotoGrid;
+    document.getElementById('tagFilter').onchange = renderPhotoGrid;
+    document.getElementById('clearFilterBtn').onclick = () => {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('ratingFilter').value = '';
+      document.getElementById('tagFilter').value = '';
+      selectedPhotos.clear();
+      document.getElementById('selectedCount').textContent = '已选择 0 张照片';
+      document.getElementById('deleteBtn').disabled = true;
+      document.getElementById('exportPdfBtn').disabled = true;
+      document.getElementById('copyToDesktopBtn').disabled = true;
+      document.getElementById('metadataPanel').classList.remove('open');
+      batchTags = [];
+      removeTags = [];
+      renderBatchTags();
+      document.getElementById('removeTags').innerHTML = '';
+      renderPhotoGrid();
+    };
+
+    document.getElementById('metadataPanelBtn').onclick = () => {
+      document.getElementById('metadataPanel').classList.toggle('open');
+      // 侧边栏切换后重新布局瀑布流，适配新的可用宽度
+      setTimeout(() => {
+        if (currentViewMode !== 'compact' && filteredPhotos.length > 0) {
+          layoutMasonry();
+        }
+      }, 300); // 等待动画完成
+    };
+    document.getElementById('closeMetadataPanel').onclick = () => {
+      document.getElementById('metadataPanel').classList.remove('open');
+      // 侧边栏关闭后重新布局瀑布流，适配新的可用宽度
+      setTimeout(() => {
+        if (currentViewMode !== 'compact' && filteredPhotos.length > 0) {
+          layoutMasonry();
+        }
+      }, 300); // 等待动画完成
+    };
+    
+    // 侧边栏宽度拖拽调整功能
+    let isResizing = false;
+    let startX = 0;
+    let startWidth = 0;
+    const resizeHandle = document.querySelector('.resize-handle');
+    const metadataPanel = document.getElementById('metadataPanel');
+    const metadataPanelBtn = document.getElementById('metadataPanelBtn');
+    
+    resizeHandle.addEventListener('mousedown', (e) => {
+      isResizing = true;
+      startX = e.clientX;
+      startWidth = metadataPanel.offsetWidth;
+      resizeHandle.style.background = '#0078d4';
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      
+      // 添加临时事件监听
+      const onMouseMove = (moveEvent) => {
+        if (!isResizing) return;
+        const delta = startX - moveEvent.clientX;
+        let newWidth = startWidth + delta;
+        newWidth = Math.max(200, Math.min(400, newWidth));
+        document.documentElement.style.setProperty('--sidebar-width', `${newWidth}px`);
+        // 拖拽时实时重新布局瀑布流
+        if (currentViewMode !== 'compact' && filteredPhotos.length > 0) {
+          layoutMasonry();
+        }
+      };
+      
+      const onMouseUp = () => {
+        isResizing = false;
+        resizeHandle.style.background = 'transparent';
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      };
+      
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+    
+    // 同步工具栏图标的选中状态
+    const observer = new MutationObserver(() => {
+      const isOpen = metadataPanel.classList.contains('open');
+      if (isOpen) {
+        metadataPanelBtn.classList.add('text-accent');
+      } else {
+        metadataPanelBtn.classList.remove('text-accent');
+      }
+    });
+    observer.observe(metadataPanel, { attributes: true, attributeFilter: ['class'] });
+    
+    document.getElementById('deleteBtn').onclick = deleteSelectedPhotos;
+
+    // 复制选中图片到桌面文件夹
+    document.getElementById('copyToDesktopBtn').onclick = async () => {
+      if (selectedPhotos.size === 0) {
+        showToast('请先选择要复制的照片', 'warning');
+        return;
+      }
+      const selectedPhotoObjs = Array.from(selectedPhotos).map(id => photos.find(p => p.id === id)).filter(Boolean);
+      const filePaths = selectedPhotoObjs.map(p => p.filepath).filter(Boolean);
+
+      if (filePaths.length === 0) {
+        showToast('没有可复制的照片', 'error');
+        return;
+      }
+
+      // 找占比最大的标签
+      const tagCounts = {};
+      let totalTags = 0;
+      for (const photo of selectedPhotoObjs) {
+        if (photo.tags && photo.tags.length > 0) {
+          for (const tag of photo.tags) {
+            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+            totalTags++;
+          }
+        }
+      }
+      let folderTag = '未分类';
+      if (totalTags > 0) {
+        let maxCount = 0;
+        for (const [tag, count] of Object.entries(tagCounts)) {
+          if (count > maxCount) {
+            maxCount = count;
+            folderTag = tag;
+          }
+        }
+      }
+
+      // 格式化日期 YYYYMMDD
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const dateStr = `${yyyy}${mm}${dd}`;
+
+      const folderName = `${folderTag}-${dateStr}`;
+
+      if (window.electronAPI?.photos?.copyToDesktopFolder) {
+        try {
+          const result = await window.electronAPI.photos.copyToDesktopFolder(filePaths, folderName);
+          if (result.success) {
+            if (result.failed > 0) {
+              showToast(`已复制 ${result.copied} 张照片到桌面 ${folderName}，${result.failed} 张失败`, 'success');
+            } else {
+              showToast(`已复制 ${result.copied} 张照片到桌面 ${folderName}`, 'success');
+            }
+          } else {
+            showToast('复制失败: ' + (result.error || '未知错误'), 'error');
+          }
+        } catch (e) {
+          showToast('复制失败: ' + e, 'error');
+        }
+      } else {
+        showToast('功能不可用', 'error');
+      }
+    };
+
+    document.getElementById('addBatchTagBtn').onclick = () => {
+      const input = document.getElementById('batchTagInput');
+      const tag = input.value.trim();
+      if (tag) {
+        addBatchTag(tag);
+        input.value = '';
+        input.focus(); // 添加标签后重新聚焦到输入框
+      }
+    };
+
+    document.getElementById('batchTagInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault(); // 阻止默认行为
+        const input = document.getElementById('batchTagInput');
+        const tag = input.value.trim();
+        if (tag) {
+          addBatchTag(tag);
+          input.value = '';
+        }
+      }
+    });
+    
+    // 确保输入框可以正常获得焦点
+    document.getElementById('batchTagInput').addEventListener('focus', (e) => {
+      e.target.style.borderColor = '#0078d4';
+    });
+    
+    document.getElementById('batchTagInput').addEventListener('blur', (e) => {
+      e.target.style.borderColor = '#3a3a3a';
+    });
+
+
+
+    document.getElementById('removeTagInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const input = document.getElementById('removeTagInput');
+        const tag = input.value.trim();
+        if (tag && !removeTags.includes(tag)) {
+          removeTags.push(tag);
+          renderRemoveTags();
+          input.value = '';
+        }
+      }
+    });
+
+    document.getElementById('applyBatchTagsBtn').onclick = async () => {
+      if (selectedPhotos.size === 0 || batchTags.length === 0) return;
+      
+      const tagsToAdd = batchTags.length;
+      showProgress('批量添加标签', `正在为 ${selectedPhotos.size} 张照片添加 ${tagsToAdd} 个标签...`, '');
+      
+      try {
+        for (const id of selectedPhotos) {
+          const photo = photos.find(p => p.id === id);
+          if (photo && window.electronAPI) {
+            const currentTags = photo.tags || [];
+            const newTags = Array.from(new Set([...currentTags, ...batchTags]));
+            await window.electronAPI.photos.updateTags(id, newTags);
+            if (photo.filepath) await window.electronAPI.exif.writeTags(photo.filepath, newTags);
+            photo.tags = newTags;
+          }
+        }
+        
+        batchTags = [];
+        renderBatchTags();
+        hideProgress();
+        renderPhotoGrid();
+        await updateTagFilter();
+        showToast(`已为 ${selectedPhotos.size} 张照片添加 ${tagsToAdd} 个标签`, 'success');
+        await loadPhotos();
+      } catch (e) {
+        hideProgress();
+        showToast('批量添加标签失败: ' + e, 'error');
+      }
+    };
+
+    document.getElementById('addRemoveTagBtn').onclick = () => {
+      const input = document.getElementById('removeTagInput');
+      const tag = input.value.trim();
+      if (tag && !removeTags.includes(tag)) {
+        removeTags.push(tag);
+        renderRemoveTags();
+        input.value = '';
+      }
+    };
+
+    function renderRemoveTags() {
+      const container = document.getElementById('removeTags');
+      container.innerHTML = removeTags.map((tag, idx) => 
+        `<span class="tag-badge bg-red-600/30" data-idx="${idx}">
+          ${escapeHtml(tag)}
+          <button class="ml-1 hover:text-red-400 remove-tag-btn"><i class="fa-solid fa-xmark text-xs"></i></button>
+        </span>`
+      ).join('');
+      
+      container.querySelectorAll('.remove-tag-btn').forEach(btn => {
+        btn.onclick = (e) => {
+          const idx = parseInt(e.currentTarget.closest('[data-idx]').dataset.idx);
+          removeTags.splice(idx, 1);
+          renderRemoveTags();
+        };
+      });
+      
+      updateApplyButtons();
+    }
+
+    document.getElementById('applyRemoveTagsBtn').onclick = async () => {
+      if (selectedPhotos.size === 0 || removeTags.length === 0) return;
+      
+      const tagsToRemove = removeTags.length;
+      showProgress('批量移除标签', `正在从 ${selectedPhotos.size} 张照片移除 ${tagsToRemove} 个标签...`, '');
+      
+      try {
+        for (const id of selectedPhotos) {
+          const photo = photos.find(p => p.id === id);
+          if (photo && window.electronAPI) {
+            const currentTags = photo.tags || [];
+            const newTags = currentTags.filter(t => !removeTags.includes(t));
+            await window.electronAPI.photos.updateTags(id, newTags);
+            if (photo.filepath) await window.electronAPI.exif.writeTags(photo.filepath, newTags);
+            photo.tags = newTags;
+          }
+        }
+        
+        removeTags = [];
+        document.getElementById('removeTags').innerHTML = '';
+        hideProgress();
+        await loadPhotos();
+        showToast(`已从 ${selectedPhotos.size} 张照片移除 ${tagsToRemove} 个标签`, 'success');
+      } catch (e) {
+        hideProgress();
+        showToast('批量移除标签失败: ' + e, 'error');
+      }
+    };
+
+    document.getElementById('settingsBtn').onclick = async () => {
+      document.getElementById('settingsModal').classList.remove('hidden');
+      if (window.electronAPI?.cache?.getStats) {
+        window.electronAPI.cache.getStats().then(stats => {
+          document.getElementById('cacheSize').textContent = stats.formattedSize;
+          document.getElementById('cacheFileCount').textContent = stats.fileCount + ' 个';
+        });
+      }
+      if (window.electronAPI?.materialBrowser?.getDownloadDir) {
+        const downloadDir = await window.electronAPI.materialBrowser.getDownloadDir();
+        document.getElementById('downloadPath').value = downloadDir;
+      }
+    };
+    document.getElementById('closeSettingsBtn').onclick = () => document.getElementById('settingsModal').classList.add('hidden');
+    document.getElementById('settingsModal').onclick = (e) => { if (e.target === document.getElementById('settingsModal')) document.getElementById('settingsModal').classList.add('hidden'); };
+    
+    document.getElementById('browseDownloadPath').onclick = async () => {
+      if (window.electronAPI?.dialog?.openDirectory) {
+        const dir = await window.electronAPI.dialog.openDirectory();
+        if (dir) {
+          document.getElementById('downloadPath').value = dir;
+          if (window.electronAPI?.materialBrowser?.setDownloadDir) {
+            await window.electronAPI.materialBrowser.setDownloadDir(dir);
+            showToast('下载目录已更新', 'success');
+          }
+        }
+      }
+    };
+    
+    document.getElementById('openDownloadPathLink').onclick = async (e) => {
+      e.preventDefault();
+      if (window.electronAPI?.materialBrowser?.openDownloadDir) {
+        await window.electronAPI.materialBrowser.openDownloadDir();
+      }
+    };
+    
+    document.getElementById('clearDownloadCacheBtn').onclick = async () => {
+      if (!confirm('确定要清空下载缓存吗？')) return;
+      if (window.electronAPI?.materialBrowser?.clearDownloadCache) {
+        await window.electronAPI.materialBrowser.clearDownloadCache();
+        showToast('下载缓存已清空', 'success');
+      }
+    };
+    
+    document.getElementById('clearAllCacheBtn').onclick = async () => {
+      if (!confirm('确定要清空全部缩略图缓存吗？')) return;
+      if (window.electronAPI?.cache?.clearAll) {
+        const result = await window.electronAPI.cache.clearAll();
+        showToast(`已清空 ${result.deleted} 个缓存文件`, 'success');
+        await loadPhotos();
+      }
+    };
+    document.getElementById('cleanOldCacheBtn').onclick = async () => {
+      if (window.electronAPI?.cache?.cleanOld) {
+        const result = await window.electronAPI.cache.cleanOld();
+        showToast(`已清理 ${result.deleted} 个旧缓存文件`, 'success');
+        await loadPhotos();
+      }
+    };
+
+    document.addEventListener('keydown', (e) => {
+      const activeElement = document.activeElement;
+      if (activeElement && (
+        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.isContentEditable
+      )) {
+        return;
+      }
+      
+      if (e.key === 'Escape') {
+        if (!lightbox.classList.contains('hidden')) {
+          closeLightbox();
+        } else if (!document.getElementById('changelogModal').classList.contains('hidden')) {
+          closeChangelogModal();
+        } else if (!document.getElementById('aboutModal').classList.contains('hidden')) {
+          closeAboutModal();
+        } else if (!document.getElementById('metadataPanel').classList.contains('open')) {
+          // do nothing
+        } else {
+          document.getElementById('metadataPanel').classList.remove('open');
+        }
+      }
+      if (!lightbox.classList.contains('hidden')) {
+        if (e.key === 'ArrowLeft') document.getElementById('prevPhoto').click();
+        if (e.key === 'ArrowRight') document.getElementById('nextPhoto').click();
+      }
+    });
+
+    // 轮询导入进度更新
+    let progressPollTimer = null;
+
+    function startProgressPolling() {
+      if (progressPollTimer) clearInterval(progressPollTimer);
+      progressPollTimer = setInterval(async () => {
+        if (window.electronAPI?.import?.getProgress) {
+          try {
+            const prog = await window.electronAPI.import.getProgress();
+            if (prog.status === 'generating_thumbnails' && prog.total > 0) {
+              const percent = Math.round((prog.current / prog.total) * 100);
+              document.getElementById('progressTitle').textContent = '生成缩略图';
+              document.getElementById('progressText').textContent = prog.message;
+              updateProgress(percent, `${prog.current}/${prog.total}`);
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+      }, 500);
+    }
+
+    function stopProgressPolling() {
+      if (progressPollTimer) {
+        clearInterval(progressPollTimer);
+        progressPollTimer = null;
+      }
+    }
+
+    document.getElementById('importFolderBtn').onclick = async () => {
+      if (!window.electronAPI) return;
+      const dir = await window.electronAPI.dialog.openDirectory();
+      if (!dir) return;
+      showProgress('导入照片', '正在扫描...', '');
+      startProgressPolling();
+      const result = await window.electronAPI.import.fromDirectory(dir);
+      stopProgressPolling();
+      hideProgress();
+      if (result.success) {
+        let message = `成功导入 ${result.imported} 张照片`;
+        if (result.skipped > 0) {
+          message += ` (跳过 ${result.skipped} 张重复)`;
+        }
+        if (result.thumbnailsGenerated > 0) {
+          message += `，生成 ${result.thumbnailsGenerated} 张缩略图`;
+        }
+        showToast(message, result.imported > 0 ? 'success' : 'info');
+        await loadPhotos();
+        if (photos.length > 0) {
+          currentPhotoIndex = 0;
+        }
+      } else {
+        showToast('导入失败: ' + (result.error || '未知错误'), 'error');
+      }
+    };
+
+    document.getElementById('importFilesBtn').onclick = async () => {
+      if (!window.electronAPI) return;
+      const files = await window.electronAPI.dialog.openFile();
+      if (!files || files.length === 0) return;
+      showProgress('导入照片', '正在导入...', '');
+      startProgressPolling();
+      const result = await window.electronAPI.import.fromFiles(files);
+      stopProgressPolling();
+      hideProgress();
+      if (result.success) {
+        let message = `成功导入 ${result.imported} 张照片`;
+        if (result.skipped > 0) {
+          message += ` (跳过 ${result.skipped} 张重复)`;
+        }
+        if (result.thumbnailsGenerated > 0) {
+          message += `，生成 ${result.thumbnailsGenerated} 张缩略图`;
+        }
+        showToast(message, result.imported > 0 ? 'success' : 'info');
+        await loadPhotos();
+        if (photos.length > 0) {
+          currentPhotoIndex = 0;
+        }
+      } else {
+        showToast('导入失败: ' + (result.error || '未知错误'), 'error');
+      }
+    };
+
+    document.getElementById('emptyImportFolderBtn2').onclick = document.getElementById('importFolderBtn').onclick;
+
+    window.addEventListener('resize', () => {
+      renderPhotoGrid();
+    });
+
+    async function loadVersionInfo() {
+      if (window.electronAPI?.app?.getVersionInfo) {
+        try {
+          const info = await window.electronAPI.app.getVersionInfo();
+          document.getElementById('aboutAppName').textContent = info.name || 'PhotoGallery';
+          document.getElementById('aboutVersion').textContent = `版本 ${info.version || '1.0.0'}`;
+          document.getElementById('aboutElectronVersion').textContent = info.electronVersion || '-';
+          document.getElementById('aboutChromeVersion').textContent = info.chromeVersion || '-';
+          document.getElementById('aboutNodeVersion').textContent = info.nodeVersion || '-';
+        } catch (e) {
+          console.error('Failed to load version info:', e);
+        }
+      }
+    }
+
+    function openAboutModal() {
+      document.getElementById('aboutModal').classList.remove('hidden');
+    }
+
+    function closeAboutModal() {
+      document.getElementById('aboutModal').classList.add('hidden');
+    }
+
+    document.getElementById('aboutBtn').onclick = openAboutModal;
+    document.getElementById('closeAboutBtn').onclick = closeAboutModal;
+    document.getElementById('aboutModal').onclick = (e) => {
+      if (e.target === document.getElementById('aboutModal')) {
+        closeAboutModal();
+      }
+    };
+
+    document.getElementById('changelogBtn').onclick = openChangelogModal;
+    document.getElementById('closeChangelogBtn').onclick = closeChangelogModal;
+    document.getElementById('changelogModal').onclick = (e) => {
+      if (e.target === document.getElementById('changelogModal')) {
+        closeChangelogModal();
+      }
+    };
+
+    // ─── Changelog: dynamic rendering from external JSON ───
+    const CHANGELOG_COLOR_MAP = {
+      accent: 'text-accent',
+      blue: 'text-blue-500',
+      green: 'text-green-500',
+      purple: 'text-purple-500',
+      orange: 'text-orange-500',
+      red: 'text-red-500'
+    };
+
+    function renderChangelog(entries) {
+      const container = document.getElementById('changelogContent');
+      if (!entries || entries.length === 0) {
+        container.innerHTML = '<div class="text-center text-textSecondary py-8 text-sm">暂无更新记录</div>';
+        return;
+      }
+      container.innerHTML = entries.map(entry => {
+        const categoriesHtml = (entry.categories || []).map(cat => {
+          const colorClass = CHANGELOG_COLOR_MAP[cat.color] || 'text-accent';
+          const itemsHtml = (cat.items || []).map(item =>
+            `<li class="flex items-start"><i class="fa-solid ${cat.icon} ${colorClass} mr-2 mt-0.5 shrink-0"></i><span>${escapeHtml(item)}</span></li>`
+          ).join('');
+          return `<ul class="text-sm text-textSecondary space-y-1">${itemsHtml}</ul>`;
+        }).join('');
+        return `
+          <div class="bg-bgPrimary rounded-lg p-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-semibold text-accent">v${escapeHtml(entry.version)}</span>
+              <span class="text-xs text-textSecondary">${escapeHtml(entry.date)}</span>
+            </div>
+            ${entry.title ? `<p class="text-xs text-textSecondary mb-2">${escapeHtml(entry.title)}</p>` : ''}
+            ${categoriesHtml}
+          </div>`;
+      }).join('');
+    }
+
+    async function openChangelogModal() {
+      document.getElementById('changelogModal').classList.remove('hidden');
+      const container = document.getElementById('changelogContent');
+      container.innerHTML = '<div class="text-center text-textSecondary py-8 text-sm"><i class="fa-solid fa-spinner fa-spin mr-2"></i>加载中...</div>';
+      try {
+        const entries = await window.electronAPI.app.getChangelog();
+        renderChangelog(entries);
+      } catch (e) {
+        container.innerHTML = '<div class="text-center text-red-500 py-8 text-sm">加载失败：' + escapeHtml(e.message || String(e)) + '</div>';
+      }
+    }
+
+    function closeChangelogModal() {
+      document.getElementById('changelogModal').classList.add('hidden');
+    }
+
+    // 素材浏览器功能
+    let currentPanel = 'gallery';
+
+    function switchToGallery() {
+      document.getElementById('galleryPanel').classList.remove('hidden');
+      document.getElementById('browserPanel').classList.add('hidden');
+      document.getElementById('nav-gallery').classList.add('active', 'text-textPrimary');
+      document.getElementById('nav-gallery').classList.remove('text-textSecondary');
+      document.getElementById('nav-browser').classList.remove('active', 'text-textPrimary');
+      document.getElementById('nav-browser').classList.add('text-textSecondary');
+      currentPanel = 'gallery';
+      document.getElementById('searchInput').value = '';
+      document.getElementById('ratingFilter').value = '';
+      document.getElementById('tagFilter').value = '';
+      selectedPhotos.clear();
+      document.getElementById('selectedCount').textContent = '已选择 0 张照片';
+      document.getElementById('exportPdfBtn').disabled = true;
+      document.getElementById('deleteBtn').disabled = true;
+      document.getElementById('copyToDesktopBtn').disabled = true;
+      renderPhotoGrid();
+    }
+
+    function switchToBrowser() {
+      document.getElementById('galleryPanel').classList.add('hidden');
+      document.getElementById('browserPanel').classList.remove('hidden');
+      document.getElementById('nav-gallery').classList.remove('active', 'text-textPrimary');
+      document.getElementById('nav-gallery').classList.add('text-textSecondary');
+      document.getElementById('nav-browser').classList.add('active', 'text-textPrimary');
+      document.getElementById('nav-browser').classList.remove('text-textSecondary');
+      currentPanel = 'browser';
+    }
+
+    document.getElementById('nav-gallery').onclick = switchToGallery;
+    document.getElementById('nav-browser').onclick = switchToBrowser;
+
+    // 浏览器控制
+    document.getElementById('browserBack').onclick = () => {
+      const webview = document.getElementById('materialWebview');
+      if (webview && webview.canGoBack) webview.goBack();
+    };
+    document.getElementById('browserForward').onclick = () => {
+      const webview = document.getElementById('materialWebview');
+      if (webview && webview.canGoForward) webview.goForward();
+    };
+    document.getElementById('browserRefresh').onclick = () => {
+      const webview = document.getElementById('materialWebview');
+      if (webview) webview.reload();
+    };
+    document.getElementById('browserGo').onclick = () => {
+      const rawUrl = document.getElementById('browserUrl').value.trim();
+      const webview = document.getElementById('materialWebview');
+      if (!rawUrl || !webview) return;
+      // 仅允许 http/https，阻止 file://、javascript: 等危险协议
+      let url = rawUrl;
+      if (!/^https?:\/\//i.test(url)) {
+        url = 'https://' + url;
+      }
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return;
+        webview.loadURL(parsed.toString());
+      } catch {
+        // invalid URL — ignore
+      }
+    };
+    document.getElementById('browserUrl').onkeydown = (e) => {
+      if (e.key === 'Enter') document.getElementById('browserGo').click();
+    };
+
+    let browserMode = localStorage.getItem('browserMode') || 'xiaohongshu';
+    
+    const XHS_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    const NORMAL_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    
+    function updateBrowserModeUI() {
+      const btn = document.getElementById('browserModeToggle');
+      const icon = document.getElementById('browserModeIcon');
+      if (browserMode === 'xiaohongshu') {
+        btn.title = '当前: 小红书模式 - 点击切换普通浏览器';
+        btn.classList.remove('text-accent');
+        btn.classList.add('text-textSecondary');
+        icon.className = 'fa-solid fa-heart';
+      } else {
+        btn.title = '当前: 普通浏览器模式 - 点击切换小红书';
+        btn.classList.remove('text-textSecondary');
+        btn.classList.add('text-accent');
+        icon.className = 'fa-solid fa-globe';
+      }
+    }
+    
+    function setBrowserMode(mode) {
+      browserMode = mode;
+      localStorage.setItem('browserMode', mode);
+      
+      const webview = document.getElementById('materialWebview');
+      if (webview) {
+        const currentUrl = webview.getURL();
+        webview.setUserAgent(mode === 'xiaohongshu' ? XHS_USER_AGENT : NORMAL_USER_AGENT);
+        webview.loadURL(currentUrl);
+      }
+      
+      updateBrowserModeUI();
+      showToast(mode === 'xiaohongshu' ? '已切换到小红书模式' : '已切换到普通浏览器模式', 'success');
+    }
+    
+    function initializeWebview() {
+      const webview = document.getElementById('materialWebview');
+      if (webview) {
+        webview.addEventListener('did-finish-load', () => {
+          webview.setUserAgent(browserMode === 'xiaohongshu' ? XHS_USER_AGENT : NORMAL_USER_AGENT);
+        });
+        
+        webview.addEventListener('did-navigate', () => {
+          const urlInput = document.getElementById('browserUrl');
+          if (urlInput) {
+            urlInput.value = webview.getURL();
+          }
+        });
+      }
+    }
+    
+    document.getElementById('browserModeToggle').onclick = () => {
+      setBrowserMode(browserMode === 'xiaohongshu' ? 'normal' : 'xiaohongshu');
+    };
+    
+    document.getElementById('takeScreenshot').onclick = async () => {
+      const webview = document.getElementById('materialWebview');
+      if (!webview) {
+        showToast('浏览器未就绪', 'error');
+        return;
+      }
+      
+      try {
+        showProgress('截图', '正在截取页面...', '准备中');
+        
+        const image = await webview.capturePage();
+        showProgress('截图', '正在保存...', '50%');
+        
+        const screenshotData = image.toPNG ? image.toPNG() : image;
+        const timestamp = Date.now();
+        const filename = `screenshot_${timestamp}.jpg`;
+        
+        const result = await window.electronAPI.materialBrowser.saveScreenshot(screenshotData, filename);
+        
+        hideProgress();
+        
+        if (result.success) {
+          showProgress('截图', '正在导入...', '75%');
+          const importResult = await window.electronAPI.materialBrowser.importToLibrary(result.filePath, webview.getURL(), []);
+          hideProgress();
+          
+          if (importResult.success) {
+            showToast('截图已保存并导入样片库', 'success');
+          } else {
+            showToast('截图已保存，但导入失败: ' + (importResult.error || ''), 'warning');
+          }
+        } else {
+          hideProgress();
+          showToast('截图保存失败: ' + (result.error || ''), 'error');
+        }
+      } catch (e) {
+        hideProgress();
+        showToast('截图失败: ' + e, 'error');
+      }
+    };
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      updateBrowserModeUI();
+      initializeWebview();
+    });
+    
+    updateBrowserModeUI();
+    initializeWebview();
+    
+    // 下载目录功能
+    document.getElementById('openDownloadDir').onclick = () => {
+      if (window.electronAPI?.materialBrowser?.openDownloadDir) {
+        window.electronAPI.materialBrowser.openDownloadDir();
+      }
+    };
+
+    document.getElementById('clearDownloadCache').onclick = async () => {
+      if (!confirm('确定要清空下载缓存吗？')) return;
+      if (window.electronAPI?.materialBrowser?.clearDownloadCache) {
+        await window.electronAPI.materialBrowser.clearDownloadCache();
+        showToast('下载缓存已清空', 'success');
+      }
+    };
+
+    // 下载进度监听
+    if (window.electronAPI?.materialBrowser?.onDownloadStarted) {
+      window.electronAPI.materialBrowser.onDownloadStarted((data) => {
+        document.getElementById('downloadProgressBar').classList.remove('hidden');
+        showToast(`开始下载: ${data.fileName}`, 'info');
+      });
+    }
+
+    if (window.electronAPI?.materialBrowser?.onDownloadProgress) {
+      window.electronAPI.materialBrowser.onDownloadProgress((data) => {
+        document.getElementById('downloadProgressInner').style.width = `${data.percent || 0}%`;
+      });
+    }
+
+    if (window.electronAPI?.materialBrowser?.onDownloadComplete) {
+      window.electronAPI.materialBrowser.onDownloadComplete(async (data) => {
+        document.getElementById('downloadProgressBar').classList.add('hidden');
+        document.getElementById('downloadProgressInner').style.width = '0%';
+        
+        try {
+          showProgress('导入照片', '正在导入...', '准备中');
+          
+          const result = await window.electronAPI.materialBrowser.importToLibrary(
+            data.filePath, 
+            data.url || window.location.href,
+            []
+          );
+          
+          hideProgress();
+          
+          if (result.success) {
+            if (result.alreadyImported) {
+              showToast('该照片已在样片库中', 'info');
+            } else {
+              showToast('已成功导入样片库', 'success');
+            }
+            
+            // 只刷新照片数据，不跳转页面
+            await new Promise(resolve => setTimeout(resolve, 200));
+            await loadPhotos();
+          } else {
+            showToast('导入失败: ' + (result.error || '未知错误'), 'error');
+          }
+        } catch (e) {
+          hideProgress();
+          showToast('导入失败: ' + e, 'error');
+        }
+      });
+    }
+
+    if (window.electronAPI?.materialBrowser?.onDownloadFailed) {
+      window.electronAPI.materialBrowser.onDownloadFailed((data) => {
+        document.getElementById('downloadProgressBar').classList.add('hidden');
+        document.getElementById('downloadProgressInner').style.width = '0%';
+        showToast(`下载失败: ${data.fileName}`, 'error');
+      });
+    }
+
+    // 导出PDF功能
+    document.getElementById('exportPdfBtn').onclick = async () => {
+      if (selectedPhotos.size === 0) {
+        showToast('请先选择要导出的照片', 'warning');
+        return;
+      }
+
+      showProgress('导出PDF', '正在生成PDF...', '准备中');
+      
+      try {
+        const { jsPDF } = window.jspdf;
+        
+        const selectedPhotoList = [];
+        for (const id of selectedPhotos) {
+          const photo = photos.find(p => p.id === id);
+          if (photo) {
+            selectedPhotoList.push(photo);
+          }
+        }
+        
+        let doc = null;
+        
+        for (let i = 0; i < selectedPhotoList.length; i++) {
+          const photo = selectedPhotoList[i];
+          updateProgress(((i + 1) / selectedPhotoList.length) * 100, `正在处理第 ${i + 1}/${selectedPhotoList.length} 张照片`);
+          
+          const imgData = await getImageData(photo.filepath || photo.thumbnail_path);
+          
+          const img = new Image();
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.src = imgData;
+          });
+          
+          const imgWidth = img.width;
+          const imgHeight = img.height;
+          
+          const mmWidth = imgWidth * 0.264583;
+          const mmHeight = imgHeight * 0.264583;
+          
+          if (i === 0) {
+            const orientation = mmWidth > mmHeight ? 'landscape' : 'portrait';
+            doc = new jsPDF({
+              orientation: orientation,
+              unit: 'mm',
+              format: [mmWidth, mmHeight]
+            });
+          } else {
+            doc.addPage([mmWidth, mmHeight], mmWidth > mmHeight ? 'landscape' : 'portrait');
+          }
+          
+          doc.addImage(imgData, 'JPEG', 0, 0, mmWidth, mmHeight);
+        }
+        
+        const pdfData = doc.output('datauristring');
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const filename = `照片集_${timestamp}_${Date.now()}.pdf`;
+        
+        if (window.electronAPI?.pdf?.saveToDesktop) {
+          const result = await window.electronAPI.pdf.saveToDesktop(pdfData, filename);
+          hideProgress();
+          if (result.success) {
+            showToast(`PDF已保存到桌面: ${filename}`, 'success');
+          } else {
+            showToast('保存PDF失败: ' + result.error, 'error');
+          }
+        }
+      } catch (e) {
+        hideProgress();
+        showToast('导出PDF失败: ' + e, 'error');
+      }
+    };
+    
+    // 视图切换功能
+    let currentViewMode = localStorage.getItem('photoViewMode') || 'masonry';
+    
+    function updateViewToggleButton() {
+      const btn = document.getElementById('viewToggleBtn');
+      const icon = document.getElementById('viewToggleIcon');
+      
+      if (currentViewMode === 'compact') {
+        btn.title = '切换到瀑布流';
+        icon.className = 'fa-solid fa-th';
+      } else {
+        btn.title = '切换到紧凑视图';
+        icon.className = 'fa-solid fa-th-large';
+      }
+    }
+    
+    function setViewMode(mode) {
+      currentViewMode = mode;
+      localStorage.setItem('photoViewMode', mode);
+      
+      const photoGrid = document.getElementById('photoGrid');
+      
+      if (mode === 'compact') {
+        photoGrid.classList.add('compact-view');
+        photoGrid.style.height = 'auto';
+        photoGrid.querySelectorAll('.photo-item').forEach(item => {
+          item.style.left = '';
+          item.style.top = '';
+          item.style.width = '';
+        });
+      } else {
+        photoGrid.classList.remove('compact-view');
+        layoutMasonry();
+      }
+      
+      updateViewToggleButton();
+    }
+    
+    document.getElementById('viewToggleBtn').onclick = () => {
+      setViewMode(currentViewMode === 'masonry' ? 'compact' : 'masonry');
+    };
+    
+    updateViewToggleButton();
+    
+    function getImageData(filePath) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/jpeg', 0.9));
+        };
+        
+        img.onerror = reject;
+        img.src = filePath;
+      });
+    }
+
+    loadVersionInfo();
+    loadPhotos();
+  </script>
+</body>
+</html>

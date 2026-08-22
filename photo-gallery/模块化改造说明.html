@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pic 模块化改造说明</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; background: #f5f5f7; color: #1d1d1f; line-height: 1.6; padding: 32px 20px; }
+  .container { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 26px; font-weight: 600; margin-bottom: 6px; }
+  .subtitle { color: #6e6e73; font-size: 14px; margin-bottom: 28px; }
+  h2 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; padding-left: 10px; border-left: 4px solid #0a84ff; }
+  h3 { font-size: 15px; font-weight: 600; margin: 16px 0 8px; }
+  .card { background: #fff; border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #eee; }
+  th { background: #fafafa; font-weight: 600; color: #555; }
+  code { background: #f0f0f2; padding: 2px 6px; border-radius: 4px; font-family: "SF Mono", Consolas, monospace; font-size: 12px; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .badge-green { background: #e8f7ee; color: #1d9e75; }
+  .badge-orange { background: #fff3e0; color: #d85a30; }
+  .badge-blue { background: #e8f1fd; color: #185fa5; }
+  .badge-gray { background: #f0f0f2; color: #6e6e73; }
+  ul { padding-left: 20px; }
+  li { margin-bottom: 6px; font-size: 14px; }
+  .tip { background: #e8f7ee; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #0f6e56; margin-top: 12px; }
+  .warn { background: #fff8e6; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #854f0b; margin-top: 12px; }
+  .muted { color: #6e6e73; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Pic 模块化改造说明</h1>
+  <div class="subtitle">壳层 + 内容层分离 · 减少重新打包次数 · v2.4.0</div>
+
+  <div class="card">
+    <h2>改造前 vs 改造后</h2>
+    <table>
+      <tr>
+        <th style="width:50%">改造前（一体化打包）</th>
+        <th>改造后（壳 + 内容分离）</th>
+      </tr>
+      <tr>
+        <td>UI、9个IPC模块、服务、数据库全部打进 asar</td>
+        <td>UI、IPC、服务打包为 <code>modules/app.js</code> 外置</td>
+      </tr>
+      <tr>
+        <td>改任何一处都要重新打包整个 exe</td>
+        <td>改 UI/逻辑只需替换 <code>modules/</code> 目录</td>
+      </tr>
+      <tr>
+        <td>壳（main.ts 57KB）与业务代码耦合</td>
+        <td>壳（main.ts 5KB）只负责加载模块和创建窗口</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>新的目录结构</h2>
+    <table>
+      <tr><th>位置</th><th>内容</th><th>更新方式</th></tr>
+      <tr>
+        <td><code>exe 同级 modules/</code><br><span class="muted">或 resources/modules</span></td>
+        <td>app.js（业务逻辑）<br>renderer/index.html（界面）<br>modules.json（清单）</td>
+        <td><span class="badge badge-green">热更新 · 替换文件即可</span></td>
+      </tr>
+      <tr>
+        <td><code>asar 内</code></td>
+        <td>main.js（壳层引导）<br>preload.js（API 桥）</td>
+        <td><span class="badge badge-orange">需重新打包（很少发生）</span></td>
+      </tr>
+      <tr>
+        <td><code>node_modules</code></td>
+        <td>sharp / exiftool / sql.js 等原生依赖</td>
+        <td><span class="badge badge-gray">随 Electron 升级才变</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>日常更新工作流</h2>
+    <h3>场景 1：改界面 / 改业务逻辑（最常见）</h3>
+    <ul>
+      <li>改完代码后运行 <code>npm run build</code></li>
+      <li>把 <code>dist-app/content/</code> 里的内容复制到 exe 同级的 <code>modules/</code> 目录</li>
+      <li>重启应用，新逻辑生效 <span class="badge badge-green">无需重新打包 exe</span></li>
+    </ul>
+    <h3>场景 2：加新功能模块</h3>
+    <ul>
+      <li>在 <code>electron/content/index.ts</code> 注册新 IPC</li>
+      <li>重新构建内容层，更新 <code>modules.json</code> 版本号</li>
+      <li>分发新的 <code>modules/</code> 文件即可</li>
+    </ul>
+    <h3>场景 3：升级 Electron / 原生依赖（极少）</h3>
+    <ul>
+      <li>此时才需要 <code>npm run build:win</code> 重新打包 exe</li>
+    </ul>
+    <div class="tip">
+      💡 便携版更新方式：把新的 <code>modules</code> 文件夹放到 <code>Pic-portable.exe</code> 旁边，启动时优先加载 exe 同目录的版本。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>技术要点</h2>
+    <ul>
+      <li><b>模块接口契约</b>：内容层导出 <code>init / registerIpc / getRendererPath / onWindowCreated / onQuit / syncTagsToExif</code>，壳层只调接口不关心实现。</li>
+      <li><b>依赖注入</b>：壳层把 <code>app / BrowserWindow / mainWindow 引用 / 路径信息</code> 通过 ctx 传给内容层。</li>
+      <li><b>esbuild 打包</b>：内容层打包为单一 CJS 文件（62KB），仅 external electron 和原生依赖，运行时通过 <code>module.paths</code> 增强解析 asar 内的 node_modules。</li>
+      <li><b>数据库路径兼容</b>：sql.js 的 wasm 定位增加 resources 候选路径，适配外部模块加载场景。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>验证结果</h2>
+    <ul>
+      <li>TypeScript 类型检查：零错误</li>
+      <li>壳层 main.js：57KB → 5KB</li>
+      <li>内容层 app.js：62KB 单文件，66/66 IPC 通道注册成功</li>
+      <li>模块冒烟测试：84/84 检查通过</li>
+      <li>单元测试：77/77 通过</li>
+      <li>electron-builder 打包：resources/modules 布局正确</li>
+    </ul>
+    <div class="warn">
+      ⚠️ 注意：旧构建产物 <code>dist-pkg/win-unpacked/resources/app.asar</code> 被当前 IDE 的文件监视器锁定，暂时无法删除。关闭应用后手动删除 <code>dist-pkg</code> 文件夹即可（纯构建产物，可随时重新生成）。
+    </div>
+  </div>
+</div>
+</body>
+</html>

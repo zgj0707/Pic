@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pic v2.4.0 第一阶段重构报告</title>
+  <style>
+    :root {
+      --bg: #f8f9fa;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1a202c;
+      --text-muted: #64748b;
+      --accent: #3b82f6;
+      --green: #22c55e;
+      --red: #ef4444;
+      --orange: #f59e0b;
+      --code-bg: #1e293b;
+      --code-text: #e2e8f0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      margin: 0;
+      padding: 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.4rem; margin-top: 2.5rem; border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; }
+    h3 { font-size: 1.1rem; margin-top: 2rem; color: var(--accent); }
+    .summary-bar {
+      display: flex; gap: 1rem; flex-wrap: wrap; margin: 1.5rem 0;
+    }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1rem 1.5rem; text-align: center;
+      flex: 1; min-width: 140px;
+    }
+    .stat-card .num { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+    .stat-card .label { font-size: 0.8rem; color: var(--text-muted); }
+    .stat-card.green .num { color: var(--green); }
+    .stat-card.red .num { color: var(--red); }
+    .stat-card.orange .num { color: var(--orange); }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; background: var(--card); border-radius: 8px; overflow: hidden; }
+    th { background: #f1f5f9; padding: 0.6rem 1rem; text-align: left; font-size: 0.85rem; }
+    td { padding: 0.6rem 1rem; border-top: 1px solid var(--border); font-size: 0.9rem; }
+    tr:hover { background: #f8fafc; }
+    code { background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.85rem; font-family: 'Fira Code', monospace; }
+    pre { background: var(--code-bg); color: var(--code-text); padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.85rem; }
+    .badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-orange { background: #fef3c7; color: #92400e; }
+    .checklist li { margin-bottom: 0.3rem; }
+    .checklist li::before { content: "✓"; color: var(--green); font-weight: 700; margin-right: 0.5rem; }
+    .file-tree { font-family: monospace; font-size: 0.85rem; line-height: 1.5; }
+    .file-tree .new { color: var(--green); font-weight: 600; }
+    .file-tree .del { color: var(--red); text-decoration: line-through; }
+    .file-tree .mod { color: var(--orange); }
+  </style>
+</head>
+<body>
+
+<h1>Pic v2.4.0 第一阶段重构报告</h1>
+<p style="color: var(--text-muted);">2026-08-02 · 5 个任务全部完成 · TypeScript 零错误 · 77/77 测试通过</p>
+
+<div class="summary-bar">
+  <div class="stat-card green"><div class="num">5/5</div><div class="label">任务完成</div></div>
+  <div class="stat-card"><div class="num">11</div><div class="label">新增文件</div></div>
+  <div class="stat-card orange"><div class="num">10</div><div class="label">修改文件</div></div>
+  <div class="stat-card red"><div class="num">9</div><div class="label">删除文件</div></div>
+  <div class="stat-card green"><div class="num">77</div><div class="label">测试用例</div></div>
+</div>
+
+<h2>任务 1：重构核心模块代码结构</h2>
+<h3>新增 4 个共享工具模块</h3>
+<table>
+  <tr><th>文件</th><th>作用</th><th>消除的重复</th></tr>
+  <tr><td><code>electron/types/index.ts</code></td><td>15+ 核心类型定义</td><td>Photo/Tag/Album 等散落各处</td></tr>
+  <tr><td><code>electron/utils/fileSystem.ts</code></td><td>文件系统工具</td><td>isSupportedFile/scanDirectory/getUniqueFilePath 在 3 个文件重复</td></tr>
+  <tr><td><code>electron/utils/exifSync.ts</code></td><td>EXIF 标签同步</td><td>syncTagsToPhotoExif 在 photo.ts+tagManager.ts 完全重复</td></tr>
+  <tr><td><code>electron/utils/dbHelpers.ts</code></td><td>数据库结果解析</td><td>recordToTag/buildInPlaceholders 模式重复</td></tr>
+</table>
+
+<h3>重构 8 个 IPC 处理器</h3>
+<ul class="checklist">
+  <li><b>photo.ts</b> — 移除重复 syncTagsToPhotoExif、移除冗余 saveDatabase()、使用 buildInPlaceholders</li>
+  <li><b>tagManager.ts</b> — 移除重复 syncTagsToPhotoExif、修复 getTagsByPhoto 只返回首行标签的 bug (get→query)</li>
+  <li><b>import.ts</b> — 提取 performImport() 消除 80% 重复代码</li>
+  <li><b>rename.ts</b> — 使用共享 scanDirectory/getUniqueFilePath/isSupportedFile</li>
+  <li><b>materialBrowser.ts</b> — 使用共享 getUniqueFilePath，importPhotoToDatabase 不再需传 dbAdapter</li>
+  <li><b>exifTool.ts</b> — 提取 executeExifWrite() 统一 ExifTool 生命周期、提取 validateWritableFile()</li>
+  <li><b>album.ts</b> — 移除 6 处冗余 saveDatabase()</li>
+  <li><b>database.ts</b> — 移除 db:run/db:exec 中冗余的 saveDatabase()</li>
+</ul>
+
+<h2>任务 2：统一错误处理机制</h2>
+<h3>新建 <code>electron/utils/ipcHandler.ts</code> — 统一 IPC 错误边界</h3>
+<ul class="checklist">
+  <li><code>wrapHandler(channel, fn)</code> — 包装同步处理器</li>
+  <li><code>wrapAsyncHandler(channel, fn)</code> — 包装异步处理器</li>
+  <li>保证永不向渲染进程抛出未捕获异常</li>
+  <li>自动用 <code>[IPC:channel]</code> 前缀记录错误日志</li>
+</ul>
+<p><b>35+ 个处理器</b>全部接入错误边界。此前 15+ 个处理器无任何错误处理（photos:getAll, albums:*, db:* 等），现在全部保证一致错误响应。</p>
+
+<h2>任务 3：为关键数据流添加类型定义</h2>
+<table>
+  <tr><th>文件</th><th>变更</th></tr>
+  <tr><td><code>electron/preload.ts</code></td><td>定义 ElectronAPI 接口，8 个 API 模块全部类型化，前端获得完整 IntelliSense</td></tr>
+  <tr><td><code>electron/services/database.ts</code></td><td>定义 DbAdapter 接口，DbRow/RunResult 类型</td></tr>
+  <tr><td><code>electron/services/config.ts</code></td><td>引用共享 AppConfig 类型，移除硬编码 <code>E:\文档\相册\样片</code></td></tr>
+  <tr><td><code>electron/services/blackBorderCrop.ts</code></td><td>引用共享 CropParams/CropResult</td></tr>
+</table>
+
+<h2>任务 4：清理废弃代码</h2>
+<table>
+  <tr><th>删除项</th><th>类型</th><th>原因</th></tr>
+  <tr><td><code>electron/ipc/metadata.ts</code></td><td>死代码 (266行)</td><td>从未注册，依赖未安装的 piexifjs</td></tr>
+  <tr><td><code>electron/types/piexifjs.d.ts</code></td><td>孤立类型声明</td><td>piexifjs 未安装</td></tr>
+  <tr><td>5 个根目录脚本</td><td>一次性维护脚本</td><td>cleanup-crop.js, quick-cleanup.js, revert-crop.js, update-batch-html.js, update-crop.js</td></tr>
+  <tr><td><code>tailwind.config.js</code></td><td>孤立配置</td><td>前端通过 CDN 加载 Tailwind</td></tr>
+  <tr><td><code>database/</code></td><td>空目录</td><td>残留</td></tr>
+  <tr><td>2 个旧发布包</td><td>构建产物 (~200MB)</td><td>portable-release-2.3/ 和 2.4/</td></tr>
+</table>
+
+<h2>任务 5：单元测试覆盖</h2>
+<div class="summary-bar">
+  <div class="stat-card green"><div class="num">77</div><div class="label">测试用例</div></div>
+  <div class="stat-card green"><div class="num">5</div><div class="label">测试文件</div></div>
+  <div class="stat-card green"><div class="num">100%</div><div class="label">通过率</div></div>
+</div>
+<table>
+  <tr><th>测试文件</th><th>用例数</th><th>覆盖模块</th></tr>
+  <tr><td><code>tests/utils/dbHelpers.test.ts</code></td><td>10</td><td>recordToTag, recordsToTags, buildInPlaceholders</td></tr>
+  <tr><td><code>tests/utils/fileSystem.test.ts</code></td><td>29</td><td>isSupportedFile, isWritableFormat, isRawFormat, scanDirectory, getUniqueFilePath, getValidFileStat</td></tr>
+  <tr><td><code>tests/utils/ipcHandler.test.ts</code></td><td>12</td><td>wrapHandler, wrapAsyncHandler 错误边界</td></tr>
+  <tr><td><code>tests/services/cacheManager.test.ts</code></td><td>9</td><td>formatBytes</td></tr>
+  <tr><td><code>tests/services/database.test.ts</code></td><td>17</td><td>dbAdapter insert/get/query/run/exec + 参数替换边缘用例</td></tr>
+</table>
+
+<h2>项目文件结构（重构后）</h2>
+<pre class="file-tree">electron/
+  <span class="mod">main.ts</span>              <span class="mod">— 接入错误边界包装器</span>
+  <span class="mod">preload.ts</span>           <span class="mod">— 定义 ElectronAPI 类型化接口</span>
+  ipc/
+    <span class="mod">album.ts</span>            <span class="mod">— 移除冗余 saveDatabase + 错误边界</span>
+    <span class="mod">database.ts</span>         <span class="mod">— 移除冗余 saveDatabase + 错误边界</span>
+    delete.ts             <span class="mod">— 错误边界</span>
+    <span class="mod">exifTool.ts</span>          <span class="mod">— 提取 executeExifWrite + 错误边界</span>
+    <span class="mod">import.ts</span>            <span class="mod">— 提取 performImport + 错误边界</span>
+    <span class="mod">materialBrowser.ts</span>   <span class="mod">— 使用共享工具 + 错误边界</span>
+    <span class="mod">photo.ts</span>             <span class="mod">— 移除重复 + 使用共享工具 + 错误边界</span>
+    <span class="mod">rename.ts</span>            <span class="mod">— 使用共享工具 + 错误边界</span>
+    <span class="mod">tagManager.ts</span>        <span class="mod">— 修复 bug + 使用共享工具 + 错误边界</span>
+    <span class="del">metadata.ts</span>          <span class="del">— 已删除 (死代码)</span>
+  services/
+    <span class="mod">blackBorderCrop.ts</span>   <span class="mod">— 引用共享类型</span>
+    cacheManager.ts
+    <span class="mod">config.ts</span>            <span class="mod">— 引用共享 AppConfig, 移除硬编码路径</span>
+    <span class="mod">database.ts</span>          <span class="mod">— 定义 DbAdapter 接口</span>
+    thumbnail.ts
+  types/
+    <span class="new">index.ts</span>             <span class="new">— 15+ 核心类型定义</span>
+    jimp.d.ts
+    sql-js.d.ts
+    <span class="del">piexifjs.d.ts</span>        <span class="del">— 已删除</span>
+  utils/
+    <span class="new">dbHelpers.ts</span>         <span class="new">— 数据库结果解析工具</span>
+    <span class="new">exifSync.ts</span>          <span class="new">— EXIF 标签同步工具</span>
+    <span class="new">fileSystem.ts</span>       <span class="new">— 文件系统共享工具</span>
+    <span class="new">ipcHandler.ts</span>       <span class="new">— 统一 IPC 错误边界</span>
+tests/
+  utils/
+    <span class="new">dbHelpers.test.ts</span>    <span class="new">— 10 tests</span>
+    <span class="new">fileSystem.test.ts</span>  <span class="new">— 29 tests</span>
+    <span class="new">ipcHandler.test.ts</span>  <span class="new">— 12 tests</span>
+  services/
+    <span class="new">cacheManager.test.ts</span><span class="new">— 9 tests</span>
+    <span class="new">database.test.ts</span>    <span class="new">— 17 tests</span>
+<span class="new">vitest.config.ts</span>          <span class="new">— 测试配置</span></pre>
+
+<h2>验证结果</h2>
+<ul class="checklist">
+  <li><b>TypeScript 编译</b>：零错误 (<code>tsc --noEmit</code>)</li>
+  <li><b>electron-vite build</b>：三个 bundle 均构建成功 (main 57KB, preload 5KB, renderer 124KB)</li>
+  <li><b>vitest run</b>：77/77 测试通过，5 个测试文件，耗时 5.77s</li>
+</ul>
+
+</body>
+</html>

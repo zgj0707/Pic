@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pic 样片库管理软件 - 代码审查报告</title>
+<style>
+  :root {
+    --bg: #f8f9fa;
+    --card-bg: #ffffff;
+    --border: #e5e7eb;
+    --text: #1f2937;
+    --text-secondary: #6b7280;
+    --text-tertiary: #9ca3af;
+    --critical: #dc2626;
+    --critical-bg: #fef2f2;
+    --high: #ea580c;
+    --high-bg: #fff7ed;
+    --medium: #d97706;
+    --medium-bg: #fffbeb;
+    --low: #2563eb;
+    --low-bg: #eff6ff;
+    --accent: #7c3aed;
+    --accent-light: #f3f0ff;
+    --success: #059669;
+    --success-bg: #ecfdf5;
+    --code-bg: #f3f4f6;
+    --code-text: #374151;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 0;
+  }
+  .header {
+    background: linear-gradient(135deg, #1e1b2e 0%, #3b1c5a 50%, #1e1b2e 100%);
+    color: white;
+    padding: 48px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; position: relative; }
+  .header .subtitle { font-size: 15px; opacity: 0.7; position: relative; }
+  .header .meta { margin-top: 20px; display: flex; gap: 24px; flex-wrap: wrap; position: relative; }
+  .header .meta-item { font-size: 13px; opacity: 0.8; }
+  .header .meta-item span { opacity: 1; font-weight: 600; }
+  .container { max-width: 1000px; margin: 0 auto; padding: 32px 40px 80px; }
+  .toc {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 40px;
+  }
+  .toc h2 { font-size: 16px; margin-bottom: 16px; color: var(--text); }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin-bottom: 6px; }
+  .toc a { color: var(--accent); text-decoration: none; font-size: 14px; }
+  .toc a:hover { text-decoration: underline; }
+  section { margin-bottom: 48px; }
+  h2.section-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2.section-title .icon { font-size: 24px; }
+  .section-desc { font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; }
+
+  /* Stat cards */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+  .stat-card .number { font-size: 32px; font-weight: 700; margin-bottom: 4px; }
+  .stat-card .label { font-size: 12px; color: var(--text-secondary); }
+  .stat-card.critical .number { color: var(--critical); }
+  .stat-card.high .number { color: var(--high); }
+  .stat-card.medium .number { color: var(--medium); }
+  .stat-card.low .number { color: var(--low); }
+
+  /* Issue cards */
+  .issue-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 16px;
+    transition: box-shadow 0.2s;
+  }
+  .issue-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .issue-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+  .severity-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .severity-badge.critical { background: var(--critical-bg); color: var(--critical); border: 1px solid #fecaca; }
+  .severity-badge.high { background: var(--high-bg); color: var(--high); border: 1px solid #fed7aa; }
+  .severity-badge.medium { background: var(--medium-bg); color: var(--medium); border: 1px solid #fde68a; }
+  .severity-badge.low { background: var(--low-bg); color: var(--low); border: 1px solid #bfdbfe; }
+  .issue-title { font-size: 16px; font-weight: 600; color: var(--text); flex: 1; }
+  .issue-body { font-size: 14px; color: var(--text-secondary); line-height: 1.8; }
+  .issue-body p { margin-bottom: 8px; }
+  .issue-body p:last-child { margin-bottom: 0; }
+  .issue-location {
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    background: var(--code-bg);
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+  pre.code-block {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 14px 16px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+    overflow-x: auto;
+    margin: 8px 0;
+    line-height: 1.6;
+  }
+  .fix-suggestion {
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: var(--success-bg);
+    border-left: 3px solid var(--success);
+    border-radius: 0 8px 8px 0;
+    font-size: 13px;
+    color: #064e3b;
+  }
+  .fix-suggestion strong { color: var(--success); }
+
+  /* Feature table */
+  .feature-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .feature-table th {
+    background: #f9fafb;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+  }
+  .feature-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .feature-table tr:last-child td { border-bottom: none; }
+  .feature-table .module { font-weight: 600; color: var(--accent); white-space: nowrap; }
+  .feature-table .status-ok { color: var(--success); }
+  .feature-table .status-warn { color: var(--medium); }
+  .feature-table .status-broken { color: var(--critical); }
+
+  /* Architecture diagram */
+  .arch-diagram {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+  .arch-layer {
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .arch-layer.layer-ui { border-color: #c084fc; background: #faf5ff; }
+  .arch-layer.layer-preload { border-color: #60a5fa; background: #eff6ff; }
+  .arch-layer.layer-ipc { border-color: #fbbf24; background: #fffbeb; }
+  .arch-layer.layer-service { border-color: #34d399; background: #ecfdf5; }
+  .arch-layer .layer-label { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .arch-layer .layer-files { display: flex; flex-wrap: wrap; gap: 8px; }
+  .arch-file {
+    font-size: 11px;
+    font-family: monospace;
+    background: white;
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 4px;
+    color: var(--text-secondary);
+  }
+  .arch-file.dead { text-decoration: line-through; opacity: 0.5; }
+  .arch-arrow { text-align: center; font-size: 20px; color: var(--text-tertiary); margin: -4px 0; }
+
+  /* Recommendation list */
+  .rec-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+  }
+  .rec-card .rec-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+  .rec-card .rec-priority { font-size: 11px; color: var(--accent); font-weight: 600; margin-bottom: 6px; }
+  .rec-card .rec-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+  .rec-card .rec-impact { font-size: 12px; color: var(--success); margin-top: 8px; font-weight: 500; }
+
+  .callout {
+    background: var(--accent-light);
+    border: 1px solid #ddd6fe;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 20px 0;
+    font-size: 13px;
+    color: #4c1d95;
+  }
+  .callout strong { color: var(--accent); }
+
+  .summary-box {
+    background: linear-gradient(135deg, #1e1b2e, #3b1c5a);
+    color: white;
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 40px;
+  }
+  .summary-box h3 { font-size: 18px; margin-bottom: 12px; }
+  .summary-box p { font-size: 14px; opacity: 0.85; line-height: 1.8; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Pic 样片库管理软件 — 代码审查与优化报告</h1>
+  <div class="subtitle">独立摄影师样片库管理桌面应用 | Electron + TypeScript + sql.js</div>
+  <div class="meta">
+    <div class="meta-item">版本: <span>v2.4.0</span></div>
+    <div class="meta-item">审查日期: <span>2026-08-02</span></div>
+    <div class="meta-item">源文件: <span>21 个</span></div>
+    <div class="meta-item">前端代码: <span>2983 行 (单文件)</span></div>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="toc">
+    <h2>目录</h2>
+    <ol>
+      <li><a href="#overview">项目概览</a></li>
+      <li><a href="#architecture">架构分析</a></li>
+      <li><a href="#features">功能清单</a></li>
+      <li><a href="#stats">问题统计</a></li>
+      <li><a href="#critical">严重问题 (Critical)</a></li>
+      <li><a href="#high">高优先级问题 (High)</a></li>
+      <li><a href="#medium">中优先级问题 (Medium)</a></li>
+      <li><a href="#low">低优先级问题 (Low)</a></li>
+      <li><a href="#recommendations">优化方向与建议</a></li>
+      <li><a href="#roadmap">改造路线图</a></li>
+    </ol>
+  </div>
+
+  <!-- 1. Overview -->
+  <section id="overview">
+    <h2 class="section-title"><span class="icon">📋</span> 项目概览</h2>
+    <p class="section-desc">Pic 是一款面向独立摄影师的样片库管理桌面应用，基于 Electron 构建，提供照片导入、EXIF 管理、标签评分、批量重命名、素材浏览器等功能。</p>
+
+    <div class="arch-diagram">
+      <div style="font-size: 14px; font-weight: 600; margin-bottom: 16px;">技术栈</div>
+      <table class="feature-table" style="margin-bottom: 0;">
+        <tr><th>层级</th><th>技术</th><th>说明</th></tr>
+        <tr><td class="module">运行时</td><td>Electron 36.2 + Node.js</td><td>桌面应用跨平台运行环境</td></tr>
+        <tr><td class="module">构建工具</td><td>electron-vite 3.1 + TypeScript 5.8</td><td>Vite 驱动的 Electron 构建工具链</td></tr>
+        <tr><td class="module">数据库</td><td>sql.js 1.13 (SQLite WASM)</td><td>纯 JS 实现的 SQLite，数据序列化到文件</td></tr>
+        <tr><td class="module">图片处理</td><td>sharp 0.34 + jimp 1.6 + exifr 7.1</td><td>缩略图生成、图片处理、EXIF 读取</td></tr>
+        <tr><td class="module">EXIF 写入</td><td>exiftool-vendored 35.20</td><td>ExifTool Perl 引擎的 Node.js 封装</td></tr>
+        <tr><td class="module">前端</td><td>Vanilla JS + Tailwind CSS (CDN)</td><td>无框架，单 HTML 文件，2983 行</td></tr>
+        <tr><td class="module">打包</td><td>electron-builder 26.1</td><td>Windows portable 单文件可执行</td></tr>
+      </table>
+    </div>
+
+    <div class="summary-box">
+      <h3>整体评价</h3>
+      <p>Pic 作为一款垂直领域的工具型应用，功能覆盖面完整——从照片导入、EXIF 读写、标签评分、批量操作到素材浏览器，基本满足摄影师样片管理的核心需求。但项目存在<strong>架构层面的结构性问题</strong>：前端 2983 行代码堆积在单个 HTML 文件中无任何模块化、多处安全配置存在高危风险、数据库写入策略导致性能瓶颈、存在约 500 行死代码。这些问题在当前数据量较小时不会暴露，但随着照片库增长到数千张，会逐步成为可用性和可维护性的障碍。</p>
+    </div>
+  </section>
+
+  <!-- 2. Architecture -->
+  <section id="architecture">
+    <h2 class="section-title"><span class="icon">🏗️</span> 架构分析</h2>
+    <p class="section-desc">典型的 Electron 三层架构：渲染进程 (UI) → Preload (IPC 桥接) → 主进程 (服务层)。问题在于层级间边界模糊，部分安全隔离被绕过。</p>
+
+    <div class="arch-diagram">
+      <div class="arch-layer layer-ui">
+        <div class="layer-label">渲染进程 (Renderer) — public/index.html</div>
+        <div class="layer-files">
+          <span class="arch-file">index.html (2983行)</span>
+          <span class="arch-file">Tailwind CSS (CDN)</span>
+          <span class="arch-file">Font Awesome (CDN)</span>
+          <span class="arch-file">jsPDF (CDN)</span>
+          <span class="arch-file dead">Masonry (CDN, 未使用)</span>
+          <span class="arch-file dead">PhotoSwipe (CDN, 未使用)</span>
+        </div>
+      </div>
+      <div class="arch-arrow">⇅</div>
+      <div class="arch-layer layer-preload">
+        <div class="layer-label">Preload — electron/preload.ts</div>
+        <div class="layer-files">
+          <span class="arch-file">contextBridge → electronAPI</span>
+          <span class="arch-file">photos / import / tags / exif / pdf</span>
+          <span class="arch-file">materialBrowser / cache / window / dialog</span>
+          <span class="arch-file dead">metadata (未注册)</span>
+        </div>
+      </div>
+      <div class="arch-arrow">⇅</div>
+      <div class="arch-layer layer-ipc">
+        <div class="layer-label">IPC 处理层 — electron/ipc/</div>
+        <div class="layer-files">
+          <span class="arch-file">photo.ts</span>
+          <span class="arch-file">import.ts</span>
+          <span class="arch-file">album.ts</span>
+          <span class="arch-file">database.ts</span>
+          <span class="arch-file">rename.ts</span>
+          <span class="arch-file">tagManager.ts</span>
+          <span class="arch-file">exifTool.ts</span>
+          <span class="arch-file">delete.ts</span>
+          <span class="arch-file">materialBrowser.ts</span>
+          <span class="arch-file dead">metadata.ts (266行, 未注册)</span>
+        </div>
+      </div>
+      <div class="arch-arrow">⇅</div>
+      <div class="arch-layer layer-service">
+        <div class="layer-label">服务层 — electron/services/</div>
+        <div class="layer-files">
+          <span class="arch-file">database.ts (sql.js 封装)</span>
+          <span class="arch-file">thumbnail.ts (sharp 缩略图)</span>
+          <span class="arch-file">cacheManager.ts (缓存管理)</span>
+          <span class="arch-file">config.ts (JSON 配置)</span>
+          <span class="arch-file dead">blackBorderCrop.ts (裁切, 已移除)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>架构关键问题：</strong>
+      <ul style="margin-top: 8px; padding-left: 20px;">
+        <li>Preload 直接暴露了 <code>db:query / db:get / db:run</code> 三个通用 SQL 接口，渲染进程可执行任意 SQL（包括 DROP TABLE）</li>
+        <li>主窗口 <code>webSecurity: false</code> + webview <code>disablewebsecurity</code>，双层安全防护均被关闭</li>
+        <li>前端无框架/无模块化，所有状态和逻辑堆在全局作用域</li>
+        <li>metadata.ts 完整实现但从未被 main.ts 注册调用，属于纯死代码</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 3. Features -->
+  <section id="features">
+    <h2 class="section-title"><span class="icon">✨</span> 功能清单</h2>
+    <p class="section-desc">梳理当前已实现的所有功能模块及其状态。</p>
+
+    <table class="feature-table">
+      <tr><th>模块</th><th>功能</th><th>实现文件</th><th>状态</th></tr>
+      <tr><td class="module" rowspan="3">样片导入</td><td>从文件夹批量导入</td><td>ipc/import.ts</td><td class="status-ok">✓ 正常</td></tr>
+      <tr><td>从文件选择导入</td><td>ipc/import.ts</td><td class="status-ok">✓ 正常</td></tr>
+      <tr><td>导入进度轮询</td><td>import:getProgress</td><td class="status-warn">⚠ 无实时推送, 需轮询</td></tr>
+
+      <tr><td class="module" rowspan="4">照片浏览</td><td>瀑布流布局</td><td>index.html layoutMasonry()</td><td class="status-warn">⚠ 无虚拟滚动</td></tr>
+      <tr><td>紧凑网格视图</td><td>index.html setViewMode()</td><td class="status-ok">✓ 正常</td></tr>
+      <tr><td>灯箱预览 (缩放/旋转/拖拽)</td><td>index.html openLightbox()</td><td class="status-ok">✓ 正常</td></tr>
+      <tr><td>右键菜单 (复制/打开)</td><td>index.html showContextMenu()</td><td class="status-ok">✓ 正常</td></tr>
+
+      <tr><td class="module" rowspan="4">元数据管理</td><td>评分 (1-5 星)</td><td>ipc/photo.ts + exifTool.ts</td><td class="status-ok">✓ 正常</td></tr>
+      <tr><td>标签 CRUD + 批量操作</td><td>ipc/tagManager.ts</td><td class="status-ok">✓ 正常</td></tr>
+      <tr><td>EXIF 读写 (exiftool-vendored)</td><td>ipc/exifTool.ts</td><td class="status-warn">⚠ 每次操作新建实例</td></tr>
+      <tr><td>EXIF 读写 (piexifjs)</td><td>ipc/metadata.ts</td><td class="status-broken">✗ 未注册, 依赖未安装</td></tr>
+
+      <tr><td class="module" rowspan="3">搜索与筛选</td><td>关键词搜索</td><td>index.html searchInput</td><td class="status-warn">⚠ debounce 实现有缺陷</td></tr>
+      <tr><td>评级 / 标签 / 收藏筛选</td><td>index.html filterPhotos()</td><td class="status-ok">✓ 正常</td></tr>
+      <tr><td>日期范围筛选</td><td>ipc/photo.ts PhotoFilter</td><td class="status-ok">✓ 正常</td></tr>
+
+      <tr><td class="module" rowspan="3">批量操作</td><td>批量评分 / 标签</td><td>index.html</td><td class="status-ok">✓ 正常</td></tr>
+      <tr><td>批量重命名 (复制模式)</td><td>ipc/rename.ts</td><td class="status-ok">✓ 正常</td></tr>
+      <tr><td>删除 (移入回收站)</td><td>ipc/photo.ts</td><td class="status-ok">✓ 正常</td></tr>
+
+      <tr><td class="module" rowspan="2">素材浏览器</td><td>内嵌 webview 浏览网站</td><td>ipc/materialBrowser.ts</td><td class="status-warn">⚠ 安全配置危险</td></tr>
+      <tr><td>截图 / 下载自动导入</td><td>materialBrowser.ts</td><td class="status-warn">⚠ 截图格式后缀不匹配</td></tr>
+
+      <tr><td class="module" rowspan="3">系统功能</td><td>缩略图缓存管理</td><td>services/cacheManager.ts</td><td class="status-ok">✓ 正常</td></tr>
+      <tr><td>PDF 导出</td><td>ipc/photo.ts + jsPDF</td><td class="status-ok">✓ 正常</td></tr>
+      <tr><td>复制到桌面文件夹</td><td>main.ts</td><td class="status-ok">✓ 正常</td></tr>
+    </table>
+  </section>
+
+  <!-- 4. Stats -->
+  <section id="stats">
+    <h2 class="section-title"><span class="icon">📊</span> 问题统计</h2>
+    <p class="section-desc">共发现 19 个问题，按严重程度分类如下。</p>
+
+    <div class="stats-grid">
+      <div class="stat-card critical">
+        <div class="number">5</div>
+        <div class="label">严重 (Critical)</div>
+      </div>
+      <div class="stat-card high">
+        <div class="number">6</div>
+        <div class="label">高 (High)</div>
+      </div>
+      <div class="stat-card medium">
+        <div class="number">5</div>
+        <div class="label">中 (Medium)</div>
+      </div>
+      <div class="stat-card low">
+        <div class="number">3</div>
+        <div class="label">低 (Low)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Critical -->
+  <section id="critical">
+    <h2 class="section-title"><span class="icon">🔴</span> 严重问题 (Critical)</h2>
+    <p class="section-desc">这些问题涉及安全漏洞或会导致功能异常，建议立即修复。</p>
+
+    <!-- C1 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge critical">Critical</span>
+        <span class="issue-title">C1. webview 安全配置完全禁用同源策略</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">public/index.html:598-602</div>
+        <p>素材浏览器的 webview 同时设置了 <code>webpreferences="...webSecurity=no..."</code> 和 <code>disablewebsecurity</code>，完全禁用了浏览器的同源策略。这意味着 webview 中加载的任何网页（包括被 XSS 注入的页面）可以发起任意跨域请求、读取任意来源的响应数据，甚至访问本地 <code>file://</code> 资源。</p>
+        <pre class="code-block">&lt;webview src="https://www.xiaohongshu.com"
+  webpreferences="...webSecurity=no;..."
+  disablewebsecurity
+  allowpopups&gt;&lt;/webview&gt;</pre>
+        <div class="fix-suggestion">
+          <strong>修复建议：</strong>移除 <code>disablewebsecurity</code> 和 <code>webSecurity=no</code>。如果需要绕过 CORS 限制，使用 <code>session.webRequest.onHeadersReceived</code> 精细化修改响应头，或使用代理服务器转发请求。
+        </div>
+      </div>
+    </div>
+
+    <!-- C2 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge critical">Critical</span>
+        <span class="issue-title">C2. 主窗口 webSecurity 关闭 + 通用 SQL 接口暴露</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">electron/main.ts:36 | electron/preload.ts:9-11 | electron/services/database.ts:168-183</div>
+        <p>三个独立的安全问题叠加形成高危链路：</p>
+        <p><strong>(1)</strong> 主窗口 <code>webSecurity: false</code> 禁用了主窗口的 Web 安全策略。</p>
+        <p><strong>(2)</strong> Preload 通过 <code>contextBridge</code> 直接暴露了 <code>db:query</code>、<code>db:get</code>、<code>db:run</code> 三个通用 SQL 执行接口，渲染进程可以执行任意 SQL 语句（包括 <code>DROP TABLE</code>、<code>DELETE FROM photos</code> 等破坏性操作）。</p>
+        <p><strong>(3)</strong> <code>dbAdapter.get()</code> 和 <code>dbAdapter.query()</code> 内部使用 <code>substituteParams()</code> 函数进行字符串拼接 SQL，而非使用 prepared statement 参数绑定。虽然对单引号做了转义 (<code>replace(/'/g, "''")</code>)，但这种方式本质上是脆弱的字符串拼接，存在 SQL 注入风险。</p>
+        <pre class="code-block">// database.ts - 字符串拼接 SQL (不安全)
+function substituteParams(sql, params) {
+  return sql.replace(/\?/g, () => {
+    const param = params[paramIndex++];
+    if (typeof param === 'string')
+      return `'${param.replace(/'/g, "''")}'`; // 仅转义单引号
+    return String(param);
+  });
+}
+// preload.ts - 暴露通用 SQL
+database: {
+  query: (sql, params) => ipcRenderer.invoke('db:query', sql, params),
+  run: (sql, params) => ipcRenderer.invoke('db:run', sql, params)
+}</pre>
+        <div class="fix-suggestion">
+          <strong>修复建议：</strong>① 移除 <code>webSecurity: false</code>；② 移除通用的 <code>db:query/get/run</code> 暴露，改为具体的业务 API（如 <code>photos:getAll</code>、<code>tags:getAll</code> 等已有接口）；③ 在 <code>dbAdapter</code> 的 <code>get/query</code> 方法中也使用 sql.js 的 prepared statement 参数绑定，而非字符串拼接。
+        </div>
+      </div>
+    </div>
+
+    <!-- C3 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge critical">Critical</span>
+        <span class="issue-title">C3. XSS 漏洞 — innerHTML 插入未转义的用户可控数据</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">public/index.html: 1359, 1315, 1611, 1754, 1826, 1883, 2339 等多处</div>
+        <p>前端在多处使用 <code>innerHTML</code> 插入标签名、文件名、错误信息等用户可控内容时未做 HTML 转义。标签内容可能包含 <code>&lt;img src=x onerror=alert(1)&gt;</code> 等 HTML 片段，会被浏览器解析执行。</p>
+        <pre class="code-block">// 标签名直接插入 innerHTML (第1359行)
+const tagsHtml = photo.tags?.map(tag =>
+  `&lt;span class="tag-badge"&gt;${tag}&lt;/span&gt;`  // 未转义
+).join('') || '';
+
+// showToast message 直接插入 (第1315行)
+toast.innerHTML = `...&lt;span&gt;${message}&lt;/span&gt;...`;  // 未转义
+
+// 内联 onclick 拼接 (第1614行)
+`&lt;button onclick="removeBatchTag('${tag}')"&gt;`  // tag含单引号会破坏结构</pre>
+        <div class="fix-suggestion">
+          <strong>修复建议：</strong>添加统一的 <code>escapeHtml()</code> 工具函数，对所有通过 <code>innerHTML</code> 插入的动态内容进行转义。或将动态内容改用 <code>textContent</code> 赋值，或使用 <code>document.createElement</code> 构建元素。
+        </div>
+      </div>
+    </div>
+
+    <!-- C4 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge critical">Critical</span>
+        <span class="issue-title">C4. confirmAddTag 异步竞态条件 — 缺少 await 导致标签丢失</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">public/index.html:1949-1954</div>
+        <p><code>confirmAddTag</code> 函数中调用 <code>photos.updateTags()</code> 和 <code>exif.writeTags()</code> 后未 <code>await</code>，紧接着调用 <code>await loadPhotos()</code> 重新加载数据。由于 IPC 调用是异步的，写入可能尚未完成就开始重新读取，导致刚添加的标签在刷新后不显示。</p>
+        <pre class="code-block">// 第1949-1954行 - 缺少 await
+window.electronAPI?.photos.updateTags(fullPhoto.id, uniqueTags);    // 未await!
+if (fullPhoto.filepath)
+  window.electronAPI?.exif.writeTags(fullPhoto.filepath, uniqueTags); // 未await!
+// ...
+await loadPhotos(); // 此时写入可能尚未完成</pre>
+        <div class="fix-suggestion">
+          <strong>修复建议：</strong>添加 <code>await</code> 关键字：<code>await window.electronAPI?.photos.updateTags(...)</code> 和 <code>await window.electronAPI?.exif.writeTags(...)</code>。
+        </div>
+      </div>
+    </div>
+
+    <!-- C5 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge critical">Critical</span>
+        <span class="issue-title">C5. metadata.ts 完整实现但从未注册 — 死代码 + 依赖缺失</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">electron/ipc/metadata.ts (266行) | electron/main.ts (无导入)</div>
+        <p><code>metadata.ts</code> 定义了 4 个 IPC 处理器 (<code>metadata:writeToFile</code>、<code>metadata:readFromFile</code>、<code>metadata:batchWrite</code>、<code>metadata:syncFromFiles</code>)，但 <code>main.ts</code> 从未调用 <code>registerMetadataIpc()</code>，导致这些处理器永远不会被注册。</p>
+        <p>更严重的是，该文件 <code>import piexif from 'piexifjs'</code>，但 <code>piexifjs</code> 不在 <code>package.json</code> 依赖中、也不在 <code>node_modules</code> 中。如果调用 <code>registerMetadataIpc()</code> 会直接崩溃。</p>
+        <p>此外，<code>metadata.ts</code> 与 <code>exifTool.ts</code> 功能高度重复——两者都实现 EXIF 评级/标签的读写，只是底层库不同 (piexifjs vs exiftool-vendored)。</p>
+        <div class="fix-suggestion">
+          <strong>修复建议：</strong>直接删除 <code>metadata.ts</code>。EXIF 读写已由 <code>exifTool.ts</code> 完整实现且功能更强大（支持 PNG/TIFF，metadata.ts 仅支持 JPEG）。
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. High -->
+  <section id="high">
+    <h2 class="section-title"><span class="icon">🟠</span> 高优先级问题 (High)</h2>
+    <p class="section-desc">影响性能或可维护性，建议尽快处理。</p>
+
+    <!-- H1 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge high">High</span>
+        <span class="issue-title">H1. saveDatabase() 在每次写操作后全量序列化 — 严重性能瓶颈</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">electron/services/database.ts:148 | 调用方: photo.ts, tagManager.ts, album.ts 等</div>
+        <p><code>dbAdapter.run()</code> 内部调用 <code>saveDatabase()</code>，该方法执行 <code>db.export()</code> 将整个数据库序列化为二进制并 <code>writeFileSync</code> 写入磁盘。这意味着<strong>每次 INSERT/UPDATE/DELETE 都会触发一次完整的数据库序列化+磁盘写入</strong>。</p>
+        <p>更严重的是，调用方在 <code>dbAdapter.run()</code> 之后<strong>又调用了一次</strong> <code>saveDatabase()</code>（如 <code>photos:updateRating</code>、<code>photos:toggleFavorite</code>、<code>albums:create</code> 等），造成<strong>双重写入</strong>。</p>
+        <p>批量操作如 <code>photos:updateTags</code>（循环 INSERT 多个标签）会在循环内触发多次 <code>saveDatabase()</code>，每次都是全量写入。</p>
+        <pre class="code-block">// photo.ts - 双重保存
+ipcMain.handle('photos:updateRating', (_event, id, rating) => {
+  dbAdapter.run('UPDATE photos SET rating = ? WHERE id = ?', [rating, id]);
+  // ↑ dbAdapter.run 内部已调用 saveDatabase()
+  saveDatabase(); // ← 又调一次，双重写入
+  return { success: true };
+});</pre>
+        <div class="fix-suggestion">
+          <strong>修复建议：</strong>① 从 <code>dbAdapter.run()</code> 中移除 <code>saveDatabase()</code> 调用；② 在批量操作完成后调用一次 <code>saveDatabase()</code>；③ 或改为定时自动保存（如每 5 秒检查一次 dirty flag），避免每次操作都写盘。
+        </div>
+      </div>
+    </div>
+
+    <!-- H2 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge high">High</span>
+        <span class="issue-title">H2. 启动时全量 EXIF 同步 — syncTagsToExif() 遍历所有照片</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">electron/main.ts:82-121, 176</div>
+        <p>应用启动时调用 <code>syncTagsToExif()</code>，遍历数据库中<strong>所有</strong>照片，为每张有标签的照片调用 <code>writeExifTags()</code>。<code>writeExifTags</code> 每次调用都会 <code>new ExifTool()</code> 并 <code>exiftool.end()</code>——即每张照片启动一个 Perl 子进程。对于 1000 张照片，意味着启动 1000 次 Perl 进程。</p>
+        <p>这个操作在 <code>app.whenReady()</code> 中以 <code>syncTagsToExif()</code>（无 await）异步执行，虽然不阻塞窗口创建，但会在启动后占用大量 CPU 和磁盘 IO。</p>
+        <div class="fix-suggestion">
+          <strong>修复建议：</strong>① 使用单例 ExifTool 实例（<code>exiftool-vendored</code> 支持复用）；② 改为增量同步——只在标签变更时同步对应照片（<code>tagManager.ts</code> 中已有 <code>syncTagsToPhotoExif</code>）；③ 移除启动时的全量同步。
+        </div>
+      </div>
+    </div>
+
+    <!-- H3 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge high">High</span>
+        <span class="issue-title">H3. 前端无虚拟滚动 — 全量 innerHTML 重建</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">public/index.html:1423</div>
+        <p><code>renderPhotoGrid()</code> 每次执行时 <code>photoGrid.innerHTML = ''</code> 清空所有 DOM，然后为每张照片创建完整的 DOM 元素。没有虚拟滚动、没有分页、没有懒加载。</p>
+        <p>当照片数量达到数百张时，每次筛选/搜索/标签变更都会重建数百个 DOM 节点并重新加载所有缩略图，导致明显卡顿。删除操作中还存在<strong>双重渲染</strong>：先 <code>renderPhotoGrid()</code> 再 <code>await loadPhotos()</code>（内部再次 <code>renderPhotoGrid()</code>）。</p>
+        <div class="fix-suggestion">
+          <strong>修复建议：</strong>① 实现虚拟滚动（仅渲染可视区域内的 DOM，如使用 IntersectionObserver）；② 图片使用 <code>loading="lazy"</code> 原生懒加载；③ 删除操作后直接从 <code>photos</code> 数组移除元素并 <code>renderPhotoGrid()</code>，无需重新 <code>loadPhotos()</code>。
+        </div>
+      </div>
+    </div>
+
+    <!-- H4 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge high">High</span>
+        <span class="issue-title">H4. CDN 依赖 — 桌面应用离线不可用</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">public/index.html:8-17</div>
+        <p>Tailwind CSS、Font Awesome、jsPDF、Masonry、PhotoSwipe、Google Fonts 全部通过 CDN 引入。作为一款桌面应用（portable exe），用户在无网络环境下使用时，所有样式和图标加载失败，界面完全不可用。</p>
+        <p>其中 Masonry 和 PhotoSwipe 已引入但实际未使用，属于多余的 CDN 请求。</p>
+        <div class="fix-suggestion">
+          <strong>修复建议：</strong>① 将所有必要的 CDN 资源改为本地文件（<code>npm install</code> 后从 <code>node_modules</code> 复制到 <code>public/vendor/</code>）；② 在 Vite 构建中配置资源打包；③ 移除未使用的 Masonry 和 PhotoSwipe。
+        </div>
+      </div>
+    </div>
+
+    <!-- H5 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge high">High</span>
+        <span class="issue-title">H5. 单文件前端 — 2983 行无模块化</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">public/index.html (2983行)</div>
+        <p>所有前端代码（CSS 476 行 + HTML 740 行 + JS 1746 行）堆积在单个 HTML 文件中。所有变量和函数在全局作用域，互相耦合，无法做单元测试。变更任何小功能都需要在超大文件中搜索定位。</p>
+        <p>425 行 changelog 也硬编码在 HTML 中，每次版本更新需要修改 HTML 文件。</p>
+        <div class="fix-suggestion">
+          <strong>修复建议：</strong>利用已有的 Vite 构建工具链，将 <code>public/index.html</code> 拆分为标准的 Vite 项目结构：<code>src/main.ts</code>（入口）、<code>src/components/</code>（UI 组件）、<code>src/services/</code>（数据层）、<code>src/styles/</code>（样式）。可渐进式迁移，先拆分再逐步引入框架。
+        </div>
+      </div>
+    </div>
+
+    <!-- H6 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge high">High</span>
+        <span class="issue-title">H6. 硬编码本机路径 — config.ts 默认下载目录</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">electron/services/config.ts:55</div>
+        <p>默认下载目录硬编码为 <code>'E:\\文档\\相册\\样片'</code>，这是开发者本机路径。其他用户机器上该路径不存在，会尝试创建（可能因权限或盘符不存在而失败）。此路径还被用作照片删除时的<strong>回收站目录</strong>（<code>photo.ts:143</code>），路径不可用会导致删除功能异常。</p>
+        <pre class="code-block">const defaultDownloadDir = 'E:\\文档\\相册\\样片'</pre>
+        <div class="fix-suggestion">
+          <strong>修复建议：</strong>使用 <code>app.getPath('documents')</code> 或 <code>app.getPath('downloads')</code> 作为默认路径，或在首次启动时引导用户选择目录。
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Medium -->
+  <section id="medium">
+    <h2 class="section-title"><span class="icon">🟡</span> 中优先级问题 (Medium)</h2>
+
+    <!-- M1 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge medium">Medium</span>
+        <span class="issue-title">M1. 搜索框 debounce 实现缺陷 — 多次重复渲染</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">public/index.html:2089</div>
+        <p>搜索框 <code>input</code> 事件每次触发都创建新的 <code>setTimeout(renderPhotoGrid, 300)</code>，但不清除前一个定时器。快速输入 10 个字符会产生 10 个定时器，全部在 300ms 后依次执行，导致 10 次全量渲染。</p>
+        <pre class="code-block">// 当前 (错误)
+input.addEventListener('input', () => setTimeout(renderPhotoGrid, 300));
+
+// 正确做法
+let searchTimer;
+input.addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(renderPhotoGrid, 300);
+});</pre>
+      </div>
+    </div>
+
+    <!-- M2 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge medium">Medium</span>
+        <span class="issue-title">M2. resize 事件双重监听 + 无防抖</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">public/index.html:1514, 2558</div>
+        <p>窗口 <code>resize</code> 事件注册了两个监听器：一个调用 <code>layoutMasonry()</code>，另一个调用 <code>renderPhotoGrid()</code>（内部又调用 <code>layoutMasonry()</code>）。两个都没有防抖，拖拽窗口边框时会触发大量布局计算和 DOM 重建。</p>
+      </div>
+    </div>
+
+    <!-- M3 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge medium">Medium</span>
+        <span class="issue-title">M3. ExifTool 实例不复用 — 每次操作启动新进程</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">electron/ipc/exifTool.ts:40, 117, 152, 224</div>
+        <p><code>readExifData</code>、<code>writeExifRating</code>、<code>writeExifTags</code>、<code>writeExifData</code> 每个函数内部都 <code>new ExifTool()</code> 然后调用 <code>exiftool.end()</code>。<code>exiftool-vendored</code> 设计为复用单例实例以提高性能，频繁创建/销毁会导致 Perl 子进程的启动开销。</p>
+        <div class="fix-suggestion">
+          <strong>修复建议：</strong>创建一个全局单例 <code>let exifToolInstance: ExifTool | null = null</code>，在首次使用时初始化，在 app 退出时 <code>end()</code>。
+        </div>
+      </div>
+    </div>
+
+    <!-- M4 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge medium">Medium</span>
+        <span class="issue-title">M4. 错误信息拼接方式不一致 — Error 对象被 toString</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">public/index.html: 1658, 1688, 1986, 2244, 2323 等 9 处</div>
+        <p>多处使用 <code>'失败: ' + e</code> 拼接错误信息，当 <code>e</code> 是 Error 对象时得到 <code>"失败: Error: message"</code>。应使用 <code>e.message || String(e)</code>。</p>
+      </div>
+    </div>
+
+    <!-- M5 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge medium">Medium</span>
+        <span class="issue-title">M5. 项目根目录残留一次性脚本和旧发布包</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">photo-gallery/ 根目录</div>
+        <p>项目根目录存在 4 个一次性维护脚本（<code>cleanup-crop.js</code>、<code>update-crop.js</code>、<code>revert-crop.js</code>、<code>update-batch-html.js</code>，共 783 行）和 2 个旧版本发布包目录（<code>portable-release-2.3/</code>、<code>portable-release-2.4/</code>，各约 100MB）。此外 <code>blackBorderCrop.ts</code> 的功能已在 v2.0 移除但文件仍存在。</p>
+        <div class="fix-suggestion">
+          <strong>修复建议：</strong>① 删除一次性脚本或将它们移到 <code>scripts/</code> 目录；② 删除旧发布包；③ 删除 <code>blackBorderCrop.ts</code>；④ 将 <code>.gitignore</code> 配置忽略 <code>portable-release-*</code> 和 <code>dist-exe/</code>。
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Low -->
+  <section id="low">
+    <h2 class="section-title"><span class="icon">🔵</span> 低优先级问题 (Low)</h2>
+
+    <!-- L1 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge low">Low</span>
+        <span class="issue-title">L1. 两个 User-Agent 常量完全相同 — 模式切换无效</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">public/index.html:2668-2669</div>
+        <p><code>XHS_USER_AGENT</code> 和 <code>NORMAL_USER_AGENT</code> 的值完全相同，"小红书模式"和"普通浏览器模式"的切换实际上没有任何效果。</p>
+      </div>
+    </div>
+
+    <!-- L2 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge low">Low</span>
+        <span class="issue-title">L2. CSS 全局 GPU 加速 + !important 滥用</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">public/index.html:54, 445-474</div>
+        <p><code>* { transform: translateZ(0); backface-visibility: hidden; }</code> 对所有元素强制 GPU 加速，在 DOM 元素多时可能消耗大量显存。多处 <code>!important</code> 用于覆盖 Tailwind 样式，增加维护难度。</p>
+      </div>
+    </div>
+
+    <!-- L3 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="severity-badge low">Low</span>
+        <span class="issue-title">L3. 截图文件名后缀与实际格式不匹配</span>
+      </div>
+      <div class="issue-body">
+        <div class="issue-location">public/index.html:2735-2737</div>
+        <p>截图使用 <code>image.toPNG()</code> 获取 PNG 数据，但文件名设为 <code>screenshot_*.jpg</code>，后缀与实际格式不匹配，可能导致文件管理混乱。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. Recommendations -->
+  <section id="recommendations">
+    <h2 class="section-title"><span class="icon">💡</span> 优化方向与建议</h2>
+    <p class="section-desc">基于以上分析，按优先级排列的改进建议。</p>
+
+    <div class="rec-card">
+      <div class="rec-priority">🔴 P0 — 立即修复</div>
+      <div class="rec-title">1. 关闭安全漏洞：webview + 主窗口 + SQL 暴露</div>
+      <div class="rec-desc">
+        移除 webview 的 <code>disablewebsecurity</code>；主窗口移除 <code>webSecurity: false</code>；从 preload 中移除通用 SQL 接口 <code>db:query/get/run</code>，所有数据操作改为具体业务 API。<code>dbAdapter</code> 的 <code>get/query</code> 改用 sql.js 的参数绑定而非字符串拼接。
+      </div>
+      <div class="rec-impact">影响：消除远程代码执行和数据篡改风险</div>
+    </div>
+
+    <div class="rec-card">
+      <div class="rec-priority">🔴 P0 — 立即修复</div>
+      <div class="rec-title">2. 修复 confirmAddTag 竞态 + XSS 转义</div>
+      <div class="rec-desc">
+        为 <code>confirmAddTag</code> 中的 IPC 调用添加 <code>await</code>；添加统一的 <code>escapeHtml()</code> 函数，对所有 <code>innerHTML</code> 插入的动态内容进行转义。
+      </div>
+      <div class="rec-impact">影响：修复标签丢失 Bug + 消除 XSS 注入风险</div>
+    </div>
+
+    <div class="rec-card">
+      <div class="rec-priority">🟠 P1 — 本周内</div>
+      <div class="rec-title">3. 优化数据库写入策略</div>
+      <div class="rec-desc">
+        从 <code>dbAdapter.run()</code> 内部移除 <code>saveDatabase()</code>，改为调用方在操作完成后统一调用。批量操作使用事务 (<code>BEGIN ... COMMIT</code>) 后再保存。可引入 dirty flag + 定时保存（每 5 秒）。
+      </div>
+      <div class="rec-impact">影响：批量操作性能提升 10-50 倍</div>
+    </div>
+
+    <div class="rec-card">
+      <div class="rec-priority">🟠 P1 — 本周内</div>
+      <div class="rec-title">4. 移除死代码和残留文件</div>
+      <div class="rec-desc">
+        删除 <code>metadata.ts</code>（未注册+依赖缺失）、<code>blackBorderCrop.ts</code>（功能已移除）、4 个根目录维护脚本、2 个旧发布包目录。移除前端未使用的 Masonry 和 PhotoSwipe CDN 引用。
+      </div>
+      <div class="rec-impact">影响：减少约 550 行死代码 + 释放约 200MB 磁盘空间</div>
+    </div>
+
+    <div class="rec-card">
+      <div class="rec-priority">🟠 P1 — 本周内</div>
+      <div class="rec-title">5. 修复硬编码路径 + 移除启动时全量 EXIF 同步</div>
+      <div class="rec-desc">
+        <code>config.ts</code> 默认路径改为 <code>app.getPath('documents')</code>；移除 <code>main.ts</code> 中启动时的 <code>syncTagsToExif()</code> 调用，改为标签变更时增量同步（已有 <code>tagManager.syncTagsToPhotoExif</code>）。
+      </div>
+      <div class="rec-impact">影响：修复其他用户机器上删除/下载功能异常 + 启动速度提升</div>
+    </div>
+
+    <div class="rec-card">
+      <div class="rec-priority">🟡 P2 — 近期规划</div>
+      <div class="rec-title">6. CDN 资源本地化</div>
+      <div class="rec-desc">
+        将 Tailwind CSS、Font Awesome、jsPDF 从 CDN 改为本地文件。利用已有的 Vite 构建链，将前端依赖纳入 <code>package.json</code> 管理，构建时自动打包。
+      </div>
+      <div class="rec-impact">影响：桌面应用离线可用，消除 CDN 不可用风险</div>
+    </div>
+
+    <div class="rec-card">
+      <div class="rec-priority">🟡 P2 — 近期规划</div>
+      <div class="rec-title">7. 前端性能优化：虚拟滚动 + 防抖 + 懒加载</div>
+      <div class="rec-desc">
+        实现图片虚拟滚动（仅渲染可视区域 DOM）；为 <code>resize</code> 和搜索添加防抖；图片添加 <code>loading="lazy"</code>；修复双重渲染（删除后不重新 <code>loadPhotos</code>）。
+      </div>
+      <div class="rec-impact">影响：数千张照片时 UI 流畅度显著提升</div>
+    </div>
+
+    <div class="rec-card">
+      <div class="rec-priority">🟡 P2 — 近期规划</div>
+      <div class="rec-title">8. ExifTool 单例化</div>
+      <div class="rec-desc">
+        创建全局 ExifTool 单例实例，复用 Perl 子进程。<code>exiftool-vendored</code> 原生支持实例复用，只需在模块顶层创建 <code>const exiftool = new ExifTool()</code>，在 <code>app.on('will-quit')</code> 时 <code>exiftool.end()</code>。
+      </div>
+      <div class="rec-impact">影响：EXIF 操作速度提升 5-10 倍</div>
+    </div>
+
+    <div class="rec-card">
+      <div class="rec-priority">🔵 P3 — 中长期改造</div>
+      <div class="rec-title">9. 前端模块化拆分</div>
+      <div class="rec-desc">
+        将 2983 行的 <code>index.html</code> 拆分为标准 Vite 项目结构。可先按功能拆分为独立 JS 模块（gallery.js、lightbox.js、materialBrowser.js、settings.js），再逐步引入轻量框架（Preact 或 Vue 3）实现响应式状态管理。Changelog 从 HTML 中抽离为 JSON/Markdown 文件。
+      </div>
+      <div class="rec-impact">影响：代码可维护性、可测试性大幅提升，为后续功能扩展打好基础</div>
+    </div>
+
+    <div class="rec-card">
+      <div class="rec-priority">🔵 P3 — 中长期改造</div>
+      <div class="rec-title">10. 考虑迁移到 better-sqlite3 或 native SQLite</div>
+      <div class="rec-desc">
+        当前使用 sql.js（SQLite WASM）需要手动序列化/反序列化到文件，每次写入是全量操作。迁移到 <code>better-sqlite3</code>（原生绑定）可获得：原生 WAL 模式（无需手动 save）、更好的并发性能、prepared statement 原生支持、无需全量序列化。
+      </div>
+      <div class="rec-impact">影响：数据库性能提升 10-100 倍，代码复杂度降低</div>
+    </div>
+  </section>
+
+  <!-- 10. Roadmap -->
+  <section id="roadmap">
+    <h2 class="section-title"><span class="icon">🗺️</span> 改造路线图</h2>
+    <p class="section-desc">建议分三个阶段推进，每个阶段独立可交付。</p>
+
+    <div class="arch-diagram" style="padding: 24px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+        <div style="background: #fef2f2; border: 2px solid #fecaca; border-radius: 10px; padding: 20px;">
+          <div style="font-size: 14px; font-weight: 700; color: #dc2626; margin-bottom: 12px;">阶段一：安全与稳定性</div>
+          <div style="font-size: 12px; color: #7f1d1d; line-height: 2;">
+            ✓ 关闭 webview/webSecurity<br>
+            ✓ 移除通用 SQL 暴露<br>
+            ✓ 修复 confirmAddTag 竞态<br>
+            ✓ 添加 HTML 转义<br>
+            ✓ 修复硬编码路径<br>
+            ✓ 删除死代码 (metadata.ts)<br>
+            ✓ 删除残留脚本和旧包
+          </div>
+          <div style="font-size: 11px; color: #dc2626; margin-top: 12px; font-weight: 600;">预计改动：~15 个文件</div>
+        </div>
+        <div style="background: #fff7ed; border: 2px solid #fed7aa; border-radius: 10px; padding: 20px;">
+          <div style="font-size: 14px; font-weight: 700; color: #ea580c; margin-bottom: 12px;">阶段二：性能优化</div>
+          <div style="font-size: 12px; color: #7c2d12; line-height: 2;">
+            ✓ 优化 saveDatabase 策略<br>
+            ✓ 移除启动全量 EXIF 同步<br>
+            ✓ ExifTool 单例化<br>
+            ✓ 虚拟滚动 + 懒加载<br>
+            ✓ 搜索/resize 防抖<br>
+            ✓ CDN 资源本地化
+          </div>
+          <div style="font-size: 11px; color: #ea580c; margin-top: 12px; font-weight: 600;">预计改动：~8 个文件</div>
+        </div>
+        <div style="background: #eff6ff; border: 2px solid #bfdbfe; border-radius: 10px; padding: 20px;">
+          <div style="font-size: 14px; font-weight: 700; color: #2563eb; margin-bottom: 12px;">阶段三：架构升级</div>
+          <div style="font-size: 12px; color: #1e3a8a; line-height: 2;">
+            ✓ 前端模块化拆分<br>
+            ✓ 引入轻量框架<br>
+            ✓ 数据层抽象 (Repository)<br>
+            ✓ 迁移 better-sqlite3<br>
+            ✓ 添加单元测试<br>
+            ✓ CI/CD 构建流程
+          </div>
+          <div style="font-size: 11px; color: #2563eb; margin-top: 12px; font-weight: 600;">预计改动：全量重构</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>核心原则：</strong>阶段一和阶段二的改动风险低、收益高，可以在不改变整体架构的前提下完成。阶段三属于中长期投入，建议在前两阶段验证稳定后再启动，避免"大爆炸式重构"的风险。
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,499 @@
+[
+  {
+    "version": "2.5.1",
+    "date": "2026-08-02",
+    "title": "安全加固与性能优化",
+    "categories": [
+      {
+        "name": "安全加固",
+        "icon": "fa-shield-halved",
+        "color": "red",
+        "items": [
+          "关闭主窗口与 webview 的 webSecurity 禁用开关，恢复浏览器同源策略保护",
+          "移除 preload 中通用 SQL 接口 (db:query/get/run) 及全部 db:* 通道，杜绝任意 SQL 暴露",
+          "浏览器地址栏增加 http/https 协议白名单，拦截 file://、javascript: 等危险协议",
+          "新增 HTML 转义，覆盖 19 处动态内容注入点，修复标签/文件名/路径 XSS 风险",
+          "修复添加标签后刷新竞态：写入完成后再刷新，标签不再丢失"
+        ]
+      },
+      {
+        "name": "性能优化",
+        "icon": "fa-rocket",
+        "color": "green",
+        "items": [
+          "数据库改为脏标记 + 延迟保存策略，高频写操作合并落盘，减少全量序列化次数",
+          "移除启动时全量 EXIF 同步，改为标签变更时增量同步，启动不再遍历全部照片",
+          "ExifTool 改为单例复用，不再为每张照片启动独立 Perl 进程"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "2.5.0",
+    "date": "2026-08-02",
+    "title": "模块化架构：更新不再需要重新打包",
+    "categories": [
+      {
+        "name": "模块化改造",
+        "icon": "fa-puzzle-piece",
+        "color": "accent",
+        "items": [
+          "应用拆分为「壳层 + 内容层」：壳层仅负责引导与窗口，全部业务逻辑外置为独立模块",
+          "前端界面、IPC 逻辑、业务服务统一打包为 modules/app.js，放在 exe 同级目录",
+          "更新界面或业务逻辑时，只需替换 modules 目录文件，无需重新打包 exe",
+          "新增模块清单 modules.json，版本与能力一目了然，便于未来模块化扩展"
+        ]
+      },
+      {
+        "name": "性能提升",
+        "icon": "fa-rocket",
+        "color": "green",
+        "items": [
+          "壳层 main.js 从 57KB 精简至 5KB，启动引导更轻量",
+          "业务代码集中打包为单文件，加载路径更简单、依赖解析更稳定"
+        ]
+      },
+      {
+        "name": "兼容性",
+        "icon": "fa-shield-halved",
+        "color": "blue",
+        "items": [
+          "兼容旧版数据：数据库、标签、相册、缓存结构完全不变",
+          "加载器自动回退：找不到外部模块时使用内置版本，保证程序始终可运行"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "2.4.0",
+    "date": "2026-08-02",
+    "title": "架构重构与质量提升",
+    "categories": [
+      {
+        "name": "架构重构",
+        "icon": "fa-code-branch",
+        "color": "accent",
+        "items": [
+          "提取公共工具模块 fileSystem.ts、exifSync.ts、dbHelpers.ts，消除 6 类跨文件重复代码",
+          "import.ts 提取 performImport() 共享方法，消除 80% 重复逻辑",
+          "exifTool.ts 提取 executeExifWrite() 统一生命周期管理，提取 validateWritableFile() 消除 4 处重复校验",
+          "移除全部 8 个 IPC 模块中约 20 处冗余 saveDatabase() 调用（dbAdapter.run 内部已自动持久化）"
+        ]
+      },
+      {
+        "name": "错误处理",
+        "icon": "fa-shield-halved",
+        "color": "blue",
+        "items": [
+          "新增统一 IPC 错误边界 wrapHandler / wrapAsyncHandler，覆盖全部 50+ 个 IPC 处理器",
+          "此前 15+ 个处理器无任何错误处理，现保证永不向渲染进程抛出未捕获异常"
+        ]
+      },
+      {
+        "name": "类型安全",
+        "icon": "fa-type",
+        "color": "purple",
+        "items": [
+          "新建 types/index.ts，定义 15+ 核心接口（Photo、Tag、Album、IpcResponse<T> 等）",
+          "preload.ts 定义完整 ElectronAPI 接口，8 个模块全部类型化，前端获得 IntelliSense",
+          "database.ts 定义 DbAdapter 接口和 DbRow / RunResult 类型",
+          "config.ts 移除硬编码路径 E:\\文档\\相册\\样片，改为动态 app.getPath('documents')"
+        ]
+      },
+      {
+        "name": "清理废弃代码",
+        "icon": "fa-broom",
+        "color": "orange",
+        "items": [
+          "删除 metadata.ts（266 行死代码，依赖未安装的 piexifjs）",
+          "删除 piexifjs.d.ts 孤立类型声明",
+          "删除 5 个根目录一次性脚本和 tailwind.config.js"
+        ]
+      },
+      {
+        "name": "单元测试",
+        "icon": "fa-vial",
+        "color": "green",
+        "items": [
+          "新增 vitest 测试框架，77 个测试用例全部通过",
+          "覆盖 dbHelpers、fileSystem、ipcHandler、cacheManager、database 五个核心模块"
+        ]
+      },
+      {
+        "name": "Bug 修复",
+        "icon": "fa-bug",
+        "color": "red",
+        "items": [
+          "修复 tagManager.ts getTagsByPhoto 只返回首行标签的 bug（dbAdapter.get → dbAdapter.query）",
+          "此前每张照片最多只能获取到 1 个标签"
+        ]
+      },
+      {
+        "name": "更新公告系统",
+        "icon": "fa-newspaper",
+        "color": "accent",
+        "items": [
+          "更新公告改为外部 JSON 文件驱动，无需重新打包 exe 即可编辑内容",
+          "支持分类展示（架构、错误处理、类型安全等），每类配有专属图标"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "2.4",
+    "date": "2026-06-16",
+    "title": "暗房灯箱美学升级",
+    "categories": [
+      {
+        "name": "视觉设计",
+        "icon": "fa-palette",
+        "color": "accent",
+        "items": [
+          "暗房灯箱美学全面升级：纯黑背景（#0a0a0a），照片在深邃背景中浮现",
+          "暖色琥珀色系点缀（#c9955a），灵感源自暗房安全灯",
+          "引入 DM Serif Display + DM Sans 字体组合，提升排版质感",
+          "照片悬停时增加暖色光晕效果，模拟灯箱观片体验",
+          "选中态改为暖色琥珀色边框 + 柔和光晕",
+          "毛玻璃效果：导航栏、弹窗、进度面板使用 backdrop-filter 模糊",
+          "细微胶片颗粒噪点纹理叠加，增强暗房氛围",
+          "微交互动效：照片入场动画、弹窗淡入缩放、Toast 平滑过渡",
+          "选中指示器改为圆形，悬停时放大显示",
+          "空状态引导页重新设计，加入图标容器和辅助文案",
+          "导航栏激活下划线指示器，字体间距微调"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "2.3",
+    "date": "2026-06-16",
+    "title": "复制与剪贴板增强",
+    "categories": [
+      {
+        "name": "新功能",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "选中样片后可复制到桌面新文件夹（文件夹名格式：最常见标签-YYMMDD）",
+          "样片库和大图预览中，右键可直接复制图片到剪贴板"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "2.2",
+    "date": "2026-06-09",
+    "title": "排序与筛选优化",
+    "categories": [
+      {
+        "name": "改进",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "标签列表改为按首字母排序（支持中文拼音排序）",
+          "样片库选项卡增加重置功能，切换到样片库时自动清空筛选条件"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "2.1",
+    "date": "2026-06-08",
+    "title": "侧边栏与布局优化",
+    "categories": [
+      {
+        "name": "改进",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "批量操作面板改造为右侧滑入式侧边栏，采用推挤模式，不遮挡照片网格",
+          "侧边栏支持手动拖拽调整宽度（200px-400px）",
+          "瀑布流布局自动适配侧边栏宽度，减少每行照片数量",
+          "工具栏图标状态与侧边栏打开状态同步"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "2.0",
+    "date": "2026-06-04",
+    "title": "功能精简",
+    "categories": [
+      {
+        "name": "变更",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "移除了不稳定的去黑边/裁切功能",
+          "保持其他所有功能不变"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.6",
+    "date": "2026-06-04",
+    "title": "导入范围限制",
+    "categories": [
+      {
+        "name": "改进",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "导入文件夹不导入子文件夹内容"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.5.7",
+    "date": "2026-05-26",
+    "title": "安全删除",
+    "categories": [
+      {
+        "name": "改进",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "删除照片时自动将本地文件移入回收站，支持恢复"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.5.6",
+    "date": "2026-05-22",
+    "title": "截图功能",
+    "categories": [
+      {
+        "name": "新功能",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "新增截图功能：可在任意网页截图并自动导入样片库",
+          "截图自动保存为JPG格式，支持EXIF元数据"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.5.5",
+    "date": "2026-05-22",
+    "title": "缓存与EXIF同步",
+    "categories": [
+      {
+        "name": "修复与改进",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "修复缩略图缓存统计显示问题",
+          "标签数据自动同步到EXIF元数据",
+          "应用启动时自动核对并更新所有照片EXIF标签"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.5.4",
+    "date": "2026-05-18",
+    "title": "视图切换",
+    "categories": [
+      {
+        "name": "新功能",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "新增视图切换功能：瀑布流 ↔ 紧凑网格视图",
+          "自动记住上次视图模式"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.5.3",
+    "date": "2026-05-18",
+    "title": "排列方向调整",
+    "categories": [
+      {
+        "name": "改进",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "瀑布流改为从左到右排列，最新的在最左上方"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.5.2",
+    "date": "2026-05-18",
+    "title": "布局恢复",
+    "categories": [
+      {
+        "name": "修复",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "恢复瀑布流布局"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.5.1",
+    "date": "2026-05-18",
+    "title": "PDF与排序修复",
+    "categories": [
+      {
+        "name": "修复",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "PDF每页自适应图片实际尺寸，完整显示",
+          "修复图片显示不全问题",
+          "恢复照片排序：后添加的在前面"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.5.0",
+    "date": "2026-05-18",
+    "title": "PDF导出",
+    "categories": [
+      {
+        "name": "新功能",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "添加选中照片导出为PDF功能",
+          "样片库改为网格布局从左到右排列",
+          "照片按导入时间升序排列"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.4.1",
+    "date": "2026-05-18",
+    "title": "自动导入",
+    "categories": [
+      {
+        "name": "改进",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "下载完成后自动导入，无需确认"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.4.0",
+    "date": "2026-05-18",
+    "title": "更新公告与多项修复",
+    "categories": [
+      {
+        "name": "新功能",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "添加更新公告功能",
+          "大图预览支持旋转照片"
+        ]
+      },
+      {
+        "name": "修复",
+        "icon": "fa-wrench",
+        "color": "blue",
+        "items": [
+          "修复搜索框输入问题",
+          "重置按钮清空选中照片"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.3.1",
+    "date": "2026-05-18",
+    "title": "品牌统一",
+    "categories": [
+      {
+        "name": "改进",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "统一应用标题为 \"Pic\"",
+          "更新关于对话框版权信息"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.3.0",
+    "date": "2026-05-18",
+    "title": "交互优化与修复",
+    "categories": [
+      {
+        "name": "改进",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "文件路径点击可打开文件夹",
+          "下载导入保持在浏览器页面",
+          "移除自动添加标签功能"
+        ]
+      },
+      {
+        "name": "修复",
+        "icon": "fa-wrench",
+        "color": "blue",
+        "items": [
+          "修复导入提示不准确问题",
+          "修复数据库插入逻辑"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.2.0",
+    "date": "2026-05-18",
+    "title": "路径点击与导入修复",
+    "categories": [
+      {
+        "name": "改进",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "文件路径可点击"
+        ]
+      },
+      {
+        "name": "修复",
+        "icon": "fa-wrench",
+        "color": "blue",
+        "items": [
+          "修复导入失败问题"
+        ]
+      }
+    ]
+  },
+  {
+    "version": "1.1.0",
+    "date": "2026-05-18",
+    "title": "初始版本",
+    "categories": [
+      {
+        "name": "核心功能",
+        "icon": "fa-check-circle",
+        "color": "green",
+        "items": [
+          "初始版本发布",
+          "照片导入和管理功能",
+          "素材浏览器集成",
+          "标签和评级功能"
+        ]
+      }
+    ]
+  }
+]

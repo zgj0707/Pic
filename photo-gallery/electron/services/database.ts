@@ -1,0 +1,273 @@
+import initSqlJs from 'sql.js'
+import { join } from 'path'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import type { Photo, Tag, Album } from '../types'
+
+let db: any = null
+let dbPath: string = ''
+let SQL: any = null
+
+// ─── 延迟保存（dirty flag + debounce）───
+// 高频写操作（run/exec/insert）只标记 dirty，由定时器批量落盘一次，
+// 避免每次写操作都全量序列化。退出时由 saveDatabase() 强制同步落盘。
+let dirty = false
+let saveTimer: ReturnType<typeof setTimeout> | null = null
+const SAVE_DEBOUNCE_MS = 500
+
+function markDirty(): void {
+  dirty = true
+  if (saveTimer) return
+  saveTimer = setTimeout(() => {
+    saveTimer = null
+    flushIfDirty()
+  }, SAVE_DEBOUNCE_MS)
+}
+
+function flushIfDirty(): void {
+  if (!dirty) return
+  dirty = false
+  saveDatabase()
+}
+
+const SCHEMA = `
+CREATE TABLE IF NOT EXISTS photos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  filename TEXT NOT NULL,
+  filepath TEXT NOT NULL UNIQUE,
+  filesize INTEGER,
+  width INTEGER,
+  height INTEGER,
+  created_at INTEGER,
+  imported_at INTEGER DEFAULT (strftime('%s', 'now')),
+  rating INTEGER DEFAULT 0,
+  is_favorite INTEGER DEFAULT 0,
+  thumbnail_path TEXT,
+  exif_json TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_photos_rating ON photos(rating);
+CREATE INDEX IF NOT EXISTS idx_photos_favorite ON photos(is_favorite);
+CREATE INDEX IF NOT EXISTS idx_photos_created ON photos(created_at);
+CREATE INDEX IF NOT EXISTS idx_photos_imported ON photos(imported_at);
+
+CREATE TABLE IF NOT EXISTS albums (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  description TEXT,
+  parent_id INTEGER,
+  created_at INTEGER DEFAULT (strftime('%s', 'now'))
+);
+
+CREATE TABLE IF NOT EXISTS photo_albums (
+  photo_id INTEGER,
+  album_id INTEGER,
+  PRIMARY KEY (photo_id, album_id)
+);
+
+CREATE TABLE IF NOT EXISTS tags (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  color TEXT
+);
+
+CREATE TABLE IF NOT EXISTS photo_tags (
+  photo_id INTEGER,
+  tag_id INTEGER,
+  PRIMARY KEY (photo_id, tag_id)
+);
+
+CREATE TABLE IF NOT EXISTS import_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source_path TEXT,
+  imported_count INTEGER,
+  imported_at INTEGER DEFAULT (strftime('%s', 'now'))
+);
+
+INSERT OR IGNORE INTO albums (id, name, description) VALUES (1, '所有照片', '自动创建的默认相册');
+`
+
+/**
+ * A single row from a SQL query, mapped as column name → value.
+ * Uses `any` because SQL is dynamically typed — the caller is
+ * responsible for casting to the expected domain type (Photo, Tag, etc.).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DbRow = Record<string, any>
+
+/** Result of a run/insert operation */
+interface RunResult {
+  changes: number
+  lastInsertRowid: number
+}
+
+/**
+ * The database adapter provides a simplified interface over sql.js.
+ * All write operations (run, exec, insert) automatically persist
+ * the database to disk — callers do not need to call saveDatabase()
+ * separately.
+ */
+export interface DbAdapter {
+  /** Execute a SELECT query and return all matching rows. */
+  query: (sql: string, params?: unknown[]) => DbRow[]
+  /** Execute a SELECT query and return the first matching row, or null. */
+  get: (sql: string, params?: unknown[]) => DbRow | null
+  /** Execute an INSERT/UPDATE/DELETE and return the affected row count + last ID. */
+  run: (sql: string, params?: unknown[]) => RunResult
+  /** Execute raw SQL (e.g. CREATE TABLE) and persist. */
+  exec: (sql: string) => void
+  /** Insert a row into a table from a key-value object. Returns the new row ID, or null on failure. */
+  insert: (table: string, data: Record<string, unknown>) => number | null
+}
+
+export function getDatabase(): any {
+  if (!db) {
+    throw new Error('Database not initialized')
+  }
+  return db
+}
+
+export async function initializeDatabase(appDataPath: string): Promise<void> {
+  const dbDir = join(appDataPath, 'database')
+  if (!existsSync(dbDir)) {
+    mkdirSync(dbDir, { recursive: true })
+  }
+
+  dbPath = join(dbDir, 'gallery.db')
+  SQL = await initSqlJs({
+    locateFile: (file: string) => {
+      // Resolve sql.js wasm robustly regardless of where the module is bundled.
+      // Priority: bundled node_modules (dev/asar) → external app.asar.unpacked → resources.
+      const candidates = [
+        join(__dirname, '../../node_modules/sql.js/dist', file),
+        join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules/sql.js/dist', file),
+        join(process.resourcesPath || '', 'node_modules/sql.js/dist', file)
+      ]
+      const { existsSync } = require('fs')
+      const found = candidates.find(c => existsSync(c))
+      if (found) return found
+      return candidates[0]
+    }
+  })
+
+  if (existsSync(dbPath)) {
+    const buffer = readFileSync(dbPath)
+    db = new SQL.Database(buffer)
+  } else {
+    db = new SQL.Database()
+  }
+
+  db.exec(SCHEMA)
+  saveDatabase()
+  console.log('Database initialized at', dbPath)
+}
+
+export function saveDatabase(): void {
+  if (!db || !dbPath) return
+  const data = db.export()
+  writeFileSync(dbPath, Buffer.from(data))
+  dirty = false
+}
+
+/**
+ * 强制落盘并取消挂起的定时保存。
+ * 供退出流程调用，确保所有未保存的修改写盘。
+ */
+export function flushDatabase(): void {
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+  }
+  flushIfDirty()
+}
+
+export function closeDatabase(): void {
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+  }
+  if (db) {
+    db.close()
+    db = null
+  }
+}
+
+export const dbAdapter: DbAdapter = {
+  get: (sql: string, params: unknown[] = []): DbRow | null => {
+    const processedSql = substituteParams(sql, params)
+    const results = getDatabase().exec(processedSql)
+    if (results.length === 0 || results[0].values.length === 0) return null
+    const columns = results[0].columns
+    const row: DbRow = {}
+    columns.forEach((col: string, idx: number) => {
+      row[col] = results[0].values[0][idx]
+    })
+    return row
+  },
+
+  query: (sql: string, params: unknown[] = []): DbRow[] => {
+    const processedSql = substituteParams(sql, params)
+    const results = getDatabase().exec(processedSql)
+    if (results.length === 0) return []
+    const columns = results[0].columns
+    return results[0].values.map((row: unknown[]) => {
+      const obj: DbRow = {}
+      columns.forEach((col: string, idx: number) => {
+        obj[col] = row[idx]
+      })
+      return obj
+    })
+  },
+
+  run: (sql: string, params: unknown[] = []): RunResult => {
+    const database = getDatabase()
+    database.run(sql, params)
+
+    const changes = database.getRowsModified()
+
+    const lastIdResult = database.exec('SELECT last_insert_rowid() as lastId')
+    let lastInsertRowid = 0
+    if (lastIdResult.length > 0 && lastIdResult[0].values.length > 0) {
+      lastInsertRowid = Number(lastIdResult[0].values[0][0])
+    }
+
+    markDirty()
+
+    return { changes, lastInsertRowid }
+  },
+
+  exec: (sql: string): void => {
+    getDatabase().exec(sql)
+    markDirty()
+  },
+
+  insert: (table: string, data: Record<string, unknown>): number | null => {
+    const keys = Object.keys(data)
+    const placeholders = keys.map(() => '?').join(', ')
+    const values = Object.values(data)
+
+    const sql = `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${placeholders})`
+    const result = dbAdapter.run(sql, values)
+
+    return result.lastInsertRowid > 0 ? result.lastInsertRowid : null
+  }
+}
+
+/**
+ * Substitute ? placeholders in SQL with properly escaped values.
+ * This is needed because sql.js's exec() does not support parameter
+ * binding directly — only run() does.
+ */
+function substituteParams(sql: string, params: unknown[]): string {
+  let paramIndex = 0
+  return sql.replace(/\?/g, () => {
+    if (paramIndex >= params.length) return 'NULL'
+    const param = params[paramIndex++]
+    if (param === null || param === undefined) {
+      return 'NULL'
+    } else if (typeof param === 'string') {
+      return `'${param.replace(/'/g, "''")}'`
+    } else {
+      return String(param)
+    }
+  })
+}

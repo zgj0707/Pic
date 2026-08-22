@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "masonry-layout": "^4.2.2",
+    "photoswipe": "^5.4.4",
+    "trash": "^10.1.1"
+  }
+}
