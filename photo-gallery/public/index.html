@@ -1117,10 +1117,14 @@
       });
     }
     
+    let resizeDebounceTimer;
     window.addEventListener('resize', () => {
-      if (photoGrid.children.length > 0) {
-        layoutMasonry();
-      }
+      clearTimeout(resizeDebounceTimer);
+      resizeDebounceTimer = setTimeout(() => {
+        if (photoGrid.children.length > 0) {
+          layoutMasonry();
+        }
+      }, 200);
     });
 
     function restoreSelectedState() {
@@ -2171,10 +2175,6 @@
     };
 
     document.getElementById('emptyImportFolderBtn2').onclick = document.getElementById('importFolderBtn').onclick;
-
-    window.addEventListener('resize', () => {
-      renderPhotoGrid();
-    });
 
     async function loadVersionInfo() {
       if (window.electronAPI?.app?.getVersionInfo) {
