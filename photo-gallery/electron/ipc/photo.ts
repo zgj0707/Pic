@@ -9,50 +9,64 @@ import { buildInPlaceholders } from '../utils/dbHelpers'
 import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
 import type { PhotoFilter, PhotoQueryOptions, Photo, IpcResponse } from '../types'
 
+function buildPhotoFilterSql(filter: PhotoFilter): { whereClause: string; params: unknown[] } {
+  const conditions: string[] = []
+  const params: unknown[] = []
+
+  if (filter.albumId) {
+    conditions.push('EXISTS (SELECT 1 FROM photo_albums pa WHERE pa.photo_id = p.id AND pa.album_id = ?)')
+    params.push(filter.albumId)
+  }
+
+  if (filter.rating !== undefined) {
+    conditions.push('p.rating >= ?')
+    params.push(filter.rating)
+  }
+
+  if (filter.isFavorite !== undefined) {
+    conditions.push('p.is_favorite = ?')
+    params.push(filter.isFavorite ? 1 : 0)
+  }
+
+  if (filter.search) {
+    conditions.push('(p.filename LIKE ? OR p.filepath LIKE ? OR EXISTS (SELECT 1 FROM photo_tags pt JOIN tags t ON pt.tag_id = t.id WHERE pt.photo_id = p.id AND t.name LIKE ?))')
+    const like = `%${filter.search}%`
+    params.push(like, like, like)
+  }
+
+  if (filter.dateFrom) {
+    conditions.push('p.created_at >= ?')
+    params.push(filter.dateFrom)
+  }
+
+  if (filter.dateTo) {
+    conditions.push('p.created_at <= ?')
+    params.push(filter.dateTo)
+  }
+
+  if (filter.tags && filter.tags.length > 0) {
+    const placeholders = buildInPlaceholders(filter.tags.length)
+    conditions.push(`EXISTS (SELECT 1 FROM photo_tags pt JOIN tags t ON pt.tag_id = t.id WHERE pt.photo_id = p.id AND t.name IN (${placeholders}))`)
+    params.push(...filter.tags)
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+  return { whereClause, params }
+}
+
 export function registerPhotoIpc(): void {
+  ipcMain.handle('photos:count', wrapHandler('photos:count',
+    (_event, filter?: PhotoFilter) => {
+      const { whereClause, params } = buildPhotoFilterSql(filter || {})
+      const result = dbAdapter.get(`SELECT COUNT(*) as total FROM photos p ${whereClause}`, params)
+      return result?.total ?? 0
+    }
+  ))
+
   ipcMain.handle('photos:getAll', wrapHandler('photos:getAll',
     (_event, options?: PhotoQueryOptions) => {
       const filter = options?.filter || ({} as PhotoFilter)
-      const conditions: string[] = []
-      const params: unknown[] = []
-
-      if (filter.albumId) {
-        conditions.push('EXISTS (SELECT 1 FROM photo_albums pa WHERE pa.photo_id = p.id AND pa.album_id = ?)')
-        params.push(filter.albumId)
-      }
-
-      if (filter.rating !== undefined) {
-        conditions.push('p.rating = ?')
-        params.push(filter.rating)
-      }
-
-      if (filter.isFavorite !== undefined) {
-        conditions.push('p.is_favorite = ?')
-        params.push(filter.isFavorite ? 1 : 0)
-      }
-
-      if (filter.search) {
-        conditions.push('(p.filename LIKE ? OR p.filepath LIKE ?)')
-        params.push(`%${filter.search}%`, `%${filter.search}%`)
-      }
-
-      if (filter.dateFrom) {
-        conditions.push('p.created_at >= ?')
-        params.push(filter.dateFrom)
-      }
-
-      if (filter.dateTo) {
-        conditions.push('p.created_at <= ?')
-        params.push(filter.dateTo)
-      }
-
-      if (filter.tags && filter.tags.length > 0) {
-        const placeholders = buildInPlaceholders(filter.tags.length)
-        conditions.push(`EXISTS (SELECT 1 FROM photo_tags pt JOIN tags t ON pt.tag_id = t.id WHERE pt.photo_id = p.id AND t.name IN (${placeholders}))`)
-        params.push(...filter.tags)
-      }
-
-      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+      const { whereClause, params } = buildPhotoFilterSql(filter)
       const limitClause = options?.limit ? `LIMIT ${options.limit}` : ''
       const offsetClause = options?.offset ? `OFFSET ${options.offset}` : ''
 

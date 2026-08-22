@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
-  Photo, PhotoQueryOptions, Tag, Album, ExifData,
+  Photo, PhotoQueryOptions, PhotoFilter, Tag, Album, ExifData,
   ImportResult, ImportProgress, RenameOptions, RenameResult,
   CacheStats, CacheCleanResult, IpcResponse, ChangelogEntry
 } from './types'
@@ -16,6 +16,7 @@ export interface ElectronAPI {
   }
   photos: {
     getAll: (options?: PhotoQueryOptions) => Promise<Photo[]>
+    count: (filter?: PhotoFilter) => Promise<number>
     getById: (id: number) => Promise<Photo | null>
     updateRating: (id: number, rating: number) => Promise<{ success: boolean }>
     updateTags: (id: number, tags: string[]) => Promise<{ success: boolean }>
@@ -93,6 +94,7 @@ const api: ElectronAPI = {
   photos: {
     getAll: (options?: PhotoQueryOptions) =>
       ipcRenderer.invoke('photos:getAll', options),
+    count: (filter?: PhotoFilter) => ipcRenderer.invoke('photos:count', filter),
     getById: (id: number) => ipcRenderer.invoke('photos:getById', id),
     updateRating: (id: number, rating: number) => ipcRenderer.invoke('photos:updateRating', id, rating),
     updateTags: (id: number, tags: string[]) => ipcRenderer.invoke('photos:updateTags', id, tags),

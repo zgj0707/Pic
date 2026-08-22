@@ -851,6 +851,14 @@
     let gridScrollTickPending = false;
     const VIRTUAL_BUFFER_RATIO = 1.0; // 上下各预留一屏缓冲区
 
+    // ─── 后端分页/按需加载状态 ───
+    const PAGE_SIZE = 200;
+    let photoTotalCount = 0;
+    let photoLoadedCount = 0;
+    let photoCurrentPage = 0;
+    let isLoadingPhotos = false;
+    let photoFilterState = { search: '', rating: '', tag: '' };
+
     const photoGrid = document.getElementById('photoGrid');
     const lightbox = document.getElementById('lightbox');
     const lightboxImage = document.getElementById('lightboxImage');
@@ -1015,26 +1023,31 @@
       return item;
     }
 
-    function renderPhotoGrid() {
-      const searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
-      const ratingFilterVal = document.getElementById('ratingFilter').value;
-      const tagFilterVal = document.getElementById('tagFilter').value;
+    function renderPhotoGrid(resetScroll = false) {
+      // 在 Electron 环境下，筛选与分页由后端完成；浏览器演示模式仍保留本地筛选
+      if (window.electronAPI) {
+        filteredPhotos = photos.slice();
+      } else {
+        const searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
+        const ratingFilterVal = document.getElementById('ratingFilter').value;
+        const tagFilterVal = document.getElementById('tagFilter').value;
 
-      filteredPhotos = photos.filter(photo => {
-        if (ratingFilterVal && (photo.rating || 0) < parseInt(ratingFilterVal)) return false;
-        if (tagFilterVal && !photo.tags?.some(t => t === tagFilterVal)) return false;
-        if (searchQuery) {
-          const matchName = photo.filename?.toLowerCase().includes(searchQuery);
-          const matchTags = photo.tags?.some(t => t.toLowerCase().includes(searchQuery));
-          if (!matchName && !matchTags) return false;
-        }
-        return true;
-      });
+        filteredPhotos = photos.filter(photo => {
+          if (ratingFilterVal && (photo.rating || 0) < parseInt(ratingFilterVal)) return false;
+          if (tagFilterVal && !photo.tags?.some(t => t === tagFilterVal)) return false;
+          if (searchQuery) {
+            const matchName = photo.filename?.toLowerCase().includes(searchQuery);
+            const matchTags = photo.tags?.some(t => t.toLowerCase().includes(searchQuery));
+            if (!matchName && !matchTags) return false;
+          }
+          return true;
+        });
+      }
 
       document.getElementById('emptyState').classList.toggle('hidden', photos.length > 0);
 
       photoGrid.innerHTML = '';
-      if (gridScrollContainer) gridScrollContainer.scrollTop = 0;
+      if (resetScroll && gridScrollContainer) gridScrollContainer.scrollTop = 0;
       isVirtualScrollEnabled = false;
 
       imageLoadCount = 0;
@@ -1154,6 +1167,11 @@
       requestAnimationFrame(() => {
         gridScrollTickPending = false;
         renderVisibleGridItems();
+        // 接近当前已加载内容底部时，触发后端分页加载
+        if (gridScrollContainer && photoLoadedCount < photoTotalCount) {
+          const nearBottom = gridScrollContainer.scrollTop + gridScrollContainer.clientHeight >= gridTotalHeight - gridScrollContainer.clientHeight * VIRTUAL_BUFFER_RATIO;
+          if (nearBottom) loadMorePhotos();
+        }
       });
     }
 
@@ -1243,8 +1261,13 @@
     }
 
     function updatePhotoCount() {
-      document.getElementById('photoCount').textContent = filteredPhotos.length === photos.length 
-        ? `${photos.length} 张照片` : `${filteredPhotos.length}/${photos.length} 张照片`;
+      const hasMore = window.electronAPI && photoTotalCount > 0 && photoLoadedCount < photoTotalCount;
+      const base = window.electronAPI
+        ? `${photoLoadedCount}/${photoTotalCount} 张照片`
+        : (filteredPhotos.length === photos.length
+            ? `${photos.length} 张照片`
+            : `${filteredPhotos.length}/${photos.length} 张照片`);
+      document.getElementById('photoCount').textContent = hasMore ? `${base}（加载中…）` : base;
     }
 
     function updateSelectedCount() {
@@ -1320,7 +1343,8 @@
         }
         
         hideProgress();
-        renderPhotoGrid();
+        if (window.electronAPI) await loadPhotos(true);
+        else renderPhotoGrid();
         showToast(`已为 ${selectedPhotos.size} 张照片设置 ${batchRatingValue} 星评级`, 'success');
       } catch (e) {
         hideProgress();
@@ -1350,7 +1374,8 @@
         });
         
         hideProgress();
-        renderPhotoGrid();
+        if (window.electronAPI) await loadPhotos(true);
+        else renderPhotoGrid();
         showToast(`已清空 ${selectedPhotos.size} 张照片的评分`, 'success');
       } catch (e) {
         hideProgress();
@@ -1469,27 +1494,88 @@
       showToast(`已移除标签 "${tagName}"`, 'success');
     }
 
-    async function loadPhotos() {
-      if (window.electronAPI) {
-        try {
-          const data = await window.electronAPI.photos.getAll();
-          photos.length = 0;
-          photos.push(...data);
-        } catch (e) { console.error('加载失败:', e); }
+    function buildBackendPhotoFilter() {
+      const search = document.getElementById('searchInput').value.toLowerCase().trim();
+      const rating = document.getElementById('ratingFilter').value;
+      const tag = document.getElementById('tagFilter').value;
+      const filter = {};
+      if (search) filter.search = search;
+      if (rating) filter.rating = parseInt(rating, 10);
+      if (tag) filter.tags = [tag];
+      return filter;
+    }
+
+    async function loadPhotos(reset = true) {
+      if (!window.electronAPI) {
+        renderPhotoGrid();
+        return;
       }
-      renderPhotoGrid();
-      // 重置 currentPhotoIndex 到有效的位置
-      if (filteredPhotos.length > 0 && currentPhotoIndex >= filteredPhotos.length) {
-        currentPhotoIndex = Math.max(0, filteredPhotos.length - 1);
+
+      if (reset) {
+        photos.length = 0;
+        photoCurrentPage = 0;
+        photoLoadedCount = 0;
+        photoTotalCount = 0;
+        if (gridScrollContainer) gridScrollContainer.scrollTop = 0;
+      }
+      if (isLoadingPhotos) return;
+      isLoadingPhotos = true;
+
+      try {
+        const filter = buildBackendPhotoFilter();
+        if (reset) {
+          photoTotalCount = await window.electronAPI.photos.count(filter);
+        }
+
+        const data = await window.electronAPI.photos.getAll({
+          filter,
+          limit: PAGE_SIZE,
+          offset: photoCurrentPage * PAGE_SIZE
+        });
+
+        if (reset) {
+          photos.length = 0;
+        }
+        photos.push(...data);
+        photoLoadedCount = photos.length;
+        photoCurrentPage++;
+
+        renderPhotoGrid(reset);
+        // 重置 currentPhotoIndex 到有效的位置
+        if (filteredPhotos.length > 0 && currentPhotoIndex >= filteredPhotos.length) {
+          currentPhotoIndex = Math.max(0, filteredPhotos.length - 1);
+        }
+      } catch (e) {
+        console.error('加载失败:', e);
+      } finally {
+        isLoadingPhotos = false;
       }
       await updateTagFilter();
+    }
+
+    async function loadMorePhotos() {
+      if (isLoadingPhotos) return;
+      if (photoLoadedCount >= photoTotalCount) return;
+      await loadPhotos(false);
     }
 
     async function updateTagFilter() {
       const select = document.getElementById('tagFilter');
       select.innerHTML = '<option value="">全部标签</option>';
-      const tags = [...new Set(photos.flatMap(p => p.tags || []))].sort((a, b) => a.localeCompare(b, 'zh-CN'));
+      let tags = [];
+      if (window.electronAPI) {
+        try {
+          const allTags = await window.electronAPI.tags.getAll();
+          tags = allTags.map(t => t.name).sort((a, b) => a.localeCompare(b, 'zh-CN'));
+        } catch (e) {
+          console.error('加载标签失败:', e);
+        }
+      } else {
+        tags = [...new Set(photos.flatMap(p => p.tags || []))].sort((a, b) => a.localeCompare(b, 'zh-CN'));
+      }
       tags.forEach(tag => { const opt = document.createElement('option'); opt.value = tag; opt.textContent = tag; select.appendChild(opt); });
+      // 恢复当前选中的标签
+      if (photoFilterState.tag) select.value = photoFilterState.tag;
       
       const existingTags = document.getElementById('existingTags');
       existingTags.innerHTML = tags.map(tag => `<span class="tag-badge cursor-pointer hover:bg-accent/30" data-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</span>`).join('');
@@ -1749,7 +1835,8 @@
         }
         fullPhoto.rating = newRating;
         updateLightboxRating(newRating);
-        renderPhotoGrid();
+        if (window.electronAPI) await loadPhotos(true);
+        else renderPhotoGrid();
         showToast(newRating === 0 ? '已清除评分' : `已设置 ${newRating} 星`, 'success');
       };
     });
@@ -1759,20 +1846,32 @@
     document.getElementById('tagInputField').onkeydown = (e) => { if (e.key === 'Enter') confirmAddTag(); };
     document.getElementById('tagInputModal').onclick = (e) => { if (e.target === document.getElementById('tagInputModal')) document.getElementById('tagInputModal').classList.add('hidden'); };
 
+    function applyPhotoFilters() {
+      photoFilterState.search = document.getElementById('searchInput').value.toLowerCase().trim();
+      photoFilterState.rating = document.getElementById('ratingFilter').value;
+      photoFilterState.tag = document.getElementById('tagFilter').value;
+      if (window.electronAPI) {
+        loadPhotos(true);
+      } else {
+        renderPhotoGrid();
+      }
+    }
+
     let searchDebounceTimer;
     document.getElementById('searchInput').addEventListener('input', () => {
       clearTimeout(searchDebounceTimer);
-      searchDebounceTimer = setTimeout(renderPhotoGrid, 300);
+      searchDebounceTimer = setTimeout(applyPhotoFilters, 300);
     });
     document.getElementById('searchInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') renderPhotoGrid();
+      if (e.key === 'Enter') applyPhotoFilters();
     });
-    document.getElementById('ratingFilter').onchange = renderPhotoGrid;
-    document.getElementById('tagFilter').onchange = renderPhotoGrid;
+    document.getElementById('ratingFilter').onchange = applyPhotoFilters;
+    document.getElementById('tagFilter').onchange = applyPhotoFilters;
     document.getElementById('clearFilterBtn').onclick = () => {
       document.getElementById('searchInput').value = '';
       document.getElementById('ratingFilter').value = '';
       document.getElementById('tagFilter').value = '';
+      photoFilterState = { search: '', rating: '', tag: '' };
       selectedPhotos.clear();
       document.getElementById('selectedCount').textContent = '已选择 0 张照片';
       document.getElementById('deleteBtn').disabled = true;
@@ -1783,7 +1882,7 @@
       removeTags = [];
       renderBatchTags();
       document.getElementById('removeTags').innerHTML = '';
-      renderPhotoGrid();
+      applyPhotoFilters();
     };
 
     document.getElementById('metadataPanelBtn').onclick = () => {
@@ -2347,7 +2446,8 @@
       document.getElementById('exportPdfBtn').disabled = true;
       document.getElementById('deleteBtn').disabled = true;
       document.getElementById('copyToDesktopBtn').disabled = true;
-      renderPhotoGrid();
+      if (window.electronAPI) loadPhotos(true);
+      else renderPhotoGrid();
     }
 
     function switchToBrowser() {
@@ -2680,7 +2780,7 @@
         restoreSelectedState();
       } else {
         photoGrid.classList.remove('compact-view');
-        renderPhotoGrid();
+        renderPhotoGrid(true);
       }
 
       updateViewToggleButton();

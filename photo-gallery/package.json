@@ -9,7 +9,7 @@
     "dev": "node scripts/copy-vendor.mjs && node scripts/build-content.mjs && electron-vite dev",
     "build": "npm run typecheck && node scripts/copy-vendor.mjs && electron-vite build && node scripts/build-content.mjs",
     "copy-vendor": "node scripts/copy-vendor.mjs",
-    "sync:git": "cd .. && C:\\Users\\Administrator\\.workbuddy\\vendor\\PortableGit\\cmd\\git.exe add -A && C:\\Users\\Administrator\\.workbuddy\\vendor\\PortableGit\\cmd\\git.exe commit -m \"chore: 环境脚本整理\" && C:\\Users\\Administrator\\.workbuddy\\vendor\\PortableGit\\cmd\\git.exe push origin main",
+    "sync:git": "cd .. && C:\\Users\\Administrator\\.workbuddy\\vendor\\PortableGit\\cmd\\git.exe add -A && C:\\Users\\Administrator\\.workbuddy\\vendor\\PortableGit\\cmd\\git.exe commit -m \"feat: 后端分页与前端按需加载\" && C:\\Users\\Administrator\\.workbuddy\\vendor\\PortableGit\\cmd\\git.exe push origin main",
     "preview": "electron-vite preview",
     "postinstall": "electron-builder install-app-deps",
     "build:win": "npm run build && electron-builder --win",
