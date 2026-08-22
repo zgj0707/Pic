@@ -49,7 +49,6 @@ CREATE INDEX IF NOT EXISTS idx_photos_rating ON photos(rating);
 CREATE INDEX IF NOT EXISTS idx_photos_favorite ON photos(is_favorite);
 CREATE INDEX IF NOT EXISTS idx_photos_created ON photos(created_at);
 CREATE INDEX IF NOT EXISTS idx_photos_imported ON photos(imported_at);
-CREATE INDEX IF NOT EXISTS idx_photos_deleted ON photos(deleted_at);
 
 CREATE TABLE IF NOT EXISTS albums (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -157,9 +156,9 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
     db = new SQL.Database()
   }
 
-  db.exec(SCHEMA)
-
-  // 迁移：为旧表添加 deleted_at 列（忽略已存在的错误）
+  // 迁移：为旧表添加 deleted_at 列（忽略已存在的错误）。
+  // 必须在 db.exec(SCHEMA) 之前执行，因为 SCHEMA 里包含对 deleted_at 的索引，
+  // 如果旧表没有该列，先执行 SCHEMA 会导致索引创建失败并回滚整个事务。
   try {
     db.exec('ALTER TABLE photos ADD COLUMN deleted_at INTEGER')
   } catch (error) {
@@ -167,6 +166,15 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
     if (!message.includes('duplicate column name')) {
       console.error('[database] Migration failed:', error)
     }
+  }
+
+  db.exec(SCHEMA)
+
+  // 单独创建 deleted_at 索引，确保列已存在
+  try {
+    db.exec('CREATE INDEX IF NOT EXISTS idx_photos_deleted ON photos(deleted_at)')
+  } catch (error) {
+    console.error('[database] Failed to create deleted_at index:', error)
   }
 
   saveDatabase()
