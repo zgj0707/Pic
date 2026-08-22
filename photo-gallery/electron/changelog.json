@@ -1,5 +1,43 @@
 [
   {
+    "version": "3.0.0",
+    "date": "2026-08-22",
+    "title": "前端工程化与性能大升级",
+    "categories": [
+      {
+        "name": "前端工程化重构",
+        "icon": "fa-puzzle-piece",
+        "color": "accent",
+        "items": [
+          "将 index.html 超大内联脚本拆分为 8 个独立 JS 文件",
+          "新增 utils.js / grid.js / lightbox.js / tags.js / batch.js / import.js / ui.js / app.js",
+          "各模块职责单一，后续迭代维护成本大幅降低"
+        ]
+      },
+      {
+        "name": "性能与离线体验",
+        "icon": "fa-rocket",
+        "color": "green",
+        "items": [
+          "CDN 资源全部本地化为 vendor/，无网络也能正常启动",
+          "样片库引入虚拟滚动 + 后端分页，海量照片流畅加载",
+          "缩略图按需生成，缓存目录容量上限自动 LRU 清理",
+          "导入进度由轮询改为事件推送，进度反馈更实时"
+        ]
+      },
+      {
+        "name": "代码质量与测试",
+        "icon": "fa-vial",
+        "color": "purple",
+        "items": [
+          "新增缩略图服务单元测试，测试用例增加至 94 个",
+          "配置 ESLint 代码规范并修复历史遗留未使用导入",
+          "新增 GitHub Actions CI 工作流，自动执行 lint/typecheck/test/build"
+        ]
+      }
+    ]
+  },
+  {
     "version": "2.5.1",
     "date": "2026-08-02",
     "title": "安全加固与性能优化",
