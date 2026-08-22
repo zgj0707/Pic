@@ -969,7 +969,7 @@
       item.innerHTML = `
         <div class="skeleton"></div>
         <div class="photo-content">
-          <img data-src="${escapeHtml(imgSrc)}" alt="${escapeHtml(photo.filename)}">
+          <img data-src="${escapeHtml(imgSrc)}" alt="${escapeHtml(photo.filename)}" loading="lazy">
         </div>
         <div class="selection-indicator">
           <i class="fa-solid ${selectedPhotos.has(photo.id) ? 'fa-check' : 'fa-plus'}"></i>
