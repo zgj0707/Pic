@@ -1,7 +1,7 @@
 import { createHash } from 'crypto'
 import { join } from 'path'
 import { existsSync, mkdirSync, statSync } from 'fs'
-import { getCacheDir } from './cacheManager'
+import { getCacheDir, enforceMaxCacheSize } from './cacheManager'
 
 export type ThumbnailSize = 'grid' | 'preview'
 
@@ -52,6 +52,9 @@ export async function generateThumbnail(
     })
     .webp({ quality: config.quality })
     .toFile(thumbPath)
+
+  // 异步触发缓存容量上限清理，失败不影响缩略图返回
+  enforceMaxCacheSize().catch(() => {})
 
   return thumbPath
 }

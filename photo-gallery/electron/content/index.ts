@@ -32,6 +32,7 @@ import {
   initializeDatabase, closeDatabase, saveDatabase, dbAdapter
 } from '../services/database'
 import { loadConfig } from '../services/config'
+import { enforceMaxCacheSize } from '../services/cacheManager'
 
 // ─── IPC modules (all bundled here) ───
 import { registerPhotoIpc } from '../ipc/photo'
@@ -44,7 +45,7 @@ import { registerDeleteIpc } from '../ipc/delete'
 import { registerMaterialBrowserIpc, setupDownloadHandler } from '../ipc/materialBrowser'
 
 // ─── Services (cache manager, thumbnail, exif sync) ───
-import { getCacheStats, clearThumbnailCache, cleanOldThumbnails, enforceMaxCacheSize, formatBytes } from '../services/cacheManager'
+import { getCacheStats, clearThumbnailCache, cleanOldThumbnails, formatBytes } from '../services/cacheManager'
 import { writeExifTags, closeExifTool } from '../ipc/exifTool'
 import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
 import type { ChangelogEntry } from '../types'
@@ -94,6 +95,15 @@ export async function init(c: ContentContext): Promise<void> {
   } catch (e) {
     console.error('[content] Failed to init database:', e)
   }
+
+  // 启动时异步检查并清理缩略图缓存，防止目录无限增长
+  enforceMaxCacheSize()
+    .then(result => {
+      if (result.deleted > 0) {
+        console.log(`[content] Cache limit enforced: deleted ${result.deleted} files, freed ${result.freedSpace} bytes`)
+      }
+    })
+    .catch(e => console.error('[content] Cache limit enforcement failed:', e))
 }
 
 /**
