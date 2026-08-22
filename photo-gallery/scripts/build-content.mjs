@@ -14,14 +14,14 @@
  */
 
 import { build } from 'esbuild'
-import { mkdirSync, copyFileSync, writeFileSync, readFileSync, existsSync } from 'fs'
+import { mkdirSync, copyFileSync, writeFileSync, readFileSync, existsSync, cpSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const root = join(__dirname, '..')
 const contentEntry = join(root, 'electron/content/index.ts')
-const rendererSource = join(root, 'dist-app/renderer/index.html')
+const rendererSource = join(root, 'dist-app/renderer')
 const outDir = join(root, 'dist-app/content')
 const outEntry = join(outDir, 'app.js')
 
@@ -82,11 +82,11 @@ if (result.errors.length > 0) {
   process.exit(1)
 }
 
-// Copy renderer
+// Copy renderer (including static assets: js, vendor, styles, fonts)
 const rendererOutDir = join(outDir, 'renderer')
-mkdirSync(rendererOutDir, { recursive: true })
 if (existsSync(rendererSource)) {
-  copyFileSync(rendererSource, join(rendererOutDir, 'index.html'))
+  mkdirSync(rendererOutDir, { recursive: true })
+  cpSync(rendererSource, rendererOutDir, { recursive: true, force: true })
   console.log('[content] Renderer copied')
 } else {
   console.warn('[content] WARNING: renderer not found at', rendererSource)
