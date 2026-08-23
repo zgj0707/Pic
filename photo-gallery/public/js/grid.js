@@ -375,10 +375,8 @@ function updateSelectedCount() {
     if (permanentDeleteBtn) permanentDeleteBtn.disabled = count === 0;
   } else {
     const deleteBtn = document.getElementById('deleteBtn');
-    const exportPdfBtn = document.getElementById('exportPdfBtn');
     const copyToDesktopBtn = document.getElementById('copyToDesktopBtn');
     if (deleteBtn) deleteBtn.disabled = count === 0;
-    if (exportPdfBtn) exportPdfBtn.disabled = count === 0;
     if (copyToDesktopBtn) copyToDesktopBtn.disabled = count === 0;
   }
   updateApplyButtons();

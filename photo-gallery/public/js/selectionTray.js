@@ -23,10 +23,6 @@ function updateSelectionTrayCounts() {
   document.getElementById('projectSelectionCount')?.replaceChildren(document.createTextNode(String(count)))
   const compareButton = document.getElementById('selectionCompareBtn')
   if (compareButton) compareButton.disabled = count < 2
-  const shotListButton = document.getElementById('shotListBtn')
-  if (shotListButton) shotListButton.disabled = count === 0
-  const deliveryButton = document.getElementById('deliveryBtn')
-  if (deliveryButton) deliveryButton.disabled = count === 0
 }
 
 function refreshGridSelectionTrayIndicators() {
@@ -233,12 +229,6 @@ function bindSelectionTrayEvents() {
   PicEvents?.on('project:selected', project => { void loadSelectionTray(project.id) })
   document.getElementById('selectionCompareBtn')?.addEventListener('click', () => {
     if (typeof openCompareWorkspace === 'function') openCompareWorkspace()
-  })
-  document.getElementById('shotListBtn')?.addEventListener('click', () => {
-    if (typeof openShotListWorkspace === 'function') void openShotListWorkspace()
-  })
-  document.getElementById('deliveryBtn')?.addEventListener('click', () => {
-    if (typeof openDeliveryWorkspace === 'function') openDeliveryWorkspace()
   })
 }
 

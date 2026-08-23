@@ -1,6 +1,6 @@
-import { ipcMain, app } from 'electron'
+import { ipcMain } from 'electron'
 import { join, basename, dirname } from 'path'
-import { existsSync, mkdirSync, writeFileSync, renameSync, copyFileSync, rmSync } from 'fs'
+import { existsSync, mkdirSync, renameSync, copyFileSync, rmSync } from 'fs'
 import { dbAdapter, saveDatabase } from '../services/database'
 import { getDownloadDir } from '../services/config'
 import { syncTagsToPhotoExif } from '../utils/exifSync'
@@ -8,7 +8,7 @@ import { buildInPlaceholders } from '../utils/dbHelpers'
 import { removeSelectionsForPhotos } from '../services/projectSelections'
 import { removeShotsForPhotos } from '../services/projectShots'
 import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
-import type { PhotoFilter, PhotoQueryOptions, Photo, IpcResponse, ReviewState } from '../types'
+import type { PhotoFilter, PhotoQueryOptions, Photo, ReviewState } from '../types'
 
 const RECYCLE_BIN_DIR_NAME = '回收站'
 const RECYCLE_BIN_RETENTION_DAYS = 30
@@ -488,15 +488,4 @@ export function registerPhotoIpc(): void {
     console.error('[recycle] Auto cleanup error:', error)
   }
 
-  ipcMain.handle('pdf:saveToDesktop', wrapAsyncHandler('pdf:saveToDesktop',
-    async (_event, pdfData: string, filename: string): Promise<IpcResponse<{ path: string }>> => {
-      const desktopPath = app.getPath('desktop')
-      const filePath = join(desktopPath, filename)
-
-      const buffer = Buffer.from(pdfData.split(',')[1], 'base64')
-      writeFileSync(filePath, buffer)
-
-      return { success: true, data: { path: filePath } }
-    }
-  ))
 }

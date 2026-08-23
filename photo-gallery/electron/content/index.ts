@@ -25,7 +25,7 @@
 
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import { join } from 'path'
-import { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, copyFileSync, readFileSync, writeFileSync } from 'fs'
 
 // ─── Database (bundled — manages its own lifecycle) ───
 import {
@@ -45,6 +45,7 @@ import { registerDeleteIpc } from '../ipc/delete'
 import { registerProjectIpc } from '../ipc/project'
 import { registerSelectionIpc } from '../ipc/selection'
 import { registerProjectShotsIpc } from '../ipc/projectShots'
+import { copyPhotosToDesktopFolder } from '../services/desktopExport'
 import { registerPlanningExportsIpc } from '../ipc/planningExports'
 import { registerDeliveryIpc } from '../ipc/delivery'
 import { registerMaterialBrowserIpc, setupDownloadHandler } from '../ipc/materialBrowser'
@@ -56,7 +57,7 @@ import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
 import type { ChangelogEntry } from '../types'
 
 export const name = 'pic-content'
-export const version = '3.4.0'
+export const version = '3.4.1'
 
 // Content module capabilities (what the shell can rely on).
 export const capabilities = {
@@ -319,21 +320,8 @@ function registerGenericHandlers(c: ContentContext): void {
 
   // ─── Photo file helpers ───
   ipcMain.handle('photos:copyToDesktopFolder', wrapAsyncHandler('photos:copyToDesktopFolder',
-    async (_e, filePaths: string[], folderName: string) => {
-      const desktopPath = app.getPath('desktop')
-      const folderPath = join(desktopPath, folderName)
-      if (!existsSync(folderPath)) mkdirSync(folderPath, { recursive: true })
-      let copied = 0, failed = 0
-      for (const fp of filePaths) {
-        try {
-          if (existsSync(fp)) {
-            copyFileSync(fp, join(folderPath, require('path').basename(fp)))
-            copied++
-          } else failed++
-        } catch { failed++ }
-      }
-      return { success: true, folderPath, copied, failed }
-    }
+    async (_e, filePaths: string[], folderName: string) =>
+      copyPhotosToDesktopFolder(filePaths, folderName, app.getPath('desktop'))
   ))
 
   ipcMain.handle('photos:copyImageToClipboard', wrapAsyncHandler('photos:copyImageToClipboard',

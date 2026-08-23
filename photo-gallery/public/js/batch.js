@@ -154,65 +154,41 @@ async function clearBatchRating() {
 
 async function copySelectedToDesktop() {
   if (selectedPhotos.size === 0) {
-    showToast('请先选择要复制的样片', 'warning');
+    showToast('请先选择要保存的样片', 'warning');
     return;
   }
   const selectedPhotoObjs = Array.from(selectedPhotos).map(id => photos.find(p => p.id === id)).filter(Boolean);
   const filePaths = selectedPhotoObjs.map(p => p.filepath).filter(Boolean);
 
   if (filePaths.length === 0) {
-    showToast('没有可复制的样片', 'error');
+    showToast('选中的样片没有可复制的原图', 'error');
     return;
   }
 
-  // 找占比最大的标签
-  const tagCounts = {};
-  let totalTags = 0;
-  for (const photo of selectedPhotoObjs) {
-    if (photo.tags && photo.tags.length > 0) {
-      for (const tag of photo.tags) {
-        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-        totalTags++;
-      }
-    }
-  }
-  let folderTag = '未分类';
-  if (totalTags > 0) {
-    let maxCount = 0;
-    for (const [tag, count] of Object.entries(tagCounts)) {
-      if (count > maxCount) {
-        maxCount = count;
-        folderTag = tag;
-      }
-    }
-  }
-
-  // 格式化日期 YYYYMMDD
   const now = new Date();
   const yyyy = now.getFullYear();
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const dd = String(now.getDate()).padStart(2, '0');
-  const dateStr = `${yyyy}${mm}${dd}`;
-
-  const folderName = `${folderTag}-${dateStr}`;
+  const dateStr = String(yyyy) + mm + dd;
+  const projectLabel = typeof currentProjectName === 'string' && currentProjectName.trim()
+    ? currentProjectName.trim()
+    : 'Pic-样片';
+  const folderName = projectLabel + '-' + dateStr;
 
   if (window.electronAPI?.photos?.copyToDesktopFolder) {
     try {
       const result = await window.electronAPI.photos.copyToDesktopFolder(filePaths, folderName);
-      if (result.success) {
-        if (result.failed > 0) {
-          showToast(`已复制 ${result.copied} 张样片到桌面 ${folderName}，${result.failed} 张失败`, 'success');
-        } else {
-          showToast(`已复制 ${result.copied} 张样片到桌面 ${folderName}`, 'success');
-        }
+      if ((result.copied || 0) > 0) {
+        const suffix = result.failed > 0 ? '，' + result.failed + ' 张失败' : '';
+        showToast('已保存 ' + result.copied + ' 张样片到桌面文件夹「' + folderName + '」' + suffix, result.failed > 0 ? 'warning' : 'success');
       } else {
-        showToast('复制失败: ' + (result.error || '未知错误'), 'error');
+        showToast('保存失败: ' + (result.error || '没有可复制的原图'), 'error');
       }
     } catch (e) {
-      showToast('复制失败: ' + e, 'error');
+      showToast('保存失败: ' + e, 'error');
     }
   } else {
-    showToast('功能不可用', 'error');
+    showToast('桌面保存功能不可用', 'error');
   }
 }
 
@@ -274,95 +250,4 @@ async function applyRemoveTags() {
     hideProgress();
     showToast('批量移除标签失败: ' + e, 'error');
   }
-}
-
-async function exportSelectedToPdf() {
-  if (selectedPhotos.size === 0) {
-    showToast('请先选择要导出的样片', 'warning');
-    return;
-  }
-
-  showProgress('导出PDF', '正在生成PDF...', '准备中');
-
-  try {
-    const { jsPDF } = window.jspdf;
-
-    const selectedPhotoList = [];
-    for (const id of selectedPhotos) {
-      const photo = photos.find(p => p.id === id);
-      if (photo) {
-        selectedPhotoList.push(photo);
-      }
-    }
-
-    let doc = null;
-
-    for (let i = 0; i < selectedPhotoList.length; i++) {
-      const photo = selectedPhotoList[i];
-      updateProgress(((i + 1) / selectedPhotoList.length) * 100, `正在处理第 ${i + 1}/${selectedPhotoList.length} 张样片`);
-
-      const imgData = await getImageData(photo.filepath || photo.thumbnail_path);
-
-      const img = new Image();
-      await new Promise((resolve) => {
-        img.onload = resolve;
-        img.src = imgData;
-      });
-
-      const imgWidth = img.width;
-      const imgHeight = img.height;
-
-      const mmWidth = imgWidth * 0.264583;
-      const mmHeight = imgHeight * 0.264583;
-
-      if (i === 0) {
-        const orientation = mmWidth > mmHeight ? 'landscape' : 'portrait';
-        doc = new jsPDF({
-          orientation: orientation,
-          unit: 'mm',
-          format: [mmWidth, mmHeight]
-        });
-      } else {
-        doc.addPage([mmWidth, mmHeight], mmWidth > mmHeight ? 'landscape' : 'portrait');
-      }
-
-      doc.addImage(imgData, 'JPEG', 0, 0, mmWidth, mmHeight);
-    }
-
-    const pdfData = doc.output('datauristring');
-    const timestamp = new Date().toISOString().slice(0, 10);
-    const filename = `样片集_${timestamp}_${Date.now()}.pdf`;
-
-    if (window.electronAPI?.pdf?.saveToDesktop) {
-      const result = await window.electronAPI.pdf.saveToDesktop(pdfData, filename);
-      hideProgress();
-      if (result.success) {
-        showToast(`PDF已保存到桌面: ${filename}`, 'success');
-      } else {
-        showToast('保存PDF失败: ' + result.error, 'error');
-      }
-    }
-  } catch (e) {
-    hideProgress();
-    showToast('导出PDF失败: ' + e, 'error');
-  }
-}
-
-function getImageData(filePath) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/jpeg', 0.9));
-    };
-
-    img.onerror = reject;
-    img.src = filePath;
-  });
 }

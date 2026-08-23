@@ -5,8 +5,7 @@ import { join } from 'path'
 const publicRoot = join(process.cwd(), 'public')
 const gridSource = readFileSync(join(publicRoot, 'js', 'grid.js'), 'utf8')
 const selectionTraySource = readFileSync(join(publicRoot, 'js', 'selectionTray.js'), 'utf8')
-const shotListSource = readFileSync(join(publicRoot, 'js', 'shotList.js'), 'utf8')
-const planningExportSource = readFileSync(join(publicRoot, 'js', 'planningExport.js'), 'utf8')
+const batchSource = readFileSync(join(publicRoot, 'js', 'batch.js'), 'utf8')
 const appSource = readFileSync(join(publicRoot, 'js', 'app.js'), 'utf8')
 const htmlSource = readFileSync(join(publicRoot, 'index.html'), 'utf8')
 
@@ -25,18 +24,21 @@ describe('UI/UX refactor guardrails', () => {
     expect(selectionTraySource).not.toContain('renderPhotoGrid(')
   })
 
-  it('exposes keyboard and reduced-motion hooks for the core workflow', () => {
-    expect(htmlSource).toContain('id="deliveryModeBtn"')
-    expect(htmlSource).toContain('id="deliveryBtn"')
-    expect(htmlSource).toContain('id="shotListWorkspace"')
-    expect(htmlSource).toContain('id="shotListBtn"')
-    expect(htmlSource).toContain('id="shotListPdfBtn"')
-    expect(planningExportSource).toContain('generatePlanningMoodboard')
-    expect(planningExportSource).toContain('generateShotListPdf')
-    expect(planningExportSource).toContain('recordPlanningExport')
+  it('keeps desktop folder export as the single visible result action', () => {
+    expect(htmlSource).toContain('id="copyToDesktopBtn"')
+    expect(htmlSource).toContain('<span>保存到桌面</span>')
+    expect(batchSource).toContain('copySelectedToDesktop')
+    expect(batchSource).toContain('copyToDesktopFolder')
+    expect(htmlSource).not.toContain('exportPdfBtn')
+    expect(htmlSource).not.toContain('deliveryModeBtn')
+    expect(htmlSource).not.toContain('shotListWorkspace')
+    expect(htmlSource).not.toContain('deliveryWorkspace')
+    expect(htmlSource).not.toContain('planningExport.js')
+  })
+
+  it('exposes comparison, keyboard and reduced-motion hooks for the core workflow', () => {
+    expect(htmlSource).toContain('id="selectionCompareBtn"')
     expect(selectionTraySource).toContain('updateSelectionTrayMeta')
-    expect(shotListSource).toContain('generateShotList')
-    expect(shotListSource).toContain('reorderShotList')
     expect(htmlSource).toContain('aria-label="关闭样片详情"')
     const tokens = readFileSync(join(publicRoot, 'styles', 'tokens.css'), 'utf8')
     expect(tokens).toContain(':focus-visible')

@@ -86,9 +86,6 @@ export interface ElectronAPI {
       Promise<{ success: boolean; results: { filePath: string; success: boolean; error?: string }[] }>
     writeExifData: (filePath: string, data: Partial<ExifData>) => Promise<{ success: boolean; error?: string }>
   }
-  pdf: {
-    saveToDesktop: (pdfData: string, filename: string) => Promise<IpcResponse<{ path: string }>>
-  }
   materialBrowser: {
     openExternal: (url: string) => Promise<{ success: boolean }>
     getDownloadDir: () => Promise<string>
@@ -209,9 +206,6 @@ const api: ElectronAPI = {
     batchWriteTags: (filePaths: string[], tags: string[]) => ipcRenderer.invoke('exif:batchWriteTags', filePaths, tags),
     writeExifData: (filePath: string, data: Partial<ExifData>) =>
       ipcRenderer.invoke('exif:writeExifData', filePath, data)
-  },
-  pdf: {
-    saveToDesktop: (pdfData: string, filename: string) => ipcRenderer.invoke('pdf:saveToDesktop', pdfData, filename)
   },
   materialBrowser: {
     openExternal: (url: string) => ipcRenderer.invoke('material-browser:open-external', url),

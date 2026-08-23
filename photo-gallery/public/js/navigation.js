@@ -123,15 +123,12 @@ function switchToGallery() {
   const settingsModal = document.getElementById('settingsModal');
   if (settingsModal) settingsModal.classList.add('hidden');
   isRecycleBinView = false;
-  document.getElementById('shotListWorkspace')?.classList.add('hidden');
   currentPanel = 'gallery';
   selectedPhotos.clear();
   const selectedCountEl = document.getElementById('selectedCount');
   if (selectedCountEl) selectedCountEl.textContent = '已选择 0 张样片';
-  const exportPdfBtn = document.getElementById('exportPdfBtn');
   const deleteBtn = document.getElementById('deleteBtn');
   const copyToDesktopBtn = document.getElementById('copyToDesktopBtn');
-  if (exportPdfBtn) exportPdfBtn.disabled = true;
   if (deleteBtn) deleteBtn.disabled = true;
   if (copyToDesktopBtn) copyToDesktopBtn.disabled = true;
 

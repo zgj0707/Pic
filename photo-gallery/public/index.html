@@ -13,8 +13,6 @@
   <link rel="stylesheet" href="styles/tokens.css">
   <link rel="stylesheet" href="styles/layout.css">
   <link rel="stylesheet" href="styles/components.css">
-
-  <script src="vendor/jspdf.umd.min.js"></script>
 </head>
 <body class="bg-bgPrimary text-textPrimary h-screen overflow-hidden select-none">
   <div class="app-shell">
@@ -44,8 +42,7 @@
           <button id="deleteBtn" class="tool-button danger" type="button" title="删除选中" aria-label="删除选中" disabled><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
           <button id="restoreBtn" class="tool-button success hidden" type="button" title="恢复选中" aria-label="恢复选中" disabled><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>
           <button id="permanentDeleteBtn" class="tool-button danger hidden" type="button" title="彻底删除" aria-label="彻底删除" disabled><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
-          <button id="exportPdfBtn" class="tool-button" type="button" title="导出为 PDF" aria-label="导出为 PDF" disabled><i class="fa-solid fa-file-pdf" aria-hidden="true"></i></button>
-          <button id="copyToDesktopBtn" class="tool-button" type="button" title="复制选中到桌面" aria-label="复制选中到桌面" disabled><i class="fa-solid fa-copy" aria-hidden="true"></i></button>
+          <button id="copyToDesktopBtn" class="primary-action" type="button" title="把选中的样片复制到桌面文件夹" disabled><i class="fa-solid fa-folder-plus" aria-hidden="true"></i><span>保存到桌面</span></button>
           <button id="viewToggleBtn" class="tool-button" type="button" title="切换到紧凑视图" aria-label="切换样片视图"><i class="fa-solid fa-th-large" id="viewToggleIcon" aria-hidden="true"></i></button>
           <button id="metadataPanelBtn" class="tool-button" type="button" title="样片详情和批量操作" aria-label="打开样片详情和批量操作"><i class="fa-solid fa-list-check" aria-hidden="true"></i></button>
           <button id="aboutBtn" class="tool-button" type="button" title="关于" aria-label="关于 Pic"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
@@ -89,29 +86,18 @@
           </div>
         </section>
 
-        <nav class="workflow-stagebar" aria-label="工作阶段">
-          <div class="workflow-stage active" aria-current="step"><span class="stage-index">01</span><span>收件箱</span></div>
-          <div class="workflow-stage"><span class="stage-index">02</span><span>全部样片</span></div>
-          <button id="cullingModeBtn" class="workflow-stage stage-action" type="button"><span class="stage-index">03</span><span>初筛</span></button>
-          <div class="workflow-stage"><span class="stage-index">04</span><span>灵感板</span></div>
-          <button id="deliveryModeBtn" class="workflow-stage stage-action" type="button"><span class="stage-index">05</span><span>方案</span></button>
-          <span class="workflow-stage-note">当前阶段：收集参考</span>
+        <nav class="workflow-stagebar" aria-label="工作流程">
+          <div class="workflow-stage active" aria-current="step"><span class="stage-index">01</span><span>收集样片</span></div>
+          <button id="cullingModeBtn" class="workflow-stage stage-action" type="button"><span class="stage-index">02</span><span>快速筛选</span></button>
+          <div class="workflow-stage"><span class="stage-index">03</span><span>灵感板</span></div>
+          <span class="workflow-stage-note">选择样片后保存到桌面</span>
         </nav>
 
         <div class="filter-bar custom-scrollbar" aria-label="样片筛选">
           <span class="filter-chip active" data-filter="all">全部</span>
-          <span class="filter-chip" data-filter="rating-5">5 星</span>
-          <span class="filter-chip" data-filter="rating-1">1 星及以上</span>
-          <span class="filter-chip" data-filter="unrated">未评级</span>
-          <span class="filter-chip" data-filter="orientation-landscape">横构图</span>
-          <span class="filter-chip" data-filter="orientation-portrait">竖构图</span>
-          <span class="filter-chip" data-filter="source-web">网页采集</span>
-          <span class="filter-chip" data-filter="source-local">本地导入</span>
+          <span class="filter-chip" data-filter="source-web">网页样片</span>
+          <span class="filter-chip" data-filter="source-local">本地样片</span>
           <span class="filter-chip" data-filter="favorite">收藏</span>
-          <span class="filter-chip" data-filter="recent">最近 7 天</span>
-          <div id="cameraFilterChips" class="filter-chip-group"></div>
-          <div id="lensFilterChips" class="filter-chip-group"></div>
-          <div id="referenceCategoryFilterChips" class="filter-chip-group" aria-label="拍摄维度筛选"></div>
           <div class="filter-spacer"></div>
           <select id="ratingFilter" aria-label="评级筛选">
             <option value="">全部评级</option>
@@ -189,44 +175,6 @@
             <div class="compare-header-actions"><label class="compare-zoom-control" for="compareZoomRange">同步缩放 <input id="compareZoomRange" type="range" min="1" max="2.5" step="0.1" value="1"><output id="compareZoomValue">100%</output></label><button id="compareExitBtn" class="secondary-action" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>返回图库</span></button></div>
           </header>
           <div id="compareGrid" class="compare-grid"></div>
-        </section>
-
-        <section id="shotListWorkspace" class="shot-list-workspace hidden" aria-label="拍摄清单工作区">
-          <header class="shot-list-header">
-            <div><span class="section-eyebrow">现场执行</span><h2>拍摄清单</h2><p id="shotListSummary" class="shot-list-summary">从灵感板生成有顺序的拍摄项。</p><p id="shotListExportStatus" class="shot-list-export-status" role="status" aria-live="polite">导出前会检查参考图可用性。</p></div>
-            <div class="shot-list-header-actions"><button id="generateShotListBtn" class="primary-action" type="button"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i><span>从灵感板生成</span></button><button id="shotListPdfBtn" class="secondary-action" type="button"><i class="fa-regular fa-file-pdf" aria-hidden="true"></i><span>导出 Shot List</span></button><button id="shotListExitBtn" class="secondary-action" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>返回图库</span></button></div>
-          </header>
-          <div id="shotListItems" class="shot-list-items"></div>
-        </section>
-
-        <section id="deliveryWorkspace" class="delivery-workspace hidden" aria-label="拍摄方案工作区">
-          <header class="delivery-header">
-            <div><span class="section-eyebrow">拍摄方案</span><h2>整理拍摄方案</h2><p id="deliverySummary" class="delivery-summary">从灵感板生成参考图册和拍摄前方案。</p></div>
-            <button id="deliveryExitBtn" class="secondary-action" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>返回图库</span></button>
-          </header>
-          <div class="delivery-config-grid">
-            <label class="delivery-field delivery-field-wide">目标目录
-              <div class="delivery-directory-control"><input id="deliveryTargetDir" type="text" readonly placeholder="请选择目标目录" aria-describedby="deliveryTargetHint"><button id="deliveryChooseDirBtn" class="secondary-action" type="button">选择目录</button></div>
-              <span id="deliveryTargetHint" class="delivery-field-hint">方案文件会创建在此目录中。</span>
-            </label>
-            <label class="delivery-field">方案目录
-              <input id="deliveryFolderName" type="text" maxlength="80" autocomplete="off">
-            </label>
-            <label class="delivery-field">文件名前缀
-              <input id="deliveryPrefix" type="text" maxlength="24" autocomplete="off">
-            </label>
-          </div>
-          <div id="deliveryWarnings" class="delivery-warnings" role="status" aria-live="polite"></div>
-          <div class="delivery-preview-panel">
-            <div class="delivery-preview-heading"><div><span class="section-eyebrow">顺序预览</span><h3>参考文件清单</h3></div><span id="deliveryPreviewCount" class="delivery-preview-count"></span></div>
-            <div id="deliveryPreviewList" class="delivery-preview-list"></div>
-          </div>
-          <div class="delivery-actions" role="group" aria-label="方案操作">
-            <button id="deliveryExportBtn" class="primary-action" type="button" disabled><i class="fa-solid fa-copy" aria-hidden="true"></i><span>生成参考副本</span></button>
-            <button id="deliveryContactSheetBtn" class="secondary-action" type="button"><i class="fa-regular fa-file-pdf" aria-hidden="true"></i><span>生成 Moodboard PDF</span></button>
-            <button id="deliveryOpenFolderBtn" class="secondary-action" type="button" disabled><i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>打开方案目录</span></button>
-          </div>
-          <div id="deliveryResult" class="delivery-result hidden" role="status" aria-live="polite"></div>
         </section>
 
         <footer class="status-bar">
@@ -313,7 +261,7 @@
       <aside id="selectionTray" class="selection-tray" aria-label="灵感板">
         <div class="selection-tray-header">
           <div><span class="section-eyebrow">拍摄参考</span><h2>灵感板</h2></div>
-          <div class="selection-tray-header-actions"><span id="selectionTrayCount" class="selection-tray-count">0</span><button id="selectionCompareBtn" class="selection-compare-btn" type="button" disabled><i class="fa-solid fa-columns" aria-hidden="true"></i><span>对比</span></button><button id="shotListBtn" class="selection-compare-btn" type="button" disabled><i class="fa-solid fa-list-check" aria-hidden="true"></i><span>清单</span></button><button id="deliveryBtn" class="selection-compare-btn" type="button" disabled><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i><span>方案</span></button></div>
+          <div class="selection-tray-header-actions"><span id="selectionTrayCount" class="selection-tray-count">0</span><button id="selectionCompareBtn" class="selection-compare-btn" type="button" disabled><i class="fa-solid fa-columns" aria-hidden="true"></i><span>对比</span></button></div>
         </div>
         <div id="selectionTrayEmpty" class="selection-tray-empty">
           <div class="selection-tray-icon"><i class="fa-solid fa-basket-shopping" aria-hidden="true"></i></div>
@@ -585,10 +533,7 @@
   <script src="js/ui.js"></script>
   <script src="js/selectionTray.js"></script>
   <script src="js/compare.js"></script>
-  <script src="js/shotList.js"></script>
   <script src="js/culling.js"></script>
-  <script src="js/delivery.js"></script>
-  <script src="js/planningExport.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

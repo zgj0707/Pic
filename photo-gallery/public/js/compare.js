@@ -78,7 +78,6 @@ async function openCompareWorkspace() {
   if (typeof cullingMode !== 'undefined') cullingMode = false
   document.getElementById('galleryPanel')?.classList.add('hidden')
   document.getElementById('cullingWorkspace')?.classList.add('hidden')
-  document.getElementById('shotListWorkspace')?.classList.add('hidden')
   document.querySelector('.filter-bar')?.classList.add('hidden')
   document.getElementById('compareWorkspace')?.classList.remove('hidden')
   document.getElementById('statusView')?.replaceChildren(document.createTextNode('灵感板对比'))

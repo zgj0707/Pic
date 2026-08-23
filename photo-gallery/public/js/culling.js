@@ -157,7 +157,6 @@ async function enterCullingMode() {
   if (cullingMode) return
   cullingMode = true
   document.getElementById('galleryPanel')?.classList.add('hidden')
-  document.getElementById('shotListWorkspace')?.classList.add('hidden')
   document.querySelector('.filter-bar')?.classList.add('hidden')
   document.getElementById('cullingWorkspace')?.classList.remove('hidden')
   document.getElementById('cullingModeBtn')?.classList.add('active')

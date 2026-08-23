@@ -555,7 +555,6 @@ document.getElementById('clearFilterBtn').addEventListener('click', () => {
   selectedPhotos.clear();
   document.getElementById('selectedCount').textContent = '已选择 0 张样片';
   document.getElementById('deleteBtn').disabled = true;
-  document.getElementById('exportPdfBtn').disabled = true;
   document.getElementById('copyToDesktopBtn').disabled = true;
   metadataPanel.classList.remove('open');
   batchTags = [];
@@ -795,8 +794,6 @@ document.addEventListener('keydown', (e) => {
       returnToGallery();
     } else if (metadataPanel.classList.contains('open')) {
       metadataPanel.classList.remove('open');
-    } else if (!document.getElementById('shotListWorkspace')?.classList.contains('hidden')) {
-      void closeShotListWorkspace();
     }
   }
   if (!lightbox.classList.contains('hidden')) {
@@ -842,7 +839,6 @@ document.querySelectorAll('.filter-chip').forEach(chip => {
 });
 
 // ─── 导出 PDF / 视图切换 ───
-document.getElementById('exportPdfBtn').addEventListener('click', exportSelectedToPdf);
 
 document.getElementById('viewToggleBtn').addEventListener('click', () => {
   setViewMode(currentViewMode === 'masonry' ? 'compact' : 'masonry');
