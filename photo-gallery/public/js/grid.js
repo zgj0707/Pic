@@ -3,7 +3,7 @@
 
 function createPhotoItem(photo, index, layout = null) {
   const item = document.createElement('div');
-  item.className = `photo-item ${selectedPhotos.has(photo.id) ? 'selected' : ''}`;
+  item.className = `photo-item ${selectedPhotos.has(photo.id) ? 'selected' : ''}${typeof selectionTrayIds !== 'undefined' && selectionTrayIds.includes(photo.id) ? ' in-selection-tray' : ''}`;
   item.dataset.id = photo.id;
   item.dataset.index = index;
 
@@ -40,6 +40,7 @@ function createPhotoItem(photo, index, layout = null) {
     <div class="selection-indicator">
       <i class="fa-solid ${selectedPhotos.has(photo.id) ? 'fa-check' : 'fa-plus'}"></i>
     </div>
+    <button class="selection-tray-indicator" type="button" aria-label="${typeof selectionTrayIds !== 'undefined' && selectionTrayIds.includes(photo.id) ? '移出精选篮' : '加入精选篮'}"><i class="fa-solid fa-bookmark"></i></button>
     <div class="rating-overlay">${ratingHtml}</div>
     <div class="tags-overlay">${tagsHtml}</div>
   `;
@@ -80,6 +81,14 @@ function createPhotoItem(photo, index, layout = null) {
     }).catch(() => {});
   }
 
+  item.querySelector('.selection-tray-indicator')?.addEventListener('click', (e) => {
+    e.stopPropagation()
+    if (typeof toggleSelectionTray === 'function') {
+      void toggleSelectionTray(photo).then(success => {
+        if (success) item.classList.toggle('in-selection-tray', selectionTrayIds.includes(photo.id))
+      })
+    }
+  })
   item.addEventListener('click', (e) => handlePhotoClick(e, photo, index));
   item.addEventListener('dblclick', (e) => { e.preventDefault(); openLightbox(photo, index); });
   item.addEventListener('contextmenu', (e) => {

@@ -53,6 +53,17 @@ CREATE INDEX IF NOT EXISTS idx_photos_favorite ON photos(is_favorite);
 CREATE INDEX IF NOT EXISTS idx_photos_created ON photos(created_at);
 CREATE INDEX IF NOT EXISTS idx_photos_imported ON photos(imported_at);
 
+CREATE TABLE IF NOT EXISTS project_selections (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL,
+  photo_id INTEGER NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER DEFAULT (strftime('%s', 'now')),
+  UNIQUE (project_id, photo_id)
+);
+CREATE INDEX IF NOT EXISTS idx_project_selections_project_position ON project_selections(project_id, position);
+
+
 CREATE TABLE IF NOT EXISTS albums (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,

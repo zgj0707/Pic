@@ -5,6 +5,7 @@ import { dbAdapter, saveDatabase } from '../services/database'
 import { getDownloadDir } from '../services/config'
 import { syncTagsToPhotoExif } from '../utils/exifSync'
 import { buildInPlaceholders } from '../utils/dbHelpers'
+import { removeSelectionsForPhotos } from '../services/projectSelections'
 import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
 import type { PhotoFilter, PhotoQueryOptions, Photo, IpcResponse, ReviewState } from '../types'
 
@@ -343,6 +344,7 @@ export function registerPhotoIpc(): void {
         }
       }
 
+      removeSelectionsForPhotos(deletedIds)
       if (deletedIds.length > 0) {
         const deletedPlaceholders = buildInPlaceholders(deletedIds.length)
         dbAdapter.run(`DELETE FROM photo_tags WHERE photo_id IN (${deletedPlaceholders})`, deletedIds)

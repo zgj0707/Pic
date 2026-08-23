@@ -158,7 +158,7 @@
               <button id="cullingImmersiveViewBtn" class="filter-chip" type="button"><i class="fa-solid fa-expand" aria-hidden="true"></i><span>沉浸式</span></button>
             </div>
             <div class="culling-shortcuts" aria-label="初筛快捷键">
-              <span>← → 浏览</span><span>P 保留</span><span>X 拒绝</span><span>U 未处理</span><span>1–5 评级</span><span>Space 放大/适配</span><span>C 选择</span>
+              <span>← → 浏览</span><span>P 保留</span><span>X 拒绝</span><span>U 未处理</span><span>1–5 评级</span><span>Space 放大/适配</span><span>C 精选篮</span>
             </div>
           </div>
           <div id="cullingGrid" class="culling-grid custom-scrollbar" tabindex="0" aria-label="初筛照片网格"></div>
@@ -178,6 +178,14 @@
             <button id="cullingPickBtn" class="culling-action culling-action-pick" type="button"><kbd>P</kbd><span>保留</span></button>
             <button id="cullingRejectBtn" class="culling-action culling-action-reject" type="button"><kbd>X</kbd><span>拒绝</span></button>
           </div>
+        </section>
+
+        <section id="compareWorkspace" class="compare-workspace hidden" aria-label="精选照片并排对比">
+          <header class="compare-header">
+            <div><span class="section-eyebrow">精选集</span><h2>并排对比</h2><p id="compareSummary" class="compare-summary">选择 2–4 张照片进行比较</p></div>
+            <div class="compare-header-actions"><label class="compare-zoom-control" for="compareZoomRange">同步缩放 <input id="compareZoomRange" type="range" min="1" max="2.5" step="0.1" value="1"><output id="compareZoomValue">100%</output></label><button id="compareExitBtn" class="secondary-action" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>返回图库</span></button></div>
+          </header>
+          <div id="compareGrid" class="compare-grid"></div>
         </section>
 
         <footer class="status-bar">
@@ -259,12 +267,12 @@
       <aside id="selectionTray" class="selection-tray" aria-label="精选篮">
         <div class="selection-tray-header">
           <div><span class="section-eyebrow">交付候选</span><h2>精选篮</h2></div>
-          <span id="selectionTrayCount" class="selection-tray-count">0</span>
+          <div class="selection-tray-header-actions"><span id="selectionTrayCount" class="selection-tray-count">0</span><button id="selectionCompareBtn" class="selection-compare-btn" type="button" disabled><i class="fa-solid fa-columns" aria-hidden="true"></i><span>对比</span></button></div>
         </div>
         <div id="selectionTrayEmpty" class="selection-tray-empty">
           <div class="selection-tray-icon"><i class="fa-solid fa-basket-shopping" aria-hidden="true"></i></div>
           <p>暂无精选照片</p>
-          <span>精选篮将在后续工作流阶段启用。当前可使用照片选择和批量操作。</span>
+          <span>可拖动调整交付顺序；选择 2–4 张照片后可并排比较。</span>
         </div>
         <div id="selectionTrayItems" class="selection-tray-items hidden"></div>
       </aside>
@@ -527,6 +535,8 @@
   <script src="js/batch.js"></script>
   <script src="js/import.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/selectionTray.js"></script>
+  <script src="js/compare.js"></script>
   <script src="js/culling.js"></script>
   <script src="js/app.js"></script>
 </body>

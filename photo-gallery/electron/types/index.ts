@@ -28,6 +28,15 @@ export interface Photo {
 
 export type ReviewState = 'unreviewed' | 'pick' | 'reject'
 
+export interface ProjectSelection {
+  id: number
+  project_id: number
+  photo_id: number
+  position: number
+  created_at: number
+  photo: Photo
+}
+
 export interface Project {
   id: number
   name: string

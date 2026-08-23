@@ -238,14 +238,13 @@ async function undoCullingAction() {
 function toggleCullingSelection() {
   const photo = currentCullingPhoto()
   if (!photo) return
+  if (typeof toggleSelectionTray === 'function') {
+    void toggleSelectionTray(photo)
+    return
+  }
   if (selectedPhotos.has(photo.id)) selectedPhotos.delete(photo.id)
   else selectedPhotos.add(photo.id)
   updateSelectedCount()
-  const count = selectedPhotos.size
-  const headerCount = document.getElementById('projectSelectionCount')
-  const trayCount = document.getElementById('selectionTrayCount')
-  if (headerCount) headerCount.textContent = String(count)
-  if (trayCount) trayCount.textContent = String(count)
   renderCullingGrid()
   setCullingLastAction(`${selectedPhotos.has(photo.id) ? '加入选择' : '移出选择'} · ${photo.filename || '未命名'}`)
 }

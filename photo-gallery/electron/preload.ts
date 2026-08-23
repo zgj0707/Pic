@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
-  Photo, PhotoQueryOptions, PhotoFilter, ReviewState, Tag, ExifData, Project,
+  Photo, PhotoQueryOptions, PhotoFilter, ReviewState, Tag, ExifData, Project, ProjectSelection,
   ImportResult, ImportProgress,
   CacheStats, CacheCleanResult, IpcResponse, ChangelogEntry
 } from './types'
@@ -36,6 +36,12 @@ export interface ElectronAPI {
       Promise<{ success: boolean; folderPath?: string; copied?: number; failed?: number; error?: string }>
     copyImageToClipboard: (filePath: string) => Promise<{ success: boolean; error?: string }>
   }
+  selections: {
+    getAll: (projectId: number) => Promise<ProjectSelection[]>
+    add: (projectId: number, photoId: number) => Promise<{ success: boolean; selection?: ProjectSelection; error?: string }>
+    remove: (projectId: number, photoId: number) => Promise<{ success: boolean; error?: string }>
+    reorder: (projectId: number, photoIds: number[]) => Promise<{ success: boolean; selections?: ProjectSelection[]; error?: string }>
+  },
   import: {
     fromDirectory: (dirPath: string, projectId?: number | null) => Promise<ImportResult>
     fromFiles: (filePaths: string[], projectId?: number | null) => Promise<ImportResult>
@@ -128,6 +134,12 @@ const api: ElectronAPI = {
     getThumbnail: (id: number, size?: 'grid' | 'preview') => ipcRenderer.invoke('photos:getThumbnail', id, size),
     copyToDesktopFolder: (filePaths: string[], folderName: string) => ipcRenderer.invoke('photos:copyToDesktopFolder', filePaths, folderName),
     copyImageToClipboard: (filePath: string) => ipcRenderer.invoke('photos:copyImageToClipboard', filePath)
+  },
+  selections: {
+    getAll: (projectId: number) => ipcRenderer.invoke('selections:getAll', projectId),
+    add: (projectId: number, photoId: number) => ipcRenderer.invoke('selections:add', projectId, photoId),
+    remove: (projectId: number, photoId: number) => ipcRenderer.invoke('selections:remove', projectId, photoId),
+    reorder: (projectId: number, photoIds: number[]) => ipcRenderer.invoke('selections:reorder', projectId, photoIds)
   },
   import: {
     fromDirectory: (dirPath: string, projectId?: number | null) =>

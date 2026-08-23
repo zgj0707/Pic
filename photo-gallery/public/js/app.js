@@ -323,8 +323,9 @@ function updateStatusBar() {
   document.getElementById('currentProjectDate')?.replaceChildren(document.createTextNode(projectDate));
   document.getElementById('projectPhotoCount')?.replaceChildren(document.createTextNode(String(projectPhotoCount)));
   document.getElementById('projectUnprocessedCount')?.replaceChildren(document.createTextNode(String(unprocessedCount)));
-  document.getElementById('projectSelectionCount')?.replaceChildren(document.createTextNode('0'));
-  document.getElementById('selectionTrayCount')?.replaceChildren(document.createTextNode('0'));
+  const selectionCount = typeof selectionTrayItems !== 'undefined' ? selectionTrayItems.length : 0;
+  document.getElementById('projectSelectionCount')?.replaceChildren(document.createTextNode(String(selectionCount)));
+  document.getElementById('selectionTrayCount')?.replaceChildren(document.createTextNode(String(selectionCount)));
 
   if (viewEl) viewEl.textContent = currentViewMode === 'compact' ? '紧凑视图' : '瀑布流';
   if (countEl) {

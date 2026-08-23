@@ -43,6 +43,7 @@ import { registerTagManagerIpc } from '../ipc/tagManager'
 import { registerExifToolIpc } from '../ipc/exifTool'
 import { registerDeleteIpc } from '../ipc/delete'
 import { registerProjectIpc } from '../ipc/project'
+import { registerSelectionIpc } from '../ipc/selection'
 import { registerMaterialBrowserIpc, setupDownloadHandler } from '../ipc/materialBrowser'
 
 // ─── Services (cache manager, thumbnail, exif sync) ───
@@ -121,6 +122,7 @@ export function registerIpc(c: ContentContext): void {
   registerExifToolIpc()
   registerDeleteIpc()
   registerProjectIpc()
+  registerSelectionIpc()
   registerMaterialBrowserIpc(c.getMainWindow())
 
   // ── Generic app/dialog/window/path/shell/cache handlers (moved from main.ts) ──
