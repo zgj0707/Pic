@@ -234,8 +234,16 @@ async function loadCameraLensFilters() {
 
     // 重新绑定事件
     document.querySelectorAll('.filter-chip').forEach(chip => {
-      chip.addEventListener('click', () => toggleSmartFilter(chip.dataset.filter));
-    });
+      chip.addEventListener('click', () => toggleSmartFilter(chip.dataset.filter))
+      chip.setAttribute('role', 'button')
+      chip.setAttribute('tabindex', '0')
+      chip.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          chip.click()
+        }
+      })
+    })
   } catch (e) {
     console.error('加载器材筛选失败:', e);
   }
@@ -781,6 +789,14 @@ document.getElementById('changelogModal').addEventListener('click', (e) => {
 // ─── 智能筛选 chip 初始事件 ───
 document.querySelectorAll('.filter-chip').forEach(chip => {
   chip.addEventListener('click', () => toggleSmartFilter(chip.dataset.filter));
+  chip.setAttribute('role', 'button')
+  chip.setAttribute('tabindex', '0')
+  chip.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      chip.click()
+    }
+  })
 });
 
 // ─── 导出 PDF / 视图切换 ───

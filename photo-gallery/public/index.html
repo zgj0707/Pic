@@ -234,7 +234,7 @@
         <div class="panel-content custom-scrollbar">
           <div class="flex items-center justify-between mb-4">
             <h3 id="metadataPanelTitle" class="text-lg font-semibold">批量操作</h3>
-            <button id="closeMetadataPanel" class="p-1 hover:bg-white/10 rounded"><i class="fa-solid fa-xmark"></i></button>
+            <button id="closeMetadataPanel" class="p-1 hover:bg-white/10 rounded" aria-label="关闭照片详情"><i class="fa-solid fa-xmark"></i></button>
           </div>
           <div id="selectedCount" class="text-textSecondary text-sm mb-4">已选择 0 张照片</div>
           
@@ -273,7 +273,7 @@
               <h4 class="text-sm font-medium mb-2">批量添加标签</h4>
               <div class="flex gap-2 mb-2">
                 <input type="text" id="batchTagInput" placeholder="输入标签名" class="flex-1 h-8 bg-bgPrimary border border-borderColor rounded px-3 text-sm focus:outline-none focus:border-accent">
-                <button id="addBatchTagBtn" class="px-3 h-8 bg-accent text-white text-sm rounded hover:bg-accent/80"><i class="fa-solid fa-plus"></i></button>
+                <button id="addBatchTagBtn" class="px-3 h-8 bg-accent text-white text-sm rounded hover:bg-accent/80" aria-label="添加标签"><i class="fa-solid fa-plus"></i></button>
               </div>
               <div id="batchTags" class="flex flex-wrap gap-2 mb-2"></div>
               <button id="applyBatchTagsBtn" class="w-full py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>应用标签到选中照片</button>
@@ -282,7 +282,7 @@
               <h4 class="text-sm font-medium mb-2">批量移除标签</h4>
               <div class="flex gap-2 mb-2">
                 <input type="text" id="removeTagInput" placeholder="输入要移除的标签名" class="flex-1 h-8 bg-bgPrimary border border-borderColor rounded px-3 text-sm focus:outline-none focus:border-accent">
-                <button id="addRemoveTagBtn" class="px-3 h-8 bg-red-600 text-white text-sm rounded hover:bg-red-700"><i class="fa-solid fa-minus"></i></button>
+                <button id="addRemoveTagBtn" class="px-3 h-8 bg-red-600 text-white text-sm rounded hover:bg-red-700" aria-label="移除标签"><i class="fa-solid fa-minus"></i></button>
               </div>
               <div id="removeTags" class="flex flex-wrap gap-2 mb-2"></div>
               <button id="applyRemoveTagsBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>移除选中照片的标签</button>
@@ -312,40 +312,40 @@
   <div id="materialBrowserPanel" class="material-browser-panel">
     <div class="h-10 bg-bgPrimary flex items-center px-4 border-b border-borderColor shrink-0">
       <div class="flex items-center space-x-2 mr-4">
-        <button id="browserBack" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="后退">
+        <button id="browserBack" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" aria-label="后退" title="后退">
           <i class="fa-solid fa-arrow-left"></i>
         </button>
-        <button id="browserForward" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="前进">
+        <button id="browserForward" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" aria-label="前进" title="前进">
           <i class="fa-solid fa-arrow-right"></i>
         </button>
-        <button id="browserRefresh" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="刷新">
+        <button id="browserRefresh" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" aria-label="刷新" title="刷新">
           <i class="fa-solid fa-rotate-right"></i>
         </button>
       </div>
       <div class="flex-1 flex items-center space-x-2">
         <input id="browserUrl" type="text" value="https://www.xiaohongshu.com" 
           class="flex-1 h-8 bg-bgSecondary border border-borderColor rounded px-3 text-sm text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent">
-        <button id="browserGo" class="px-3 py-1.5 bg-accent text-white text-sm rounded hover:bg-accent/80">
+        <button id="browserGo" class="px-3 py-1.5 bg-accent text-white text-sm rounded hover:bg-accent/80" aria-label="打开地址">
           <i class="fa-solid fa-magnifying-glass"></i>
         </button>
       </div>
       <div class="flex items-center space-x-2 ml-4">
-        <button id="browserModeToggle" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="切换浏览器模式">
+        <button id="browserModeToggle" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="切换浏览器模式" aria-label="切换浏览器模式">
           <i class="fa-solid fa-globe" id="browserModeIcon"></i>
         </button>
-        <button id="takeScreenshot" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="截图并保存">
+        <button id="takeScreenshot" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="截图并保存" aria-label="截图并保存">
           <i class="fa-solid fa-camera"></i>
         </button>
-        <button id="openDownloadDir" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="打开下载目录">
+        <button id="openDownloadDir" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="打开下载目录" aria-label="打开下载目录">
           <i class="fa-solid fa-folder-open"></i>
         </button>
-        <button id="clearDownloadCache" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="清空下载缓存">
+        <button id="clearDownloadCache" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="清空下载缓存" aria-label="清空下载缓存">
           <i class="fa-solid fa-trash"></i>
         </button>
-                <button id="backToGalleryFromBrowser" class="p-1.5 hover:bg-bgSecondary rounded text-accent" title="回到样片库">
+                <button id="backToGalleryFromBrowser" class="p-1.5 hover:bg-bgSecondary rounded text-accent" title="回到样片库" aria-label="回到样片库">
           <i class="fa-solid fa-images"></i>
         </button>
-        <button id="closeMaterialBrowserBtn" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="关闭">
+        <button id="closeMaterialBrowserBtn" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="关闭" aria-label="关闭素材浏览器">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
@@ -364,28 +364,28 @@
   </div>
   
   <div id="lightbox" class="lightbox-viewer hidden">
-    <button id="closeLightbox" class="absolute top-4 right-4 p-2 hover:bg-white/10 rounded text-white text-2xl z-10">
+    <button id="closeLightbox" class="absolute top-4 right-4 p-2 hover:bg-white/10 rounded text-white text-2xl z-10" aria-label="关闭照片预览">
       <i class="fa-solid fa-xmark"></i>
     </button>
-    <button id="prevPhoto" class="absolute left-4 top-1/2 -translate-y-1/2 p-3 hover:bg-white/10 rounded text-white text-2xl z-10">
+    <button id="prevPhoto" class="absolute left-4 top-1/2 -translate-y-1/2 p-3 hover:bg-white/10 rounded text-white text-2xl z-10" aria-label="上一张照片">
       <i class="fa-solid fa-chevron-left"></i>
     </button>
-    <button id="nextPhoto" class="absolute right-4 top-1/2 -translate-y-1/2 p-3 hover:bg-white/10 rounded text-white text-2xl z-10">
+    <button id="nextPhoto" class="absolute right-4 top-1/2 -translate-y-1/2 p-3 hover:bg-white/10 rounded text-white text-2xl z-10" aria-label="下一张照片">
       <i class="fa-solid fa-chevron-right"></i>
     </button>
-    <button id="rotateLeft" class="absolute top-4 left-1/2 -translate-x-1/2 p-2 hover:bg-white/10 rounded text-white text-xl z-10" title="向左旋转">
+    <button id="rotateLeft" class="absolute top-4 left-1/2 -translate-x-1/2 p-2 hover:bg-white/10 rounded text-white text-xl z-10" title="向左旋转" aria-label="向左旋转">
       <i class="fa-solid fa-rotate-left"></i>
     </button>
-    <button id="rotateRight" class="absolute top-4 left-[calc(50%+48px)] p-2 hover:bg-white/10 rounded text-white text-xl z-10" title="向右旋转">
+    <button id="rotateRight" class="absolute top-4 left-[calc(50%+48px)] p-2 hover:bg-white/10 rounded text-white text-xl z-10" title="向右旋转" aria-label="向右旋转">
       <i class="fa-solid fa-rotate-right"></i>
     </button>
     <div id="imageContainer" class="flex items-center justify-center w-full h-full overflow-hidden">
       <img id="lightboxImage" src="" alt="">
     </div>
     <div class="zoom-controls bg-bgSecondary rounded-full px-4 py-2">
-      <button id="zoomOut" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white"><i class="fa-solid fa-minus"></i></button>
+      <button id="zoomOut" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white" aria-label="缩小照片"><i class="fa-solid fa-minus"></i></button>
       <span id="zoomLevel" class="px-3 py-1 text-white">100%</span>
-      <button id="zoomIn" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white"><i class="fa-solid fa-plus"></i></button>
+      <button id="zoomIn" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white" aria-label="放大照片"><i class="fa-solid fa-plus"></i></button>
       <button id="zoomReset" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white ml-2">重置</button>
     </div>
     <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 p-4 z-10">
@@ -416,8 +416,8 @@
       <div class="flex items-center justify-between mb-6">
         <h3 class="text-lg font-semibold">设置</h3>
         <div class="flex items-center gap-2">
-          <button id="backToGalleryFromSettings" class="p-1 hover:bg-white/10 rounded text-accent" title="回到样片库"><i class="fa-solid fa-images"></i></button>
-          <button id="closeSettingsBtn" class="p-1 hover:bg-white/10 rounded"><i class="fa-solid fa-xmark"></i></button>
+          <button id="backToGalleryFromSettings" class="p-1 hover:bg-white/10 rounded text-accent" title="回到样片库" aria-label="回到样片库"><i class="fa-solid fa-images"></i></button>
+          <button id="closeSettingsBtn" class="p-1 hover:bg-white/10 rounded" aria-label="关闭设置"><i class="fa-solid fa-xmark"></i></button>
         </div>
       </div>
       <div class="bg-bgPrimary rounded-lg p-4 border border-borderColor mb-4">
@@ -451,7 +451,7 @@
     <div class="modal-content max-w-md">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-semibold">关于</h3>
-        <button id="closeAboutBtn" class="p-1 hover:bg-white/10 rounded text-textSecondary hover:text-textPrimary">
+        <button id="closeAboutBtn" class="p-1 hover:bg-white/10 rounded text-textSecondary hover:text-textPrimary" aria-label="关闭关于窗口">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
@@ -480,7 +480,7 @@
     <div class="modal-content max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-semibold">更新公告</h3>
-        <button id="closeChangelogBtn" class="p-1 hover:bg-white/10 rounded text-textSecondary hover:text-textPrimary">
+        <button id="closeChangelogBtn" class="p-1 hover:bg-white/10 rounded text-textSecondary hover:text-textPrimary" aria-label="关闭更新日志">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
