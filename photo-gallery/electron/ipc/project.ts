@@ -3,6 +3,7 @@ import { dbAdapter } from '../services/database'
 import { wrapHandler } from '../utils/ipcHandler'
 import type { Project } from '../types'
 import { moveProjectSelections } from '../services/projectSelections'
+import { moveProjectShots } from '../services/projectShots'
 
 export function registerProjectIpc(): void {
   ipcMain.handle('projects:getAll', wrapHandler('projects:getAll', () => {
@@ -51,9 +52,11 @@ export function registerProjectIpc(): void {
     const defaultProject = dbAdapter.get('SELECT id FROM projects WHERE id != ? ORDER BY id ASC LIMIT 1', [id])
     if (defaultProject) {
       moveProjectSelections(id, Number(defaultProject.id))
+      moveProjectShots(id, Number(defaultProject.id))
       dbAdapter.run('UPDATE photos SET project_id = ? WHERE project_id = ?', [defaultProject.id, id])
     } else {
       dbAdapter.run('DELETE FROM project_selections WHERE project_id = ?', [id])
+      dbAdapter.run('DELETE FROM project_shots WHERE project_id = ?', [id])
     }
     dbAdapter.run('DELETE FROM projects WHERE id = ?', [id])
     return { success: true }

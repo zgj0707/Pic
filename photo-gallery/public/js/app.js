@@ -795,6 +795,8 @@ document.addEventListener('keydown', (e) => {
       returnToGallery();
     } else if (metadataPanel.classList.contains('open')) {
       metadataPanel.classList.remove('open');
+    } else if (!document.getElementById('shotListWorkspace')?.classList.contains('hidden')) {
+      void closeShotListWorkspace();
     }
   }
   if (!lightbox.classList.contains('hidden')) {

@@ -111,4 +111,49 @@ describe('legacy project database migration', () => {
     await initializeDatabase(tempDir)
     expect(dbAdapter.query('PRAGMA table_info(photos)').filter(column => column.name === 'review_state')).toHaveLength(1)
   })
+  it('adds inspiration-board metadata and creates the independent shot list table', async () => {
+    tempDir = mkdtempSync(join(tmpdir(), 'pic-legacy-board-db-'))
+    const databaseDir = join(tempDir, 'database')
+    mkdirSync(databaseDir, { recursive: true })
+
+    const SQL = await initSqlJs({
+      locateFile: file => join(process.cwd(), 'node_modules', 'sql.js', 'dist', file)
+    })
+    const legacyDb = new SQL.Database()
+    legacyDb.exec(`
+      CREATE TABLE project_selections (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        photo_id INTEGER NOT NULL,
+        position INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER
+      );
+      INSERT INTO project_selections (project_id, photo_id, position) VALUES (1, 2, 0);
+      CREATE TABLE project_shots (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        photo_id INTEGER NOT NULL,
+        position INTEGER NOT NULL DEFAULT 0,
+        title TEXT NOT NULL,
+        intent TEXT,
+        composition_notes TEXT,
+        lighting_gear_notes TEXT,
+        status TEXT NOT NULL DEFAULT 'planned',
+        created_at INTEGER,
+        updated_at INTEGER
+      );
+    `)
+    writeFileSync(join(databaseDir, 'gallery.db'), Buffer.from(legacyDb.export()))
+    legacyDb.close()
+
+    await initializeDatabase(tempDir)
+
+    const selectionColumns = dbAdapter.query('PRAGMA table_info(project_selections)').map(column => column.name)
+    expect(selectionColumns).toContain('chapter')
+    expect(selectionColumns).toContain('note')
+    const shotColumns = dbAdapter.query('PRAGMA table_info(project_shots)').map(column => column.name)
+    expect(shotColumns).toContain('chapter')
+    expect(dbAdapter.get('SELECT chapter, note FROM project_selections WHERE id = 1')).toMatchObject({ chapter: '未分组', note: null })
+    expect(dbAdapter.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_shots'")).toHaveLength(1)
+  })
 })

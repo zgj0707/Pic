@@ -19,6 +19,8 @@ function mapSelectionRow(row: Record<string, unknown>): ProjectSelection {
     selection_photo_id,
     selection_position,
     selection_created_at,
+    selection_chapter,
+    selection_note,
     ...photoRow
   } = row
   const photo = { ...photoRow, tags: getTags(Number(selection_photo_id)) } as Photo
@@ -28,6 +30,8 @@ function mapSelectionRow(row: Record<string, unknown>): ProjectSelection {
     photo_id: Number(selection_photo_id),
     position: Number(selection_position),
     created_at: Number(selection_created_at),
+    chapter: String(selection_chapter || '未分组'),
+    note: selection_note == null ? null : String(selection_note),
     photo
   }
 }
@@ -40,6 +44,8 @@ export function listProjectSelections(projectId: number): ProjectSelection[] {
       s.photo_id AS selection_photo_id,
       s.position AS selection_position,
       s.created_at AS selection_created_at,
+      s.chapter AS selection_chapter,
+      s.note AS selection_note,
       p.*
     FROM project_selections s
     JOIN photos p ON p.id = s.photo_id
@@ -83,6 +89,19 @@ export function removeProjectSelection(projectId: number, photoId: number): bool
   )
   if (result.changes > 0) saveDatabase()
   return result.changes > 0
+}
+
+export function updateProjectSelectionMeta(projectId: number, photoId: number, chapter: string, note: string): ProjectSelection {
+  const current = listProjectSelections(projectId).find(selection => selection.photo_id === photoId)
+  if (!current) throw new Error('灵感板样片不存在')
+  const normalizedChapter = typeof chapter === 'string' ? chapter.trim() || '未分组' : '未分组'
+  const normalizedNote = typeof note === 'string' ? note.trim() || null : null
+  dbAdapter.run(
+    'UPDATE project_selections SET chapter = ?, note = ? WHERE project_id = ? AND photo_id = ?',
+    [normalizedChapter, normalizedNote, projectId, photoId]
+  )
+  saveDatabase()
+  return listProjectSelections(projectId).find(selection => selection.photo_id === photoId) || current
 }
 
 export function reorderProjectSelections(projectId: number, photoIds: number[]): ProjectSelection[] {

@@ -123,6 +123,7 @@ function switchToGallery() {
   const settingsModal = document.getElementById('settingsModal');
   if (settingsModal) settingsModal.classList.add('hidden');
   isRecycleBinView = false;
+  document.getElementById('shotListWorkspace')?.classList.add('hidden');
   currentPanel = 'gallery';
   selectedPhotos.clear();
   const selectedCountEl = document.getElementById('selectedCount');

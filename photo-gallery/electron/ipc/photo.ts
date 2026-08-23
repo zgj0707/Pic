@@ -6,6 +6,7 @@ import { getDownloadDir } from '../services/config'
 import { syncTagsToPhotoExif } from '../utils/exifSync'
 import { buildInPlaceholders } from '../utils/dbHelpers'
 import { removeSelectionsForPhotos } from '../services/projectSelections'
+import { removeShotsForPhotos } from '../services/projectShots'
 import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
 import type { PhotoFilter, PhotoQueryOptions, Photo, IpcResponse, ReviewState } from '../types'
 
@@ -369,6 +370,7 @@ export function registerPhotoIpc(): void {
       }
 
       removeSelectionsForPhotos(deletedIds)
+      removeShotsForPhotos(deletedIds)
       if (deletedIds.length > 0) {
         const deletedPlaceholders = buildInPlaceholders(deletedIds.length)
         dbAdapter.run(`DELETE FROM photo_tags WHERE photo_id IN (${deletedPlaceholders})`, deletedIds)
@@ -478,6 +480,7 @@ export function registerPhotoIpc(): void {
         }
       }
       dbAdapter.run(`DELETE FROM photo_tags WHERE photo_id IN (${placeholders})`, expiredIds)
+      removeShotsForPhotos(expiredIds)
       dbAdapter.run(`DELETE FROM photos WHERE id IN (${placeholders})`, expiredIds)
       console.log(`[recycle] Auto cleaned ${expired.length} expired photos`)
     }

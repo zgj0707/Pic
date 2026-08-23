@@ -67,6 +67,23 @@ CREATE TABLE IF NOT EXISTS project_selections (
   UNIQUE (project_id, photo_id)
 );
 CREATE INDEX IF NOT EXISTS idx_project_selections_project_position ON project_selections(project_id, position);
+CREATE TABLE IF NOT EXISTS project_shots (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL,
+  photo_id INTEGER NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0,
+  chapter TEXT NOT NULL DEFAULT '未分组',
+  title TEXT NOT NULL,
+  intent TEXT,
+  composition_notes TEXT,
+  lighting_gear_notes TEXT,
+  status TEXT NOT NULL DEFAULT 'planned',
+  created_at INTEGER DEFAULT (strftime('%s', 'now')),
+  updated_at INTEGER DEFAULT (strftime('%s', 'now')),
+  UNIQUE (project_id, photo_id)
+);
+CREATE INDEX IF NOT EXISTS idx_project_shots_project_position ON project_shots(project_id, position);
+CREATE INDEX IF NOT EXISTS idx_project_shots_photo ON project_shots(photo_id);
 
 
 CREATE TABLE IF NOT EXISTS albums (
@@ -269,6 +286,41 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
   dbAdapter.run("UPDATE photos SET source_type = 'local' WHERE source_type IS NULL OR source_type = ''")
 
   db.exec(SCHEMA)
+  // Migration: add chapter and note fields to legacy inspiration-board entries.
+  const selectionColumns = dbAdapter.query('PRAGMA table_info(project_selections)')
+  if (!selectionColumns.some(column => column.name === 'chapter')) {
+    db.exec("ALTER TABLE project_selections ADD COLUMN chapter TEXT NOT NULL DEFAULT '未分组'")
+  }
+  if (!selectionColumns.some(column => column.name === 'note')) {
+    db.exec('ALTER TABLE project_selections ADD COLUMN note TEXT')
+  }
+  dbAdapter.run("UPDATE project_selections SET chapter = '未分组' WHERE chapter IS NULL OR chapter = ''")
+
+  // Migration: create the independent shot-list table for legacy installations.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS project_shots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      photo_id INTEGER NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0,
+      chapter TEXT NOT NULL DEFAULT '未分组',
+      title TEXT NOT NULL,
+      intent TEXT,
+      composition_notes TEXT,
+      lighting_gear_notes TEXT,
+      status TEXT NOT NULL DEFAULT 'planned',
+      created_at INTEGER DEFAULT (strftime('%s', 'now')),
+      updated_at INTEGER DEFAULT (strftime('%s', 'now')),
+      UNIQUE (project_id, photo_id)
+    )
+  `)
+  const shotColumns = dbAdapter.query('PRAGMA table_info(project_shots)')
+  if (!shotColumns.some(column => column.name === 'chapter')) {
+    db.exec("ALTER TABLE project_shots ADD COLUMN chapter TEXT NOT NULL DEFAULT '未分组'")
+  }
+  dbAdapter.run("UPDATE project_shots SET chapter = '未分组' WHERE chapter IS NULL OR chapter = ''")
+  db.exec('CREATE INDEX IF NOT EXISTS idx_project_shots_project_position ON project_shots(project_id, position)')
+  db.exec('CREATE INDEX IF NOT EXISTS idx_project_shots_photo ON project_shots(photo_id)')
 
   // Migration: early project tables used client_id/date/album_id and did not
   // have the timestamps required by the current create/update handlers.

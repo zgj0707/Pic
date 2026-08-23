@@ -52,6 +52,7 @@ async function selectProject(projectId) {
 
   isRecycleBinView = false;
   currentPanel = 'gallery';
+  document.getElementById('shotListWorkspace')?.classList.add('hidden');
   selectedPhotos.clear();
   updateSelectedCount();
   updateContextPanel();

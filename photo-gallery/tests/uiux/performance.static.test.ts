@@ -5,6 +5,7 @@ import { join } from 'path'
 const publicRoot = join(process.cwd(), 'public')
 const gridSource = readFileSync(join(publicRoot, 'js', 'grid.js'), 'utf8')
 const selectionTraySource = readFileSync(join(publicRoot, 'js', 'selectionTray.js'), 'utf8')
+const shotListSource = readFileSync(join(publicRoot, 'js', 'shotList.js'), 'utf8')
 const appSource = readFileSync(join(publicRoot, 'js', 'app.js'), 'utf8')
 const htmlSource = readFileSync(join(publicRoot, 'index.html'), 'utf8')
 
@@ -26,6 +27,11 @@ describe('UI/UX refactor guardrails', () => {
   it('exposes keyboard and reduced-motion hooks for the core workflow', () => {
     expect(htmlSource).toContain('id="deliveryModeBtn"')
     expect(htmlSource).toContain('id="deliveryBtn"')
+    expect(htmlSource).toContain('id="shotListWorkspace"')
+    expect(htmlSource).toContain('id="shotListBtn"')
+    expect(selectionTraySource).toContain('updateSelectionTrayMeta')
+    expect(shotListSource).toContain('generateShotList')
+    expect(shotListSource).toContain('reorderShotList')
     expect(htmlSource).toContain('aria-label="关闭样片详情"')
     const tokens = readFileSync(join(publicRoot, 'styles', 'tokens.css'), 'utf8')
     expect(tokens).toContain(':focus-visible')

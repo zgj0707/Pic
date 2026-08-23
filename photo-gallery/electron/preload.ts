@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
-  Photo, PhotoQueryOptions, PhotoFilter, ReviewState, Tag, ExifData, Project, ProjectSelection,
+  Photo, PhotoQueryOptions, PhotoFilter, ReviewState, Tag, ExifData, Project, ProjectSelection, ProjectShot,
   ImportResult, ImportProgress,
   CacheStats, CacheCleanResult, IpcResponse, ChangelogEntry
 } from './types'
@@ -42,7 +42,16 @@ export interface ElectronAPI {
     add: (projectId: number, photoId: number) => Promise<{ success: boolean; selection?: ProjectSelection; error?: string }>
     remove: (projectId: number, photoId: number) => Promise<{ success: boolean; error?: string }>
     reorder: (projectId: number, photoIds: number[]) => Promise<{ success: boolean; selections?: ProjectSelection[]; error?: string }>
+    updateMeta: (projectId: number, photoId: number, chapter: string, note: string) => Promise<{ success: boolean; selection?: ProjectSelection; error?: string }>
   },
+  shots: {
+    getAll: (projectId: number) => Promise<ProjectShot[]>
+    create: (projectId: number, photoId: number, input?: { chapter?: string; title?: string; intent?: string | null; compositionNotes?: string | null; lightingGearNotes?: string | null; status?: 'planned' | 'ready' | 'done' }) => Promise<{ success: boolean; shot?: ProjectShot; error?: string }>
+    generateFromSelections: (projectId: number) => Promise<{ success: boolean; shots?: ProjectShot[]; error?: string }>
+    update: (projectId: number, shotId: number, input: { title?: string; intent?: string | null; compositionNotes?: string | null; lightingGearNotes?: string | null; status?: 'planned' | 'ready' | 'done' }) => Promise<{ success: boolean; shot?: ProjectShot; error?: string }>
+    reorder: (projectId: number, shotIds: number[]) => Promise<{ success: boolean; shots?: ProjectShot[]; error?: string }>
+    remove: (projectId: number, shotId: number) => Promise<{ success: boolean; error?: string }>
+  }
   delivery: {
     export: (projectId: number, photoIds: number[], targetDir: string, folderName: string, prefix: string) => Promise<{ success: boolean; folderPath?: string; copied: number; failed: number; results: { photoId: number; filename: string; targetPath: string; success: boolean; error?: string }[]; error?: string }>
     openFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>
@@ -146,7 +155,16 @@ const api: ElectronAPI = {
     getAll: (projectId: number) => ipcRenderer.invoke('selections:getAll', projectId),
     add: (projectId: number, photoId: number) => ipcRenderer.invoke('selections:add', projectId, photoId),
     remove: (projectId: number, photoId: number) => ipcRenderer.invoke('selections:remove', projectId, photoId),
-    reorder: (projectId: number, photoIds: number[]) => ipcRenderer.invoke('selections:reorder', projectId, photoIds)
+    reorder: (projectId: number, photoIds: number[]) => ipcRenderer.invoke('selections:reorder', projectId, photoIds),
+    updateMeta: (projectId: number, photoId: number, chapter: string, note: string) => ipcRenderer.invoke('selections:updateMeta', projectId, photoId, chapter, note)
+  },
+  shots: {
+    getAll: (projectId: number) => ipcRenderer.invoke('shots:getAll', projectId),
+    create: (projectId: number, photoId: number, input?: unknown) => ipcRenderer.invoke('shots:create', projectId, photoId, input),
+    generateFromSelections: (projectId: number) => ipcRenderer.invoke('shots:generateFromSelections', projectId),
+    update: (projectId: number, shotId: number, input: unknown) => ipcRenderer.invoke('shots:update', projectId, shotId, input),
+    reorder: (projectId: number, shotIds: number[]) => ipcRenderer.invoke('shots:reorder', projectId, shotIds),
+    remove: (projectId: number, shotId: number) => ipcRenderer.invoke('shots:remove', projectId, shotId)
   },
   delivery: {
     export: (projectId: number, photoIds: number[], targetDir: string, folderName: string, prefix: string) => ipcRenderer.invoke('delivery:export', projectId, photoIds, targetDir, folderName, prefix),

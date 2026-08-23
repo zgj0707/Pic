@@ -39,6 +39,24 @@ export interface ProjectSelection {
   photo_id: number
   position: number
   created_at: number
+  chapter: string
+  note: string | null
+  photo: Photo
+}
+
+export interface ProjectShot {
+  id: number
+  project_id: number
+  photo_id: number
+  position: number
+  chapter: string
+  title: string
+  intent: string | null
+  composition_notes: string | null
+  lighting_gear_notes: string | null
+  status: 'planned' | 'ready' | 'done'
+  created_at: number
+  updated_at: number
   photo: Photo
 }
 

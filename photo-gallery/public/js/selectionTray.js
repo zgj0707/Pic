@@ -23,6 +23,8 @@ function updateSelectionTrayCounts() {
   document.getElementById('projectSelectionCount')?.replaceChildren(document.createTextNode(String(count)))
   const compareButton = document.getElementById('selectionCompareBtn')
   if (compareButton) compareButton.disabled = count < 2
+  const shotListButton = document.getElementById('shotListBtn')
+  if (shotListButton) shotListButton.disabled = count === 0
   const deliveryButton = document.getElementById('deliveryBtn')
   if (deliveryButton) deliveryButton.disabled = count === 0
 }
@@ -49,8 +51,17 @@ function renderSelectionTray() {
   items.classList.toggle('hidden', selectionTrayItems.length === 0)
   items.innerHTML = ''
 
+  let previousChapter = ''
   selectionTrayItems.forEach((selection, index) => {
     const photo = selection.photo
+    const chapter = selection.chapter || '未分组'
+    if (chapter !== previousChapter) {
+      const chapterHeading = document.createElement('h3')
+      chapterHeading.className = 'selection-tray-chapter'
+      chapterHeading.textContent = chapter
+      items.appendChild(chapterHeading)
+      previousChapter = chapter
+    }
     const item = document.createElement('article')
     item.className = `selection-tray-item${photo.deleted_at ? ' is-deleted' : ''}`
     item.draggable = true
@@ -66,12 +77,22 @@ function renderSelectionTray() {
         <span>${photo.deleted_at ? '文件在回收站' : `${photo.rating || 0} 星 · ${photo.tags?.length || 0} 标签`}</span>
       </div>
       <button class="selection-tray-remove" type="button" aria-label="移出灵感板"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <div class="selection-tray-meta">
+        <input class="selection-tray-chapter" type="text" maxlength="60" value="${escapeHtml(chapter)}" placeholder="章节，如：人像 · 站姿" aria-label="灵感板章节">
+        <input class="selection-tray-note" type="text" maxlength="240" value="${escapeHtml(selection.note || '')}" placeholder="这张图参考什么？" aria-label="灵感板备注">
+        <button class="selection-tray-save-meta" type="button" title="保存章节和备注" aria-label="保存章节和备注"><i class="fa-solid fa-check" aria-hidden="true"></i></button>
+      </div>
     `
     item.querySelector('.selection-tray-preview')?.addEventListener('click', () => {
       if (typeof openLightbox === 'function') openLightbox(photo, index)
     })
     item.querySelector('.selection-tray-remove')?.addEventListener('click', () => {
       void removeSelectionTray(photo.id)
+    })
+    item.querySelector('.selection-tray-save-meta')?.addEventListener('click', () => {
+      const chapter = item.querySelector('.selection-tray-chapter')?.value || '未分组'
+      const note = item.querySelector('.selection-tray-note')?.value || ''
+      void updateSelectionTrayMeta(selection, chapter, note)
     })
     item.addEventListener('dragstart', event => {
       selectionTrayDragId = photo.id
@@ -114,7 +135,7 @@ async function loadSelectionTray(projectId = currentProjectId) {
       selectionTrayItems = ids
         .map(id => photos.find(photo => photo.id === id))
         .filter(Boolean)
-        .map((photo, position) => ({ id: position + 1, project_id: projectId, photo_id: photo.id, position, created_at: 0, photo }))
+        .map((photo, position) => ({ id: position + 1, project_id: projectId, photo_id: photo.id, position, chapter: '未分组', note: null, created_at: 0, photo }))
     }
     selectionTrayIds = selectionTrayItems.map(selection => selection.photo_id)
   } catch (error) {
@@ -171,6 +192,22 @@ async function toggleSelectionTray(photo) {
   return success
 }
 
+async function updateSelectionTrayMeta(selection, chapter, note) {
+  if (!selection || selectionTrayProjectId === null) return false
+  try {
+    if (window.electronAPI?.selections?.updateMeta) {
+      const result = await window.electronAPI.selections.updateMeta(selectionTrayProjectId, selection.photo_id, chapter, note)
+      if (!result.success) throw new Error(result.error || '保存灵感板备注失败')
+    }
+    await loadSelectionTray(selectionTrayProjectId)
+    showToast('灵感板章节和备注已保存', 'success')
+    return true
+  } catch (error) {
+    showToast(`保存灵感板备注失败：${error instanceof Error ? error.message : '未知错误'}`, 'error')
+    return false
+  }
+}
+
 async function reorderSelectionTray(draggedPhotoId, targetPhotoId) {
   const ids = selectionTrayIds.slice()
   const from = ids.indexOf(draggedPhotoId)
@@ -196,6 +233,9 @@ function bindSelectionTrayEvents() {
   PicEvents?.on('project:selected', project => { void loadSelectionTray(project.id) })
   document.getElementById('selectionCompareBtn')?.addEventListener('click', () => {
     if (typeof openCompareWorkspace === 'function') openCompareWorkspace()
+  })
+  document.getElementById('shotListBtn')?.addEventListener('click', () => {
+    if (typeof openShotListWorkspace === 'function') void openShotListWorkspace()
   })
   document.getElementById('deliveryBtn')?.addEventListener('click', () => {
     if (typeof openDeliveryWorkspace === 'function') openDeliveryWorkspace()

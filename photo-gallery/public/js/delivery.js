@@ -231,6 +231,7 @@ async function openDeliveryWorkspace() {
   document.getElementById('galleryPanel')?.classList.add('hidden')
   document.getElementById('cullingWorkspace')?.classList.add('hidden')
   document.getElementById('compareWorkspace')?.classList.add('hidden')
+  document.getElementById('shotListWorkspace')?.classList.add('hidden')
   document.querySelector('.filter-bar')?.classList.add('hidden')
   document.getElementById('deliveryWorkspace')?.classList.remove('hidden')
   document.getElementById('statusView')?.replaceChildren(document.createTextNode('方案工作区'))
