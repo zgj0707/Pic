@@ -1,5 +1,5 @@
 import { ipcMain, BrowserWindow, DownloadItem, shell } from 'electron'
-import { join } from 'path'
+import { join, resolve } from 'path'
 import { existsSync, mkdirSync, statSync, promises as fsPromises } from 'fs'
 import { dbAdapter, saveDatabase } from '../services/database'
 import { importPhotoToDatabase } from './import'
@@ -44,11 +44,16 @@ export function registerMaterialBrowserIpc(_mainWindow: BrowserWindow | null) {
     async () => {
       const downloadDir = getDownloadDir()
       if (existsSync(downloadDir)) {
+        const referencedPaths = new Set(
+          dbAdapter
+            .query('SELECT filepath FROM photos WHERE filepath IS NOT NULL')
+            .map(row => resolve(String(row.filepath)))
+        )
         const files = await fsPromises.readdir(downloadDir)
         for (const file of files) {
           const filePath = join(downloadDir, file)
           const stat = await fsPromises.stat(filePath)
-          if (stat.isFile()) {
+          if (stat.isFile() && !referencedPaths.has(resolve(filePath))) {
             await fsPromises.unlink(filePath)
           }
         }

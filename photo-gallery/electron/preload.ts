@@ -21,9 +21,9 @@ export interface ElectronAPI {
     updateRating: (id: number, rating: number) => Promise<{ success: boolean }>
     updateTags: (id: number, tags: string[]) => Promise<{ success: boolean }>
     toggleFavorite: (id: number) => Promise<{ success: boolean }>
-    delete: (ids: number[]) => Promise<{ success: boolean; moved?: number; error?: string }>
-    restore: (ids: number[]) => Promise<{ success: boolean; restored?: number; error?: string }>
-    deletePermanently: (ids: number[]) => Promise<{ success: boolean; error?: string }>
+    delete: (ids: number[]) => Promise<{ success: boolean; moved?: number; failed?: number; error?: string }>
+    restore: (ids: number[]) => Promise<{ success: boolean; restored?: number; failed?: number; error?: string }>
+    deletePermanently: (ids: number[]) => Promise<{ success: boolean; deleted?: number; failed?: number; error?: string }>
     getDeleted: (options?: PhotoQueryOptions) => Promise<Photo[]>
     countDeleted: () => Promise<number>
     openInExplorer: (filePath: string) => Promise<{ success: boolean }>

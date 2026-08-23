@@ -21,6 +21,7 @@ export interface Photo {
   exif_json: string | null
   deleted_at?: number | null
   project_id?: number | null
+  original_filepath?: string | null
   tags?: string[]
 }
 
@@ -84,6 +85,7 @@ export interface PhotoFilter {
   albumId?: number
   projectId?: number
   rating?: number
+  unrated?: boolean
   isFavorite?: boolean
   search?: string
   dateFrom?: number

@@ -42,7 +42,9 @@ CREATE TABLE IF NOT EXISTS photos (
   is_favorite INTEGER DEFAULT 0,
   thumbnail_path TEXT,
   exif_json TEXT,
-  deleted_at INTEGER
+  deleted_at INTEGER,
+  project_id INTEGER,
+  original_filepath TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_photos_rating ON photos(rating);
@@ -164,9 +166,28 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
     db = new SQL.Database()
   }
 
-  // 迁移：为旧表添加 deleted_at 列（忽略已存在的错误）。
-  // 必须在 db.exec(SCHEMA) 之前执行，因为 SCHEMA 里包含对 deleted_at 的索引，
-  // 如果旧表没有该列，先执行 SCHEMA 会导致索引创建失败并回滚整个事务。
+  // Ensure the base table exists before running migrations. For an existing
+  // database this is a no-op; the ALTER statements below add missing columns.
+  // Create the full table before running migrations. This is a no-op for existing databases.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS photos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      filename TEXT NOT NULL,
+      filepath TEXT NOT NULL UNIQUE,
+      filesize INTEGER,
+      width INTEGER,
+      height INTEGER,
+      created_at INTEGER,
+      imported_at INTEGER DEFAULT (strftime('%s', 'now')),
+      rating INTEGER DEFAULT 0,
+      is_favorite INTEGER DEFAULT 0,
+      thumbnail_path TEXT,
+      exif_json TEXT,
+      deleted_at INTEGER,
+      project_id INTEGER,
+      original_filepath TEXT
+    )
+  `)
   try {
     db.exec('ALTER TABLE photos ADD COLUMN deleted_at INTEGER')
   } catch (error) {
@@ -186,6 +207,15 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
     }
   }
 
+  // Migration: preserve the original location of files moved to the recycle bin.
+  try {
+    db.exec('ALTER TABLE photos ADD COLUMN original_filepath TEXT')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (!message.includes('duplicate column name')) {
+      console.error('[database] original_filepath migration failed:', error)
+    }
+  }
   db.exec(SCHEMA)
 
   // 单独创建 deleted_at 索引，确保列已存在
@@ -204,15 +234,21 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
 
   // 为没有项目的旧数据创建默认项目并关联
   try {
-    const hasProjects = dbAdapter.get('SELECT COUNT(*) as total FROM projects')
-    if ((hasProjects?.total ?? 0) === 0) {
+    let defaultProject = dbAdapter.get('SELECT id FROM projects ORDER BY id ASC LIMIT 1')
+    if (!defaultProject) {
       const defaultProjectId = dbAdapter.insert('projects', {
         name: '默认项目',
         description: '自动创建的默认项目'
       })
       if (defaultProjectId) {
-        dbAdapter.run('UPDATE photos SET project_id = ? WHERE project_id IS NULL AND deleted_at IS NULL', [defaultProjectId])
+        defaultProject = { id: defaultProjectId }
       }
+    }
+    if (defaultProject?.id) {
+      dbAdapter.run(
+        'UPDATE photos SET project_id = ? WHERE project_id IS NULL AND deleted_at IS NULL',
+        [defaultProject.id]
+      )
     }
   } catch (error) {
     console.error('[database] Default project migration failed:', error)

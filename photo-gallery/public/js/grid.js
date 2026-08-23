@@ -123,6 +123,12 @@ function renderPhotoGrid(resetScroll = false) {
   updatePhotoCount();
   restoreSelectedState();
 
+  if (!gridScrollListenerAdded) {
+    gridScrollContainer = document.getElementById('photoGridContainer');
+    gridScrollContainer.addEventListener('scroll', onGridScroll, { passive: true });
+    gridScrollListenerAdded = true;
+  }
+
   if (currentViewMode === 'compact') {
     photoGrid.classList.add('compact-view');
     photoGrid.style.height = 'auto';
@@ -134,11 +140,6 @@ function renderPhotoGrid(resetScroll = false) {
     photoGrid.classList.remove('compact-view');
     isVirtualScrollEnabled = true;
     computeGridLayout();
-    if (!gridScrollListenerAdded) {
-      gridScrollContainer = document.getElementById('photoGridContainer');
-      gridScrollContainer.addEventListener('scroll', onGridScroll, { passive: true });
-      gridScrollListenerAdded = true;
-    }
     renderVisibleGridItems();
   }
 }
@@ -240,7 +241,10 @@ function onGridScroll() {
     renderVisibleGridItems();
     // 接近当前已加载内容底部时，触发后端分页加载
     if (gridScrollContainer && photoLoadedCount < photoTotalCount) {
-      const nearBottom = gridScrollContainer.scrollTop + gridScrollContainer.clientHeight >= gridTotalHeight - gridScrollContainer.clientHeight * VIRTUAL_BUFFER_RATIO;
+      const contentHeight = currentViewMode === 'compact'
+        ? gridScrollContainer.scrollHeight
+        : gridTotalHeight;
+      const nearBottom = gridScrollContainer.scrollTop + gridScrollContainer.clientHeight >= contentHeight - gridScrollContainer.clientHeight * VIRTUAL_BUFFER_RATIO;
       if (nearBottom) loadMorePhotos();
     }
   });

@@ -79,7 +79,7 @@ function buildBackendPhotoFilter() {
   // 智能筛选 chip
   activeSmartFilters.forEach(key => {
     if (key === 'favorite') filter.isFavorite = true;
-    if (key === 'unrated') filter.rating = 0;
+    if (key === 'unrated') filter.unrated = true;
     if (key === 'rating-5') filter.rating = 5;
     if (key === 'rating-1') filter.rating = 1;
     if (key === 'orientation-landscape') filter.orientation = 'landscape';
@@ -1005,17 +1005,19 @@ document.getElementById('viewToggleBtn').onclick = () => {
 };
 
 // ─── 初始化 ───
-document.addEventListener('DOMContentLoaded', () => {
+async function initializeApp() {
   initContextMenu();
   updateBrowserModeUI();
   initializeWebview();
-  loadProjects();
-  loadCameraLensFilters();
-});
+  await loadVersionInfo();
+  await loadProjects();
+  await loadCameraLensFilters();
 
-updateBrowserModeUI();
-initializeWebview();
-loadVersionInfo();
-loadProjects();
-loadCameraLensFilters();
-loadPhotos();
+  // selectProject() already loads the selected project's photos. Only load
+  // without a project when no project exists yet.
+  if (currentProjectId === null && !isRecycleBinView) {
+    await loadPhotos();
+  }
+}
+
+void initializeApp();

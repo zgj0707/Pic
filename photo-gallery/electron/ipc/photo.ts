@@ -1,6 +1,6 @@
 import { ipcMain, app } from 'electron'
 import { join, basename, dirname } from 'path'
-import { existsSync, mkdirSync, writeFileSync, renameSync, rmSync } from 'fs'
+import { existsSync, mkdirSync, writeFileSync, renameSync, copyFileSync, rmSync } from 'fs'
 import { dbAdapter, saveDatabase } from '../services/database'
 import { getDownloadDir } from '../services/config'
 import { syncTagsToPhotoExif } from '../utils/exifSync'
@@ -29,6 +29,23 @@ function getUniqueRecyclePath(filePath: string): string {
   return join(dir, `${timestamp}_${filename}`)
 }
 
+function moveFile(sourcePath: string, targetPath: string): void {
+  try {
+    renameSync(sourcePath, targetPath)
+    return
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EXDEV') throw error
+  }
+
+  try {
+    copyFileSync(sourcePath, targetPath)
+    rmSync(sourcePath)
+  } catch (error) {
+    try { rmSync(targetPath, { force: true }) } catch { /* best effort cleanup */ }
+    throw error
+  }
+}
+
 function buildPhotoFilterSql(filter: PhotoFilter): { whereClause: string; params: unknown[] } {
   const conditions: string[] = []
   const params: unknown[] = []
@@ -49,6 +66,9 @@ function buildPhotoFilterSql(filter: PhotoFilter): { whereClause: string; params
     params.push(filter.projectId)
   }
 
+  if (filter.unrated) {
+    conditions.push('p.rating = 0')
+  }
   if (filter.rating !== undefined) {
     conditions.push('p.rating >= ?')
     params.push(filter.rating)
@@ -179,45 +199,54 @@ export function registerPhotoIpc(): void {
 
       ensureRecycleBinDir()
       const now = Math.floor(Date.now() / 1000)
+      let moved = 0
+      let failed = 0
 
       for (const photo of photos) {
-        if (!photo.filepath) continue
+        if (!photo.filepath) {
+          failed++
+          continue
+        }
         try {
           const newPath = getUniqueRecyclePath(photo.filepath)
-          renameSync(photo.filepath, newPath)
-          dbAdapter.run('UPDATE photos SET deleted_at = ?, filepath = ? WHERE id = ?', [now, newPath, photo.id])
+          moveFile(photo.filepath, newPath)
+          dbAdapter.run(
+            'UPDATE photos SET deleted_at = ?, filepath = ?, original_filepath = ? WHERE id = ?',
+            [now, newPath, photo.filepath, photo.id]
+          )
+          moved++
           console.log('[recycle] Moved to recycle bin:', newPath)
         } catch (error) {
+          failed++
           console.error('[recycle] Failed to move file:', photo.filepath, error)
         }
       }
 
       saveDatabase()
-      return { success: true, moved: photos.length }
+      return {
+        success: failed === 0,
+        moved,
+        failed,
+        error: failed > 0 ? `${failed} 张照片移动失败` : undefined
+      }
     }
   ))
 
   ipcMain.handle('photos:restore', wrapAsyncHandler('photos:restore',
     async (_event, ids: number[]) => {
       const placeholders = buildInPlaceholders(ids.length)
-      const photos = dbAdapter.query(`SELECT id, filepath FROM photos WHERE id IN (${placeholders}) AND deleted_at IS NOT NULL`, ids)
+      const photos = dbAdapter.query(`SELECT id, filepath, original_filepath FROM photos WHERE id IN (${placeholders}) AND deleted_at IS NOT NULL`, ids)
 
       let restored = 0
+      let failed = 0
       for (const photo of photos) {
         if (!photo.filepath) continue
         try {
           const recyclePath = photo.filepath
-          const originalDir = dirname(recyclePath)
-          // 尝试推断原始文件名：回收站路径格式为 {timestamp}_{filename}
           const recycleFilename = basename(recyclePath)
           const originalFilename = recycleFilename.replace(/^\d+_/, '')
-          let targetPath = join(originalDir, originalFilename)
-
-          // 如果原始目录现在就是回收站目录，说明原目录已被删除或变更，
-          // 则恢复到样片库根目录
-          if (originalDir === getRecycleBinDir()) {
-            targetPath = join(getDownloadDir(), originalFilename)
-          }
+          const originalPath = photo.original_filepath as string | null | undefined
+          let targetPath = originalPath || join(getDownloadDir(), originalFilename)
 
           if (!existsSync(dirname(targetPath))) {
             mkdirSync(dirname(targetPath), { recursive: true })
@@ -230,41 +259,58 @@ export function registerPhotoIpc(): void {
             targetPath = `${base}_${Date.now()}${ext}`
           }
 
-          renameSync(recyclePath, targetPath)
-          dbAdapter.run('UPDATE photos SET deleted_at = NULL, filepath = ? WHERE id = ?', [targetPath, photo.id])
+          moveFile(recyclePath, targetPath)
+          dbAdapter.run('UPDATE photos SET deleted_at = NULL, filepath = ?, original_filepath = NULL WHERE id = ?', [targetPath, photo.id])
           restored++
           console.log('[recycle] Restored:', targetPath)
         } catch (error) {
+          failed++
           console.error('[recycle] Failed to restore photo:', photo.id, error)
         }
       }
 
       saveDatabase()
-      return { success: true, restored }
+      return {
+        success: failed === 0,
+        restored,
+        failed,
+        error: failed > 0 ? `${failed} 张照片恢复失败` : undefined
+      }
     }
   ))
 
   ipcMain.handle('photos:deletePermanently', wrapAsyncHandler('photos:deletePermanently',
     async (_event, ids: number[]) => {
       const placeholders = buildInPlaceholders(ids.length)
-      const photos = dbAdapter.query(`SELECT filepath FROM photos WHERE id IN (${placeholders}) AND deleted_at IS NOT NULL`, ids)
+      const photos = dbAdapter.query(`SELECT id, filepath FROM photos WHERE id IN (${placeholders}) AND deleted_at IS NOT NULL`, ids)
+      const deletedIds: number[] = []
+      let failed = 0
 
       for (const photo of photos) {
-        if (!photo.filepath) continue
         try {
-          if (existsSync(photo.filepath)) {
+          if (photo.filepath && existsSync(photo.filepath)) {
             rmSync(photo.filepath)
             console.log('[recycle] Permanently deleted:', photo.filepath)
           }
+          deletedIds.push(photo.id as number)
         } catch (error) {
+          failed++
           console.error('[recycle] Failed to delete file permanently:', photo.filepath, error)
         }
       }
 
-      dbAdapter.run(`DELETE FROM photo_tags WHERE photo_id IN (${placeholders})`, ids)
-      dbAdapter.run(`DELETE FROM photos WHERE id IN (${placeholders})`, ids)
+      if (deletedIds.length > 0) {
+        const deletedPlaceholders = buildInPlaceholders(deletedIds.length)
+        dbAdapter.run(`DELETE FROM photo_tags WHERE photo_id IN (${deletedPlaceholders})`, deletedIds)
+        dbAdapter.run(`DELETE FROM photos WHERE id IN (${deletedPlaceholders})`, deletedIds)
+      }
       saveDatabase()
-      return { success: true }
+      return {
+        success: failed === 0,
+        deleted: deletedIds.length,
+        failed,
+        error: failed > 0 ? `${failed} 张照片删除失败` : undefined
+      }
     }
   ))
 

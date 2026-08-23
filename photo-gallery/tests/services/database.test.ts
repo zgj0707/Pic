@@ -13,6 +13,15 @@ describe('Database Service', () => {
     await initializeDatabase(tempDir)
   })
 
+  it('should create the columns required by project and recycle-bin features', () => {
+    const columns = dbAdapter.query('PRAGMA table_info(photos)')
+    const columnNames = columns.map(column => column.name)
+
+    expect(columnNames).toContain('deleted_at')
+    expect(columnNames).toContain('project_id')
+    expect(columnNames).toContain('original_filepath')
+  })
+
   afterAll(() => {
     closeDatabase()
     rmSync(tempDir, { recursive: true, force: true })
