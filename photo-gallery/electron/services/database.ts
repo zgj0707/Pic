@@ -84,6 +84,15 @@ CREATE TABLE IF NOT EXISTS project_shots (
 );
 CREATE INDEX IF NOT EXISTS idx_project_shots_project_position ON project_shots(project_id, position);
 CREATE INDEX IF NOT EXISTS idx_project_shots_photo ON project_shots(photo_id);
+CREATE TABLE IF NOT EXISTS project_exports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL,
+  kind TEXT NOT NULL,
+  target_path TEXT NOT NULL,
+  item_count INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER DEFAULT (strftime('%s', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_project_exports_project_created ON project_exports(project_id, created_at);
 
 
 CREATE TABLE IF NOT EXISTS albums (
@@ -286,6 +295,18 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
   dbAdapter.run("UPDATE photos SET source_type = 'local' WHERE source_type IS NULL OR source_type = ''")
 
   db.exec(SCHEMA)
+  // Migration: keep a lightweight audit trail for planning exports.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS project_exports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      kind TEXT NOT NULL,
+      target_path TEXT NOT NULL,
+      item_count INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER DEFAULT (strftime('%s', 'now'))
+    )
+  `)
+  db.exec('CREATE INDEX IF NOT EXISTS idx_project_exports_project_created ON project_exports(project_id, created_at)')
   // Migration: add chapter and note fields to legacy inspiration-board entries.
   const selectionColumns = dbAdapter.query('PRAGMA table_info(project_selections)')
   if (!selectionColumns.some(column => column.name === 'chapter')) {

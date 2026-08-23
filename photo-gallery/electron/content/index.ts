@@ -45,6 +45,7 @@ import { registerDeleteIpc } from '../ipc/delete'
 import { registerProjectIpc } from '../ipc/project'
 import { registerSelectionIpc } from '../ipc/selection'
 import { registerProjectShotsIpc } from '../ipc/projectShots'
+import { registerPlanningExportsIpc } from '../ipc/planningExports'
 import { registerDeliveryIpc } from '../ipc/delivery'
 import { registerMaterialBrowserIpc, setupDownloadHandler } from '../ipc/materialBrowser'
 
@@ -55,11 +56,11 @@ import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
 import type { ChangelogEntry } from '../types'
 
 export const name = 'pic-content'
-export const version = '3.3.0'
+export const version = '3.4.0'
 
 // Content module capabilities (what the shell can rely on).
 export const capabilities = {
-  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'projects', 'selection', 'projectShots', 'delivery'],
+  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'projects', 'selection', 'projectShots', 'planningExports', 'delivery'],
   services: ['cache', 'changelog', 'window'],
   db: true
 }
@@ -126,6 +127,7 @@ export function registerIpc(c: ContentContext): void {
   registerProjectIpc()
   registerSelectionIpc()
   registerProjectShotsIpc()
+  registerPlanningExportsIpc()
   registerDeliveryIpc()
   registerMaterialBrowserIpc(c.getMainWindow())
 

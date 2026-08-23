@@ -193,8 +193,8 @@
 
         <section id="shotListWorkspace" class="shot-list-workspace hidden" aria-label="拍摄清单工作区">
           <header class="shot-list-header">
-            <div><span class="section-eyebrow">现场执行</span><h2>拍摄清单</h2><p id="shotListSummary" class="shot-list-summary">从灵感板生成有顺序的拍摄项。</p></div>
-            <div class="shot-list-header-actions"><button id="generateShotListBtn" class="primary-action" type="button"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i><span>从灵感板生成</span></button><button id="shotListExitBtn" class="secondary-action" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>返回图库</span></button></div>
+            <div><span class="section-eyebrow">现场执行</span><h2>拍摄清单</h2><p id="shotListSummary" class="shot-list-summary">从灵感板生成有顺序的拍摄项。</p><p id="shotListExportStatus" class="shot-list-export-status" role="status" aria-live="polite">导出前会检查参考图可用性。</p></div>
+            <div class="shot-list-header-actions"><button id="generateShotListBtn" class="primary-action" type="button"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i><span>从灵感板生成</span></button><button id="shotListPdfBtn" class="secondary-action" type="button"><i class="fa-regular fa-file-pdf" aria-hidden="true"></i><span>导出 Shot List</span></button><button id="shotListExitBtn" class="secondary-action" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>返回图库</span></button></div>
           </header>
           <div id="shotListItems" class="shot-list-items"></div>
         </section>
@@ -588,6 +588,7 @@
   <script src="js/shotList.js"></script>
   <script src="js/culling.js"></script>
   <script src="js/delivery.js"></script>
+  <script src="js/planningExport.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

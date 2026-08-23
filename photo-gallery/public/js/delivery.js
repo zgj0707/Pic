@@ -129,6 +129,7 @@ async function exportDelivery() {
     const result = await window.electronAPI.delivery.export(currentProjectId, selectionTrayIds.slice(), deliveryTargetDir, folderName, prefix)
     deliveryLastResult = result
     deliveryFolderPath = result.folderPath || ''
+    if (result.success) await recordPlanningExport('reference-package', result.folderPath || folderName, result.copied || 0)
     renderDeliveryWorkspace()
     deliveryShowResult(result)
     if (result.success) showToast('方案已生成：已复制 ' + result.copied + ' 个文件', 'success')
@@ -163,6 +164,7 @@ function deliveryImageData(filePath) {
 }
 
 async function generateDeliveryContactSheet() {
+  if (typeof generatePlanningMoodboard === 'function') return generatePlanningMoodboard()
   const items = deliveryItems()
   if (!items.length) {
     showToast('请先加入参考样片', 'warning')

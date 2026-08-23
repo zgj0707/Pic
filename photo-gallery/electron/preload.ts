@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
-  Photo, PhotoQueryOptions, PhotoFilter, ReviewState, Tag, ExifData, Project, ProjectSelection, ProjectShot,
+  Photo, PhotoQueryOptions, PhotoFilter, ReviewState, Tag, ExifData, Project, ProjectSelection, ProjectShot, ProjectExport,
   ImportResult, ImportProgress,
   CacheStats, CacheCleanResult, IpcResponse, ChangelogEntry
 } from './types'
@@ -52,6 +52,10 @@ export interface ElectronAPI {
     reorder: (projectId: number, shotIds: number[]) => Promise<{ success: boolean; shots?: ProjectShot[]; error?: string }>
     remove: (projectId: number, shotId: number) => Promise<{ success: boolean; error?: string }>
   }
+  planningExports: {
+    getAll: (projectId: number) => Promise<ProjectExport[]>
+    record: (projectId: number, kind: ProjectExport['kind'], targetPath: string, itemCount: number) => Promise<{ success: boolean; export?: ProjectExport; error?: string }>
+  },
   delivery: {
     export: (projectId: number, photoIds: number[], targetDir: string, folderName: string, prefix: string) => Promise<{ success: boolean; folderPath?: string; copied: number; failed: number; results: { photoId: number; filename: string; targetPath: string; success: boolean; error?: string }[]; error?: string }>
     openFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>
@@ -165,6 +169,10 @@ const api: ElectronAPI = {
     update: (projectId: number, shotId: number, input: unknown) => ipcRenderer.invoke('shots:update', projectId, shotId, input),
     reorder: (projectId: number, shotIds: number[]) => ipcRenderer.invoke('shots:reorder', projectId, shotIds),
     remove: (projectId: number, shotId: number) => ipcRenderer.invoke('shots:remove', projectId, shotId)
+  },
+  planningExports: {
+    getAll: (projectId: number) => ipcRenderer.invoke('planningExports:getAll', projectId),
+    record: (projectId: number, kind: ProjectExport['kind'], targetPath: string, itemCount: number) => ipcRenderer.invoke('planningExports:record', projectId, kind, targetPath, itemCount)
   },
   delivery: {
     export: (projectId: number, photoIds: number[], targetDir: string, folderName: string, prefix: string) => ipcRenderer.invoke('delivery:export', projectId, photoIds, targetDir, folderName, prefix),

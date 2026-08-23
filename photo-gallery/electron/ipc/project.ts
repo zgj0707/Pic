@@ -4,6 +4,7 @@ import { wrapHandler } from '../utils/ipcHandler'
 import type { Project } from '../types'
 import { moveProjectSelections } from '../services/projectSelections'
 import { moveProjectShots } from '../services/projectShots'
+import { moveProjectExports, removeProjectExports } from '../services/planningExports'
 
 export function registerProjectIpc(): void {
   ipcMain.handle('projects:getAll', wrapHandler('projects:getAll', () => {
@@ -53,10 +54,12 @@ export function registerProjectIpc(): void {
     if (defaultProject) {
       moveProjectSelections(id, Number(defaultProject.id))
       moveProjectShots(id, Number(defaultProject.id))
+      moveProjectExports(id, Number(defaultProject.id))
       dbAdapter.run('UPDATE photos SET project_id = ? WHERE project_id = ?', [defaultProject.id, id])
     } else {
       dbAdapter.run('DELETE FROM project_selections WHERE project_id = ?', [id])
       dbAdapter.run('DELETE FROM project_shots WHERE project_id = ?', [id])
+      removeProjectExports(id)
     }
     dbAdapter.run('DELETE FROM projects WHERE id = ?', [id])
     return { success: true }

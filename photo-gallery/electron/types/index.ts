@@ -60,6 +60,14 @@ export interface ProjectShot {
   photo: Photo
 }
 
+export interface ProjectExport {
+  id: number
+  project_id: number
+  kind: 'moodboard' | 'shot-list' | 'reference-package'
+  target_path: string
+  item_count: number
+  created_at: number
+}
 export interface Project {
   id: number
   name: string

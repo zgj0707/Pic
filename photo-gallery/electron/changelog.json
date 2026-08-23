@@ -1,5 +1,31 @@
 [
   {
+    "version": "3.4.0",
+    "date": "2026-08-23",
+    "title": "拍摄前样片策划与方案导出",
+    "categories": [
+      {
+        "name": "拍摄前方案",
+        "icon": "fa-clipboard-list",
+        "color": "accent",
+        "items": [
+          "灵感板支持章节、逐图备注和来源信息，并可生成独立 Shot List",
+          "新增 Moodboard PDF 和 Shot List PDF，保留项目简报、顺序和现场说明",
+          "新增方案导出记录，缺失文件和回收站参考样片会明确提示"
+        ]
+      },
+      {
+        "name": "质量与发布",
+        "icon": "fa-rocket",
+        "color": "green",
+        "items": [
+          "保留分页、虚拟滚动、键盘操作和 reduced-motion 支持",
+          "发布 Pic 3.4.0 portable"
+        ]
+      }
+    ]
+  },
+  {
     "version": "3.3.0",
     "date": "2026-08-23",
     "title": "摄影工作流与交付体验优化",
@@ -10,8 +36,8 @@
         "color": "accent",
         "items": [
           "统一项目工作台的视觉层级、焦点态和无障碍操作",
-          "精选集支持按顺序复制、重命名并生成客户交付文件夹",
-          "新增联系表 PDF、交付结果和逐文件失败反馈"
+          "灵感板支持按顺序复制、重命名并生成参考副本包",
+          "新增 Moodboard PDF、方案结果和逐文件失败反馈"
         ]
       },
       {

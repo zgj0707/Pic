@@ -21,6 +21,7 @@ function renderShotList() {
   if (summary) summary.textContent = shotListItems.length > 0
     ? `${shotListItems.length} 个拍摄项 · 可拖动调整现场顺序`
     : '从灵感板生成有顺序的拍摄项。'
+  window.updateShotListExportStatus?.()
   if (shotListItems.length === 0) {
     container.innerHTML = '<div class="shot-list-empty"><i class="fa-solid fa-list-check" aria-hidden="true"></i><p>还没有拍摄清单</p><span>先在灵感板中整理参考样片，再生成拍摄项。</span></div>'
     return
