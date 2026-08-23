@@ -94,7 +94,7 @@
           <div class="workflow-stage"><span class="stage-index">02</span><span>全部照片</span></div>
           <button id="cullingModeBtn" class="workflow-stage stage-action" type="button"><span class="stage-index">03</span><span>初筛</span></button>
           <div class="workflow-stage"><span class="stage-index">04</span><span>精选集</span></div>
-          <div class="workflow-stage"><span class="stage-index">05</span><span>交付</span></div>
+          <button id="deliveryModeBtn" class="workflow-stage stage-action" type="button"><span class="stage-index">05</span><span>交付</span></button>
           <span class="workflow-stage-note">当前阶段：收集素材</span>
         </nav>
 
@@ -188,6 +188,36 @@
           <div id="compareGrid" class="compare-grid"></div>
         </section>
 
+        <section id="deliveryWorkspace" class="delivery-workspace hidden" aria-label="精选照片交付工作区">
+          <header class="delivery-header">
+            <div><span class="section-eyebrow">交付阶段</span><h2>制作交付包</h2><p id="deliverySummary" class="delivery-summary">选择精选照片后，预览并复制交付文件。</p></div>
+            <button id="deliveryExitBtn" class="secondary-action" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>返回图库</span></button>
+          </header>
+          <div class="delivery-config-grid">
+            <label class="delivery-field delivery-field-wide">目标目录
+              <div class="delivery-directory-control"><input id="deliveryTargetDir" type="text" readonly placeholder="请选择目标目录" aria-describedby="deliveryTargetHint"><button id="deliveryChooseDirBtn" class="secondary-action" type="button">选择目录</button></div>
+              <span id="deliveryTargetHint" class="delivery-field-hint">交付文件夹会创建在此目录中。</span>
+            </label>
+            <label class="delivery-field">交付文件夹
+              <input id="deliveryFolderName" type="text" maxlength="80" autocomplete="off">
+            </label>
+            <label class="delivery-field">文件名前缀
+              <input id="deliveryPrefix" type="text" maxlength="24" autocomplete="off">
+            </label>
+          </div>
+          <div id="deliveryWarnings" class="delivery-warnings" role="status" aria-live="polite"></div>
+          <div class="delivery-preview-panel">
+            <div class="delivery-preview-heading"><div><span class="section-eyebrow">顺序预览</span><h3>交付文件清单</h3></div><span id="deliveryPreviewCount" class="delivery-preview-count"></span></div>
+            <div id="deliveryPreviewList" class="delivery-preview-list"></div>
+          </div>
+          <div class="delivery-actions" role="group" aria-label="交付操作">
+            <button id="deliveryExportBtn" class="primary-action" type="button" disabled><i class="fa-solid fa-copy" aria-hidden="true"></i><span>复制并交付</span></button>
+            <button id="deliveryContactSheetBtn" class="secondary-action" type="button"><i class="fa-regular fa-file-pdf" aria-hidden="true"></i><span>生成联系表 PDF</span></button>
+            <button id="deliveryOpenFolderBtn" class="secondary-action" type="button" disabled><i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>打开交付文件夹</span></button>
+          </div>
+          <div id="deliveryResult" class="delivery-result hidden" role="status" aria-live="polite"></div>
+        </section>
+
         <footer class="status-bar">
           <div class="status-context">
             <button id="statusProject" type="button"><i class="fa-solid fa-folder" aria-hidden="true"></i><span>未选择项目</span></button>
@@ -267,7 +297,7 @@
       <aside id="selectionTray" class="selection-tray" aria-label="精选篮">
         <div class="selection-tray-header">
           <div><span class="section-eyebrow">交付候选</span><h2>精选篮</h2></div>
-          <div class="selection-tray-header-actions"><span id="selectionTrayCount" class="selection-tray-count">0</span><button id="selectionCompareBtn" class="selection-compare-btn" type="button" disabled><i class="fa-solid fa-columns" aria-hidden="true"></i><span>对比</span></button></div>
+          <div class="selection-tray-header-actions"><span id="selectionTrayCount" class="selection-tray-count">0</span><button id="selectionCompareBtn" class="selection-compare-btn" type="button" disabled><i class="fa-solid fa-columns" aria-hidden="true"></i><span>对比</span></button><button id="deliveryBtn" class="selection-compare-btn" type="button" disabled><i class="fa-solid fa-paper-plane" aria-hidden="true"></i><span>交付</span></button></div>
         </div>
         <div id="selectionTrayEmpty" class="selection-tray-empty">
           <div class="selection-tray-icon"><i class="fa-solid fa-basket-shopping" aria-hidden="true"></i></div>
@@ -538,6 +568,7 @@
   <script src="js/selectionTray.js"></script>
   <script src="js/compare.js"></script>
   <script src="js/culling.js"></script>
+  <script src="js/delivery.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

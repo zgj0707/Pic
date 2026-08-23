@@ -23,6 +23,7 @@ export interface Photo {
   project_id?: number | null
   original_filepath?: string | null
   review_state: ReviewState
+  delivered_at?: number | null
   tags?: string[]
 }
 

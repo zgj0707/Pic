@@ -44,6 +44,7 @@ import { registerExifToolIpc } from '../ipc/exifTool'
 import { registerDeleteIpc } from '../ipc/delete'
 import { registerProjectIpc } from '../ipc/project'
 import { registerSelectionIpc } from '../ipc/selection'
+import { registerDeliveryIpc } from '../ipc/delivery'
 import { registerMaterialBrowserIpc, setupDownloadHandler } from '../ipc/materialBrowser'
 
 // ─── Services (cache manager, thumbnail, exif sync) ───
@@ -57,7 +58,7 @@ export const version = '3.2.4'
 
 // Content module capabilities (what the shell can rely on).
 export const capabilities = {
-  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'projects'],
+  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'projects', 'selection', 'delivery'],
   services: ['cache', 'changelog', 'window'],
   db: true
 }
@@ -123,6 +124,7 @@ export function registerIpc(c: ContentContext): void {
   registerDeleteIpc()
   registerProjectIpc()
   registerSelectionIpc()
+  registerDeliveryIpc()
   registerMaterialBrowserIpc(c.getMainWindow())
 
   // ── Generic app/dialog/window/path/shell/cache handlers (moved from main.ts) ──

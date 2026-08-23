@@ -45,7 +45,8 @@ CREATE TABLE IF NOT EXISTS photos (
   deleted_at INTEGER,
   project_id INTEGER,
   original_filepath TEXT,
-  review_state TEXT NOT NULL DEFAULT 'unreviewed'
+  review_state TEXT NOT NULL DEFAULT 'unreviewed',
+  delivered_at INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS idx_photos_rating ON photos(rating);
@@ -198,7 +199,8 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
       deleted_at INTEGER,
       project_id INTEGER,
       original_filepath TEXT,
-      review_state TEXT NOT NULL DEFAULT 'unreviewed'
+      review_state TEXT NOT NULL DEFAULT 'unreviewed',
+      delivered_at INTEGER
     )
   `)
   try {
@@ -234,6 +236,12 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
   const photoColumns = dbAdapter.query('PRAGMA table_info(photos)')
   if (!photoColumns.some(column => column.name === 'review_state')) {
     db.exec("ALTER TABLE photos ADD COLUMN review_state TEXT NOT NULL DEFAULT 'unreviewed'")
+  }
+
+  // Migration: add delivery status without assuming a specific legacy schema.
+  const deliveryColumns = dbAdapter.query('PRAGMA table_info(photos)')
+  if (!deliveryColumns.some(column => column.name === 'delivered_at')) {
+    db.exec('ALTER TABLE photos ADD COLUMN delivered_at INTEGER')
   }
 
   db.exec(SCHEMA)

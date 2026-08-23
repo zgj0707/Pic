@@ -42,6 +42,10 @@ export interface ElectronAPI {
     remove: (projectId: number, photoId: number) => Promise<{ success: boolean; error?: string }>
     reorder: (projectId: number, photoIds: number[]) => Promise<{ success: boolean; selections?: ProjectSelection[]; error?: string }>
   },
+  delivery: {
+    export: (projectId: number, photoIds: number[], targetDir: string, folderName: string, prefix: string) => Promise<{ success: boolean; folderPath?: string; copied: number; failed: number; results: { photoId: number; filename: string; targetPath: string; success: boolean; error?: string }[]; error?: string }>
+    openFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>
+  },
   import: {
     fromDirectory: (dirPath: string, projectId?: number | null) => Promise<ImportResult>
     fromFiles: (filePaths: string[], projectId?: number | null) => Promise<ImportResult>
@@ -140,6 +144,10 @@ const api: ElectronAPI = {
     add: (projectId: number, photoId: number) => ipcRenderer.invoke('selections:add', projectId, photoId),
     remove: (projectId: number, photoId: number) => ipcRenderer.invoke('selections:remove', projectId, photoId),
     reorder: (projectId: number, photoIds: number[]) => ipcRenderer.invoke('selections:reorder', projectId, photoIds)
+  },
+  delivery: {
+    export: (projectId: number, photoIds: number[], targetDir: string, folderName: string, prefix: string) => ipcRenderer.invoke('delivery:export', projectId, photoIds, targetDir, folderName, prefix),
+    openFolder: (folderPath: string) => ipcRenderer.invoke('delivery:openFolder', folderPath)
   },
   import: {
     fromDirectory: (dirPath: string, projectId?: number | null) =>
