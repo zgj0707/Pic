@@ -81,10 +81,10 @@ async function handleAddTag() {
   ).join('') || '<span class="text-textDisabled text-sm">没有可用标签</span>';
 
   usedTags.querySelectorAll('[data-tag]').forEach(el => {
-    el.onclick = () => {
+    el.addEventListener('click', () => {
       const tag = el.dataset.tag;
       document.getElementById('tagInputField').value = tag;
-    };
+    });
   });
 
   document.getElementById('tagInputField').value = '';
@@ -167,11 +167,11 @@ function renderRemoveTags() {
   ).join('');
 
   container.querySelectorAll('.remove-tag-btn').forEach(btn => {
-    btn.onclick = (e) => {
+    btn.addEventListener('click', (e) => {
       const idx = parseInt(e.currentTarget.closest('[data-idx]').dataset.idx);
       removeTags.splice(idx, 1);
       renderRemoveTags();
-    };
+    });
   });
 
   updateApplyButtons();

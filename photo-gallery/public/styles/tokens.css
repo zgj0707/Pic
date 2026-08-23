@@ -1,0 +1,20 @@
+:root {
+      --sidebar-width: 280px;
+      --sidebar-min-width: 200px;
+      --sidebar-max-width: 400px;
+      --accent: #c9955a;
+      --accent-glow: rgba(201, 149, 90, 0.3);
+      --bg-deep: #0a0a0a;
+      --bg-surface: #141414;
+      --bg-elevated: #1a1a1a;
+      --border-subtle: #1e1e1e;
+      --text-warm: #f0ede8;
+      --text-muted: #9a9791;
+    }
+    
+    * { transform: translateZ(0); backface-visibility: hidden; }
+    
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+

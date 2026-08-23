@@ -9,7 +9,7 @@ function openLightbox(photo, index) {
   document.getElementById('lightboxInfo').innerHTML = `<span class="text-blue-400 cursor-pointer hover:text-blue-300">${escapeHtml(filePath)}</span>`;
   const pathSpan = document.querySelector('#lightboxInfo span');
   if (pathSpan) {
-    pathSpan.onclick = () => {
+    pathSpan.addEventListener('click', () => {
       if (window.electronAPI?.photos?.openInExplorer) {
         window.electronAPI.photos.openInExplorer(filePath).then(result => {
           if (!result.success) {
@@ -21,7 +21,7 @@ function openLightbox(photo, index) {
       } else {
         showToast('功能不可用', 'error');
       }
-    };
+    });
   }
   updateLightboxRating(photo.rating || 0);
   renderLightboxTags(photo.tags || []);
@@ -66,12 +66,12 @@ function renderLightboxTags(tags) {
   ).join('');
 
   container.querySelectorAll('.tag-delete-btn').forEach(btn => {
-    btn.onclick = (e) => {
+    btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const tagBadge = e.target.closest('.lightbox-tag');
       const tagName = tagBadge.textContent.trim();
       removeLightboxTag(tagName);
-    };
+    });
   });
 }
 
