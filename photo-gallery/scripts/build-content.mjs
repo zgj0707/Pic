@@ -101,7 +101,7 @@ const manifest = {
   renderer: 'renderer/index.html',
   requiresShell: '>=2.4.0',
   capabilities: {
-    ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser'],
+    ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'projects'],
     services: ['cache', 'changelog', 'window'],
     db: true
   },

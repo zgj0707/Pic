@@ -20,14 +20,20 @@ export function registerProjectIpc(): void {
   }))
 
   ipcMain.handle('projects:create', wrapHandler('projects:create', (_event, name: string, description?: string) => {
+    const normalizedName = typeof name === 'string' ? name.trim() : ''
+    const normalizedDescription = typeof description === 'string' ? description.trim() : ''
+    if (!normalizedName) {
+      return { success: false, error: '项目名称不能为空' }
+    }
+
     const now = Math.floor(Date.now() / 1000)
     const id = dbAdapter.insert('projects', {
-      name: name.trim(),
-      description: description?.trim() || null,
+      name: normalizedName,
+      description: normalizedDescription || null,
       created_at: now,
       updated_at: now
     })
-    return id ? { success: true, id } : { success: false, error: '创建失败' }
+    return id ? { success: true, id } : { success: false, error: '创建失败，请检查数据库状态' }
   }))
 
   ipcMain.handle('projects:update', wrapHandler('projects:update', (_event, id: number, name: string, description?: string) => {

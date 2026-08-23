@@ -653,19 +653,19 @@
           <i class="fa-solid fa-file-pdf"></i>
         </button>
         <button id="copyToDesktopBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary disabled:opacity-50 disabled:cursor-not-allowed" title="复制选中到桌面" disabled>
-          <i class="fa-solid fa-folder-plus"></i>
+          <i class="fa-solid fa-copy"></i>
         </button>
         <button id="viewToggleBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary" title="切换到紧凑视图">
           <i class="fa-solid fa-th-large" id="viewToggleIcon"></i>
         </button>
         <button id="settingsBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary" title="设置">
-          <i class="fa-solid fa-cog"></i>
+          <i class="fa-solid fa-gear"></i>
         </button>
         <button id="metadataPanelBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary" title="批量操作">
-          <i class="fa-solid fa-sliders-h"></i>
+          <i class="fa-solid fa-list-check"></i>
         </button>
         <button id="aboutBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary" title="关于">
-          <i class="fa-solid fa-info-circle"></i>
+          <i class="fa-solid fa-circle-info"></i>
         </button>
       </div>
     </header>
@@ -676,7 +676,7 @@
         <div class="project-sidebar-header">
           <h3 class="text-sm font-medium text-textPrimary">项目</h3>
           <button id="createProjectBtn" class="create-project-btn" title="新建项目">
-            <i class="fa-solid fa-plus text-xs"></i>
+            <i class="fa-solid fa-folder-plus text-xs"></i>
           </button>
         </div>
         <div id="projectList" class="project-list custom-scrollbar">
@@ -744,9 +744,9 @@
             <button id="statusBackToGallery" class="hidden hover:text-textPrimary text-accent"><i class="fa-solid fa-arrow-left mr-1"></i>回到样片库</button>
           </div>
           <div class="flex items-center gap-4">
-            <button id="statusBrowserBtn" class="hover:text-textPrimary"><i class="fa-solid fa-globe mr-1"></i>素材浏览器</button>
+            <button id="statusBrowserBtn" class="hover:text-textPrimary"><i class="fa-solid fa-photo-film mr-1"></i>素材浏览器</button>
             <button id="statusRecycleBtn" class="hover:text-textPrimary"><i class="fa-solid fa-trash-can mr-1"></i>回收站 <span id="recycleCount"></span></button>
-            <button id="statusSettingsBtn" class="hover:text-textPrimary"><i class="fa-solid fa-cog mr-1"></i>设置</button>
+            <button id="statusSettingsBtn" class="hover:text-textPrimary"><i class="fa-solid fa-gear mr-1"></i>设置</button>
           </div>
         </footer>
       </div>
@@ -757,7 +757,7 @@
         <div class="panel-content custom-scrollbar">
           <div class="flex items-center justify-between mb-4">
             <h3 id="metadataPanelTitle" class="text-lg font-semibold">批量操作</h3>
-            <button id="closeMetadataPanel" class="p-1 hover:bg-white/10 rounded"><i class="fa-solid fa-times"></i></button>
+            <button id="closeMetadataPanel" class="p-1 hover:bg-white/10 rounded"><i class="fa-solid fa-xmark"></i></button>
           </div>
           <div id="selectedCount" class="text-textSecondary text-sm mb-4">已选择 0 张照片</div>
           
@@ -838,7 +838,7 @@
         <input id="browserUrl" type="text" value="https://www.xiaohongshu.com" 
           class="flex-1 h-8 bg-bgSecondary border border-borderColor rounded px-3 text-sm text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent">
         <button id="browserGo" class="px-3 py-1.5 bg-accent text-white text-sm rounded hover:bg-accent/80">
-          <i class="fa-solid fa-paper-plane"></i>
+          <i class="fa-solid fa-magnifying-glass"></i>
         </button>
       </div>
       <div class="flex items-center space-x-2 ml-4">
@@ -854,8 +854,11 @@
         <button id="clearDownloadCache" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="清空下载缓存">
           <i class="fa-solid fa-trash"></i>
         </button>
+                <button id="backToGalleryFromBrowser" class="p-1.5 hover:bg-bgSecondary rounded text-accent" title="回到样片库">
+          <i class="fa-solid fa-images"></i>
+        </button>
         <button id="closeMaterialBrowserBtn" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="关闭">
-          <i class="fa-solid fa-times"></i>
+          <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
     </div>
@@ -874,7 +877,7 @@
   
   <div id="lightbox" class="lightbox-viewer hidden">
     <button id="closeLightbox" class="absolute top-4 right-4 p-2 hover:bg-white/10 rounded text-white text-2xl z-10">
-      <i class="fa-solid fa-times"></i>
+      <i class="fa-solid fa-xmark"></i>
     </button>
     <button id="prevPhoto" class="absolute left-4 top-1/2 -translate-y-1/2 p-3 hover:bg-white/10 rounded text-white text-2xl z-10">
       <i class="fa-solid fa-chevron-left"></i>
@@ -924,7 +927,10 @@
     <div class="modal-content max-w-lg">
       <div class="flex items-center justify-between mb-6">
         <h3 class="text-lg font-semibold">设置</h3>
-        <button id="closeSettingsBtn" class="p-1 hover:bg-white/10 rounded"><i class="fa-solid fa-times"></i></button>
+        <div class="flex items-center gap-2">
+          <button id="backToGalleryFromSettings" class="p-1 hover:bg-white/10 rounded text-accent" title="回到样片库"><i class="fa-solid fa-images"></i></button>
+          <button id="closeSettingsBtn" class="p-1 hover:bg-white/10 rounded"><i class="fa-solid fa-xmark"></i></button>
+        </div>
       </div>
       <div class="bg-bgPrimary rounded-lg p-4 border border-borderColor mb-4">
         <h4 class="text-sm font-medium mb-3">缩略图缓存管理</h4>
@@ -933,7 +939,7 @@
           <div class="flex justify-between text-sm"><span class="text-textSecondary">缓存文件数:</span><span id="cacheFileCount" class="text-textPrimary">-</span></div>
         </div>
         <button id="cleanOldCacheBtn" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 mb-2"><i class="fa-solid fa-clock-rotate-left mr-2"></i>清理30天前的缓存</button>
-        <button id="clearAllCacheBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700"><i class="fa-solid fa-trash-alt mr-2"></i>清空全部缩略图缓存</button>
+        <button id="clearAllCacheBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700"><i class="fa-solid fa-broom mr-2"></i>清空全部缩略图缓存</button>
       </div>
       
       <div class="bg-bgPrimary rounded-lg p-4 border border-borderColor">
@@ -948,7 +954,7 @@
             <i class="fa-solid fa-external-link"></i>点击打开下载目录
           </a>
         </div>
-        <button id="clearDownloadCacheBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700"><i class="fa-solid fa-trash-alt mr-2"></i>清空下载缓存</button>
+        <button id="clearDownloadCacheBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700"><i class="fa-solid fa-broom mr-2"></i>清空下载缓存</button>
       </div>
     </div>
   </div>

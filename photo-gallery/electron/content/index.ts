@@ -52,7 +52,7 @@ import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
 import type { ChangelogEntry } from '../types'
 
 export const name = 'pic-content'
-export const version = '3.2.2'
+export const version = '3.2.4'
 
 // Content module capabilities (what the shell can rely on).
 export const capabilities = {

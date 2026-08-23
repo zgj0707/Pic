@@ -218,6 +218,41 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
   }
   db.exec(SCHEMA)
 
+  // Migration: early project tables used client_id/date/album_id and did not
+  // have the timestamps required by the current create/update handlers.
+  // CREATE TABLE IF NOT EXISTS does not add columns to an existing table, so
+  // older installations would fail every projects:create call with
+  // "no such column: created_at".
+  for (const column of ['created_at', 'updated_at']) {
+    try {
+      db.exec(`ALTER TABLE projects ADD COLUMN ${column} INTEGER`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (!message.includes('duplicate column name')) {
+        console.error(`[database] projects.${column} migration failed:`, error)
+      }
+    }
+  }
+
+  try {
+    const projectColumns = dbAdapter.query('PRAGMA table_info(projects)')
+    const hasLegacyDate = projectColumns.some(column => column.name === 'date')
+    const now = Math.floor(Date.now() / 1000)
+    if (hasLegacyDate) {
+      dbAdapter.run(
+        'UPDATE projects SET created_at = COALESCE(created_at, date, ?), updated_at = COALESCE(updated_at, date, created_at, ?)',
+        [now, now]
+      )
+    } else {
+      dbAdapter.run(
+        'UPDATE projects SET created_at = COALESCE(created_at, ?), updated_at = COALESCE(updated_at, created_at, ?)',
+        [now, now]
+      )
+    }
+  } catch (error) {
+    console.error('[database] Project timestamp backfill failed:', error)
+  }
+
   // 单独创建 deleted_at 索引，确保列已存在
   try {
     db.exec('CREATE INDEX IF NOT EXISTS idx_photos_deleted ON photos(deleted_at)')

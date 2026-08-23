@@ -162,7 +162,7 @@ async function loadMorePhotos() {
 }
 
 // ─── 项目相关函数 ───
-async function loadProjects() {
+async function loadProjects(preferredProjectId = null) {
   if (!window.electronAPI?.projects?.getAll) return;
   try {
     projects = await window.electronAPI.projects.getAll();
@@ -170,7 +170,8 @@ async function loadProjects() {
 
     const savedProjectId = localStorage.getItem('currentProjectId');
     const savedId = savedProjectId ? parseInt(savedProjectId, 10) : null;
-    const targetProject = projects.find(p => p.id === savedId);
+    const targetProject = projects.find(p => p.id === preferredProjectId)
+      || projects.find(p => p.id === savedId);
     if (targetProject) {
       await selectProject(targetProject.id);
     } else if (projects.length > 0 && currentProjectId === null) {
@@ -248,24 +249,42 @@ function closeProjectInputModal() {
 async function confirmCreateProject() {
   const input = document.getElementById('projectInputField');
   const descInput = document.getElementById('projectDescField');
-  const name = input?.value.trim();
+  const confirmBtn = document.getElementById('projectInputConfirm');
+  const name = input?.value.trim() || '';
+  const description = descInput?.value.trim() || '';
+
   if (!name) {
     showToast('请输入项目名称', 'error');
+    input?.focus();
+    return;
+  }
+  if (!window.electronAPI?.projects?.create) {
+    showToast('项目功能当前不可用，请重启应用后重试', 'error');
     return;
   }
 
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+  }
+
   try {
-    const result = await window.electronAPI.projects.create(name, descInput?.value.trim());
-    if (result.success) {
+    const result = await window.electronAPI.projects.create(name, description);
+    if (result?.success && result.id != null) {
       closeProjectInputModal();
+      await loadProjects(result.id);
       showToast('项目创建成功', 'success');
-      await loadProjects();
-      if (result.id) await selectProject(result.id);
     } else {
-      showToast('项目创建失败: ' + (result.error || ''), 'error');
+      showToast('项目创建失败: ' + (result?.error || '未返回项目编号'), 'error');
     }
   } catch (e) {
-    showToast('项目创建失败: ' + e, 'error');
+    const message = e instanceof Error ? e.message : String(e);
+    showToast('项目创建失败: ' + message, 'error');
+  } finally {
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
   }
 }
 
@@ -420,7 +439,9 @@ function updateStatusBar() {
       : `${photoLoadedCount}/${photoTotalCount} 张照片`;
   }
   if (backBtn) {
-    backBtn.classList.toggle('hidden', !isRecycleBinView);
+    const browserOpen = document.getElementById('materialBrowserPanel')?.classList.contains('open');
+    const settingsOpen = !document.getElementById('settingsModal')?.classList.contains('hidden');
+    backBtn.classList.toggle('hidden', !(isRecycleBinView || browserOpen || settingsOpen));
   }
 }
 
@@ -741,6 +762,7 @@ document.getElementById('applyRemoveTagsBtn').onclick = applyRemoveTags;
 // ─── 设置 ───
 document.getElementById('settingsBtn').onclick = async () => {
   document.getElementById('settingsModal').classList.remove('hidden');
+  updateStatusBar();
   if (window.electronAPI?.cache?.getStats) {
     window.electronAPI.cache.getStats().then(stats => {
       document.getElementById('cacheSize').textContent = stats.formattedSize;
@@ -752,8 +774,16 @@ document.getElementById('settingsBtn').onclick = async () => {
     document.getElementById('downloadPath').value = downloadDir;
   }
 };
-document.getElementById('closeSettingsBtn').onclick = () => document.getElementById('settingsModal').classList.add('hidden');
-document.getElementById('settingsModal').onclick = (e) => { if (e.target === document.getElementById('settingsModal')) document.getElementById('settingsModal').classList.add('hidden'); };
+document.getElementById('closeSettingsBtn').onclick = () => {
+  document.getElementById('settingsModal').classList.add('hidden');
+  updateStatusBar();
+};
+document.getElementById('settingsModal').onclick = (e) => {
+  if (e.target === document.getElementById('settingsModal')) {
+    document.getElementById('settingsModal').classList.add('hidden');
+    updateStatusBar();
+  }
+};
 
 document.getElementById('browseDownloadPath').onclick = async () => {
   if (window.electronAPI?.dialog?.openDirectory) {
@@ -880,7 +910,9 @@ document.getElementById('statusSettingsBtn').onclick = () => {
 document.getElementById('statusProject').onclick = () => {
   if (isRecycleBinView) switchToGallery();
 };
-document.getElementById('statusBackToGallery').onclick = switchToGallery;
+document.getElementById('statusBackToGallery').onclick = returnToGallery;
+document.getElementById('backToGalleryFromBrowser').onclick = returnToGallery;
+document.getElementById('backToGalleryFromSettings').onclick = returnToGallery;
 document.getElementById('closeMaterialBrowserBtn').onclick = closeMaterialBrowserPanel;
 
 // ─── 新建项目弹窗 ───

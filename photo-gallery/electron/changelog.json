@@ -1,5 +1,37 @@
 [
   {
+    "version": "3.2.4",
+    "date": "2026-08-23",
+    "title": "修复旧数据库无法创建项目",
+    "categories": [
+      {
+        "name": "Bug 修复",
+        "icon": "fa-database",
+        "color": "red",
+        "items": [
+          "修复旧版 projects 表缺少时间字段导致新项目创建失败",
+          "启动时自动补齐 created_at 和 updated_at，并兼容旧 date 字段",
+          "新增旧数据库升级与项目插入回归测试"
+        ]
+      }
+    ]
+  },{
+    "version": "3.2.3",
+    "date": "2026-08-23",
+    "title": "优化导航、项目创建与功能图标",
+    "categories": [
+      {
+        "name": "体验优化",
+        "icon": "fa-wand-magic-sparkles",
+        "color": "accent",
+        "items": [
+          "素材浏览器、回收站和设置新增回到样片库入口",
+          "修复项目无法创建的问题，创建后自动切换到新项目",
+          "优化设置、批量操作、素材浏览器和项目等功能图标的语义对应关系"
+        ]
+      }
+    ]
+  },{
     "version": "3.2.2",
     "date": "2026-08-23",
     "title": "修复项目库、回收站与启动问题",

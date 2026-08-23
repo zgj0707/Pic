@@ -32,11 +32,26 @@ function initializeWebview() {
 function openMaterialBrowserPanel() {
   const panel = document.getElementById('materialBrowserPanel');
   if (panel) panel.classList.add('open');
+  updateStatusBar();
 }
 
 function closeMaterialBrowserPanel() {
   const panel = document.getElementById('materialBrowserPanel');
   if (panel) panel.classList.remove('open');
+  updateStatusBar();
+}
+
+function returnToGallery() {
+  closeMaterialBrowserPanel();
+  const settingsModal = document.getElementById('settingsModal');
+  if (settingsModal) settingsModal.classList.add('hidden');
+
+  if (isRecycleBinView) {
+    switchToGallery();
+  } else {
+    currentPanel = 'gallery';
+    updateStatusBar();
+  }
 }
 
 function resetToolbarForGallery() {
@@ -62,6 +77,9 @@ function setEmptyStateForRecycleBin() {
 }
 
 function switchToGallery() {
+  closeMaterialBrowserPanel();
+  const settingsModal = document.getElementById('settingsModal');
+  if (settingsModal) settingsModal.classList.add('hidden');
   isRecycleBinView = false;
   currentPanel = 'gallery';
   selectedPhotos.clear();
