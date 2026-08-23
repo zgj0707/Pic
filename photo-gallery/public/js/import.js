@@ -33,7 +33,7 @@ async function importFromFolder() {
   if (!dir) return;
   showProgress('导入照片', '正在扫描...', '');
   startImportProgressListener();
-  const result = await window.electronAPI.import.fromDirectory(dir);
+  const result = await window.electronAPI.import.fromDirectory(dir, currentProjectId || undefined);
   stopImportProgressListener();
   hideProgress();
   if (result.success) {
@@ -60,7 +60,7 @@ async function importFromFiles() {
   if (!files || files.length === 0) return;
   showProgress('导入照片', '正在导入...', '');
   startImportProgressListener();
-  const result = await window.electronAPI.import.fromFiles(files);
+  const result = await window.electronAPI.import.fromFiles(files, currentProjectId || undefined);
   stopImportProgressListener();
   hideProgress();
   if (result.success) {

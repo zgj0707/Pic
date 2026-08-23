@@ -36,6 +36,7 @@ import { enforceMaxCacheSize } from '../services/cacheManager'
 
 // ─── IPC modules (all bundled here) ───
 import { registerPhotoIpc } from '../ipc/photo'
+import { registerProjectIpc } from '../ipc/project'
 import { registerAlbumIpc } from '../ipc/album'
 import { registerImportIpc } from '../ipc/import'
 import { registerRenameIpc } from '../ipc/rename'
@@ -51,7 +52,7 @@ import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
 import type { ChangelogEntry } from '../types'
 
 export const name = 'pic-content'
-export const version = '2.5.1'
+export const version = '3.2.0'
 
 // Content module capabilities (what the shell can rely on).
 export const capabilities = {
@@ -113,6 +114,7 @@ export async function init(c: ContentContext): Promise<void> {
 export function registerIpc(c: ContentContext): void {
   _ctx = c
   registerPhotoIpc()
+  registerProjectIpc()
   registerAlbumIpc()
   registerImportIpc(c.getMainWindow())
   registerRenameIpc()

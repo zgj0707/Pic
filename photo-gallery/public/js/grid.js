@@ -338,6 +338,7 @@ function updatePhotoCount() {
       ? `${photoLoadedCount}/${photoTotalCount} 张已删除照片`
       : `${photos.length} 张已删除照片`;
     document.getElementById('photoCount').textContent = hasMore ? `${base}（加载中…）` : base;
+    updateStatusBar();
     return;
   }
   const base = window.electronAPI
@@ -346,6 +347,7 @@ function updatePhotoCount() {
         ? `${photos.length} 张照片`
         : `${filteredPhotos.length}/${photos.length} 张照片`);
   document.getElementById('photoCount').textContent = hasMore ? `${base}（加载中…）` : base;
+  updateStatusBar();
 }
 
 function updateSelectedCount() {
@@ -362,6 +364,7 @@ function updateSelectedCount() {
     document.getElementById('copyToDesktopBtn').disabled = count === 0;
   }
   updateApplyButtons();
+  if (typeof updateContextPanel === 'function') updateContextPanel();
 }
 
 function updateApplyButtons() {

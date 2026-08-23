@@ -89,7 +89,7 @@ export function registerMaterialBrowserIpc(_mainWindow: BrowserWindow | null) {
   ))
 
   ipcMain.handle('material-browser:import-to-library', wrapAsyncHandler('material-browser:import-to-library',
-    async (_event, filePath: string, sourceUrl: string, tags: string[] = []): Promise<IpcResponse<{ photoId: number; photo?: unknown; alreadyImported: boolean }>> => {
+    async (_event, filePath: string, sourceUrl: string, tags: string[] = [], projectId?: number): Promise<IpcResponse<{ photoId: number; photo?: unknown; alreadyImported: boolean }>> => {
       // Wait for file to be fully written (download in progress)
       let fileReady = false
       let retryCount = 0
@@ -123,7 +123,7 @@ export function registerMaterialBrowserIpc(_mainWindow: BrowserWindow | null) {
         return { success: true, data: { photoId: existing.id, alreadyImported: true } }
       }
 
-      const photo = await importPhotoToDatabase(filePath)
+      const photo = await importPhotoToDatabase(filePath, projectId)
 
       if (photo) {
         // 缩略图改为按需生成，导入时不再同步生成

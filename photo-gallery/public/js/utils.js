@@ -48,6 +48,18 @@ function hideProgress() {
   }, 50);
 }
 
+function formatFileSize(bytes) {
+  if (!bytes || bytes === 0) return '-';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let size = bytes;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  return `${size.toFixed(unitIndex === 0 ? 0 : 2)} ${units[unitIndex]}`;
+}
+
 let contextMenuFilePath = '';
 
 function showContextMenu(x, y, filePath) {

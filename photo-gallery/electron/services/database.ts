@@ -42,13 +42,24 @@ CREATE TABLE IF NOT EXISTS photos (
   is_favorite INTEGER DEFAULT 0,
   thumbnail_path TEXT,
   exif_json TEXT,
-  deleted_at INTEGER
+  deleted_at INTEGER,
+  project_id INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS idx_photos_rating ON photos(rating);
 CREATE INDEX IF NOT EXISTS idx_photos_favorite ON photos(is_favorite);
 CREATE INDEX IF NOT EXISTS idx_photos_created ON photos(created_at);
 CREATE INDEX IF NOT EXISTS idx_photos_imported ON photos(imported_at);
+
+CREATE INDEX IF NOT EXISTS idx_photos_project ON photos(project_id);
+
+CREATE TABLE IF NOT EXISTS projects (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  description TEXT,
+  created_at INTEGER DEFAULT (strftime('%s', 'now')),
+  updated_at INTEGER DEFAULT (strftime('%s', 'now'))
+);
 
 CREATE TABLE IF NOT EXISTS albums (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -168,6 +179,16 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
     }
   }
 
+  // 迁移：为旧表添加 project_id 列
+  try {
+    db.exec('ALTER TABLE photos ADD COLUMN project_id INTEGER')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (!message.includes('duplicate column name')) {
+      console.error('[database] project_id migration failed:', error)
+    }
+  }
+
   db.exec(SCHEMA)
 
   // 单独创建 deleted_at 索引，确保列已存在
@@ -175,6 +196,22 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
     db.exec('CREATE INDEX IF NOT EXISTS idx_photos_deleted ON photos(deleted_at)')
   } catch (error) {
     console.error('[database] Failed to create deleted_at index:', error)
+  }
+
+  // 为没有项目的旧数据创建默认项目并关联
+  try {
+    const hasProjects = dbAdapter.get('SELECT COUNT(*) as total FROM projects')
+    if ((hasProjects?.total ?? 0) === 0) {
+      const defaultProjectId = dbAdapter.insert('projects', {
+        name: '默认项目',
+        description: '自动创建的默认项目'
+      })
+      if (defaultProjectId) {
+        dbAdapter.run('UPDATE photos SET project_id = ? WHERE project_id IS NULL AND deleted_at IS NULL', [defaultProjectId])
+      }
+    }
+  } catch (error) {
+    console.error('[database] Default project migration failed:', error)
   }
 
   saveDatabase()

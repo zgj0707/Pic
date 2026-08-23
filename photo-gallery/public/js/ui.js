@@ -29,28 +29,14 @@ function initializeWebview() {
   }
 }
 
-function updateNavActiveState(activeId) {
-  ['nav-gallery', 'nav-recycle', 'nav-browser'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (id === activeId) {
-      el.classList.add('active', 'text-textPrimary');
-      el.classList.remove('text-textSecondary');
-    } else {
-      el.classList.remove('active', 'text-textPrimary');
-      el.classList.add('text-textSecondary');
-    }
-  });
-}
-
 function resetToolbarForGallery() {
   document.getElementById('deleteBtn').classList.remove('hidden');
   document.getElementById('restoreBtn').classList.add('hidden');
   document.getElementById('permanentDeleteBtn').classList.add('hidden');
   document.getElementById('importFolderBtn').classList.remove('hidden');
   document.getElementById('importFilesBtn').classList.remove('hidden');
-  document.getElementById('searchInput').parentElement.classList.remove('hidden');
-  document.getElementById('ratingFilter').parentElement.parentElement.classList.remove('hidden');
+  const projectSidebar = document.querySelector('.project-sidebar');
+  if (projectSidebar) projectSidebar.classList.remove('hidden');
 }
 
 function setEmptyStateForGallery() {
@@ -67,9 +53,7 @@ function setEmptyStateForRecycleBin() {
 
 function switchToGallery() {
   isRecycleBinView = false;
-  document.getElementById('galleryPanel').classList.remove('hidden');
-  document.getElementById('browserPanel').classList.add('hidden');
-  updateNavActiveState('nav-gallery');
+  document.getElementById('browserPanel').classList.remove('open');
   currentPanel = 'gallery';
   document.getElementById('searchInput').value = '';
   document.getElementById('ratingFilter').value = '';
@@ -87,9 +71,7 @@ function switchToGallery() {
 
 function switchToRecycleBin() {
   isRecycleBinView = true;
-  document.getElementById('galleryPanel').classList.remove('hidden');
-  document.getElementById('browserPanel').classList.add('hidden');
-  updateNavActiveState('nav-recycle');
+  document.getElementById('browserPanel').classList.remove('open');
   currentPanel = 'recycle';
   selectedPhotos.clear();
   document.getElementById('selectedCount').textContent = '已选择 0 张照片';
@@ -100,8 +82,8 @@ function switchToRecycleBin() {
   document.getElementById('permanentDeleteBtn').disabled = true;
   document.getElementById('importFolderBtn').classList.add('hidden');
   document.getElementById('importFilesBtn').classList.add('hidden');
-  document.getElementById('searchInput').parentElement.classList.add('hidden');
-  document.getElementById('ratingFilter').parentElement.parentElement.classList.add('hidden');
+  const projectSidebar = document.querySelector('.project-sidebar');
+  if (projectSidebar) projectSidebar.classList.add('hidden');
   setEmptyStateForRecycleBin();
   if (window.electronAPI) loadPhotos(true);
   else renderPhotoGrid();
@@ -109,9 +91,7 @@ function switchToRecycleBin() {
 
 function switchToBrowser() {
   isRecycleBinView = false;
-  document.getElementById('galleryPanel').classList.add('hidden');
-  document.getElementById('browserPanel').classList.remove('hidden');
-  updateNavActiveState('nav-browser');
+  document.getElementById('browserPanel').classList.add('open');
   currentPanel = 'browser';
   resetToolbarForGallery();
 }

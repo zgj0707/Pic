@@ -20,7 +20,17 @@ export interface Photo {
   thumbnail_path: string | null
   exif_json: string | null
   deleted_at?: number | null
+  project_id?: number | null
   tags?: string[]
+}
+
+export interface Project {
+  id: number
+  name: string
+  description: string | null
+  created_at: number
+  updated_at: number
+  photo_count?: number
 }
 
 export interface Tag {
@@ -72,6 +82,7 @@ export type IpcResponse<T = unknown> = IpcSuccessResponse<T> | IpcErrorResponse
 
 export interface PhotoFilter {
   albumId?: number
+  projectId?: number
   rating?: number
   isFavorite?: boolean
   search?: string
@@ -79,6 +90,9 @@ export interface PhotoFilter {
   dateTo?: number
   tags?: string[]
   deletedOnly?: boolean
+  orientation?: 'landscape' | 'portrait' | 'square'
+  camera?: string
+  lens?: string
 }
 
 export interface PhotoQueryOptions {

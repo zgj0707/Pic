@@ -43,6 +43,10 @@ let currentPanel = 'gallery';
 let browserMode = localStorage.getItem('browserMode') || 'xiaohongshu';
 let currentViewMode = localStorage.getItem('photoViewMode') || 'masonry';
 let isRecycleBinView = false;
+let projects = [];
+let currentProjectId = null;
+let currentProjectName = '';
+let activeSmartFilters = new Set();
 
 // ─── DOM 缓存 ───
 const photoGrid = document.getElementById('photoGrid');
@@ -60,9 +64,29 @@ function buildBackendPhotoFilter() {
   const rating = document.getElementById('ratingFilter').value;
   const tag = document.getElementById('tagFilter').value;
   const filter = {};
+  if (!isRecycleBinView && currentProjectId !== null) {
+    filter.projectId = currentProjectId;
+  }
   if (search) filter.search = search;
   if (rating) filter.rating = parseInt(rating, 10);
   if (tag) filter.tags = [tag];
+
+  // 智能筛选 chip
+  activeSmartFilters.forEach(key => {
+    if (key === 'favorite') filter.isFavorite = true;
+    if (key === 'unrated') filter.rating = 0;
+    if (key === 'rating-5') filter.rating = 5;
+    if (key === 'rating-1') filter.rating = 1;
+    if (key === 'orientation-landscape') filter.orientation = 'landscape';
+    if (key === 'orientation-portrait') filter.orientation = 'portrait';
+    if (key.startsWith('camera-')) filter.camera = decodeURIComponent(key.slice(7));
+    if (key.startsWith('lens-')) filter.lens = decodeURIComponent(key.slice(5));
+    if (key === 'recent') {
+      const weekAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
+      filter.dateFrom = weekAgo;
+    }
+  });
+
   return filter;
 }
 
@@ -124,12 +148,144 @@ async function loadPhotos(reset = true) {
   if (!isRecycleBinView) {
     await updateTagFilter();
   }
+  updateDynamicFilterChips();
 }
 
 async function loadMorePhotos() {
   if (isLoadingPhotos) return;
   if (photoLoadedCount >= photoTotalCount) return;
   await loadPhotos(false);
+}
+
+// ─── 项目相关 ───
+async function loadProjects() {
+  if (!window.electronAPI?.projects?.getAll) return;
+  try {
+    projects = await window.electronAPI.projects.getAll();
+    renderProjectSelector();
+    renderProjectSidebar();
+    const savedProjectId = localStorage.getItem('currentProjectId');
+    const savedId = savedProjectId ? parseInt(savedProjectId, 10) : null;
+    const targetProject = projects.find(p => p.id === savedId);
+    if (targetProject) {
+      await selectProject(targetProject.id);
+    } else if (projects.length > 0 && currentProjectId === null) {
+      await selectProject(projects[0].id);
+    }
+  } catch (e) {
+    console.error('加载项目失败:', e);
+  }
+}
+
+function renderProjectSelector() {
+  const selector = document.getElementById('projectSelector');
+  if (!selector) return;
+  selector.innerHTML = projects.map(p =>
+    `<option value="${p.id}" ${p.id === currentProjectId ? 'selected' : ''}>${escapeHtml(p.name)}</option>`
+  ).join('');
+}
+
+function renderProjectSidebar() {
+  const list = document.getElementById('projectList');
+  if (!list) return;
+  list.innerHTML = projects.map(p => `
+    <div class="project-item ${p.id === currentProjectId ? 'active' : ''}" data-id="${p.id}" title="${escapeHtml(p.description || '')}">
+      <span class="truncate">${escapeHtml(p.name)}</span>
+      <span class="count">${p.photo_count || 0}</span>
+    </div>
+  `).join('');
+  list.querySelectorAll('.project-item').forEach(item => {
+    item.onclick = () => selectProject(parseInt(item.dataset.id, 10));
+  });
+}
+
+async function selectProject(id) {
+  const project = projects.find(p => p.id === id);
+  if (!project) return;
+  currentProjectId = id;
+  currentProjectName = project.name;
+  localStorage.setItem('currentProjectId', String(id));
+  renderProjectSelector();
+  renderProjectSidebar();
+  updateStatusBar();
+  if (isRecycleBinView) {
+    isRecycleBinView = false;
+    resetToolbarForGallery();
+    setEmptyStateForGallery();
+  }
+  await loadPhotos(true);
+}
+
+async function createNewProject() {
+  const name = prompt('请输入项目名称:');
+  if (!name || !name.trim()) return;
+  if (!window.electronAPI?.projects?.create) return;
+  const result = await window.electronAPI.projects.create(name.trim());
+  if (result.success && result.id) {
+    await loadProjects();
+    await selectProject(result.id);
+    showToast('项目创建成功', 'success');
+  } else {
+    showToast('项目创建失败: ' + (result.error || ''), 'error');
+  }
+}
+
+function updateContextPanel() {
+  const singlePanel = document.getElementById('singlePhotoInspector');
+  const batchPanel = document.getElementById('batchOperationsPanel');
+  const countEl = document.getElementById('selectedCount');
+  const panelTitle = document.getElementById('metadataPanelTitle');
+  if (!singlePanel || !batchPanel || !countEl || !panelTitle) return;
+
+  if (selectedPhotos.size === 1) {
+    const photoId = Array.from(selectedPhotos)[0];
+    const photo = photos.find(p => p.id === photoId) || filteredPhotos.find(p => p.id === photoId);
+    if (photo) {
+      renderSinglePhotoInspector(photo);
+      singlePanel.classList.remove('hidden');
+      batchPanel.classList.add('hidden');
+      panelTitle.textContent = '照片信息';
+      countEl.textContent = '已选择 1 张照片';
+      return;
+    }
+  }
+
+  singlePanel.classList.add('hidden');
+  batchPanel.classList.remove('hidden');
+  panelTitle.textContent = '批量操作';
+  countEl.textContent = `已选择 ${selectedPhotos.size} 张照片`;
+}
+
+function renderSinglePhotoInspector(photo) {
+  document.getElementById('inspectFilename').textContent = photo.filename || '-';
+  document.getElementById('inspectDimensions').textContent = photo.width && photo.height ? `${photo.width} × ${photo.height}` : '-';
+  document.getElementById('inspectFilesize').textContent = formatFileSize(photo.filesize);
+  document.getElementById('inspectDate').textContent = photo.created_at ? new Date(photo.created_at * 1000).toLocaleString('zh-CN') : '-';
+
+  let exif = {};
+  if (photo.exif_json) {
+    try { exif = JSON.parse(photo.exif_json); } catch { /* ignore */ }
+  }
+  document.getElementById('inspectCamera').textContent = exif.Make && exif.Model ? `${exif.Make} ${exif.Model}` : (exif.Model || '-');
+  document.getElementById('inspectLens').textContent = exif.LensModel || '-';
+  document.getElementById('inspectAperture').textContent = exif.FNumber ? `f/${exif.FNumber}` : '-';
+  document.getElementById('inspectISO').textContent = exif.ISO || '-';
+  document.getElementById('inspectShutter').textContent = exif.ExposureTime ? `${exif.ExposureTime}s` : '-';
+  document.getElementById('inspectFocal').textContent = exif.FocalLength ? `${exif.FocalLength}mm` : '-';
+
+  const tagsContainer = document.getElementById('inspectTags');
+  tagsContainer.innerHTML = (photo.tags || []).map(tag =>
+    `<span class="tag-badge">${escapeHtml(tag)}</span>`
+  ).join('') || '<span class="text-textDisabled text-xs">无标签</span>';
+}
+
+function updateStatusBar() {
+  const projectEl = document.getElementById('statusProject');
+  const viewEl = document.getElementById('statusView');
+  const countEl = document.getElementById('statusCount');
+  if (projectEl) projectEl.textContent = currentProjectName || '未选择项目';
+  if (viewEl) viewEl.textContent = isRecycleBinView ? '回收站' : (currentViewMode === 'masonry' ? '瀑布流' : '紧凑视图');
+  if (countEl) countEl.textContent = `${photoLoadedCount}/${photoTotalCount} 张照片`;
 }
 
 // ─── 批量评级事件 ───
@@ -262,11 +418,145 @@ document.getElementById('searchInput').addEventListener('keydown', (e) => {
 });
 document.getElementById('ratingFilter').onchange = applyPhotoFilters;
 document.getElementById('tagFilter').onchange = applyPhotoFilters;
+
+function handleFilterChipClick(chip) {
+  const key = chip.dataset.filter;
+  if (key === 'all') {
+    activeSmartFilters.clear();
+  } else {
+    // 同类筛选互斥：评级、构图、相机、镜头
+    if (key.startsWith('rating-') || key === 'unrated') {
+      activeSmartFilters.forEach(k => {
+        if (k.startsWith('rating-') || k === 'unrated') activeSmartFilters.delete(k);
+      });
+    }
+    if (key.startsWith('orientation-')) {
+      activeSmartFilters.forEach(k => {
+        if (k.startsWith('orientation-')) activeSmartFilters.delete(k);
+      });
+    }
+    if (key.startsWith('camera-')) {
+      activeSmartFilters.forEach(k => {
+        if (k.startsWith('camera-')) activeSmartFilters.delete(k);
+      });
+    }
+    if (key.startsWith('lens-')) {
+      activeSmartFilters.forEach(k => {
+        if (k.startsWith('lens-')) activeSmartFilters.delete(k);
+      });
+    }
+    if (activeSmartFilters.has(key)) activeSmartFilters.delete(key);
+    else activeSmartFilters.add(key);
+  }
+  document.querySelectorAll('.filter-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.filter === 'all' ? activeSmartFilters.size === 0 : activeSmartFilters.has(c.dataset.filter));
+  });
+  applyPhotoFilters();
+}
+
+function updateDynamicFilterChips() {
+  const cameraContainer = document.getElementById('cameraFilterChips');
+  const lensContainer = document.getElementById('lensFilterChips');
+  if (!cameraContainer || !lensContainer) return;
+
+  const cameras = new Set();
+  const lenses = new Set();
+  photos.forEach(photo => {
+    if (!photo.exif_json) return;
+    try {
+      const exif = JSON.parse(photo.exif_json);
+      if (exif.Model) cameras.add(exif.Make && exif.Model ? `${exif.Make} ${exif.Model}` : exif.Model);
+      if (exif.LensModel) lenses.add(exif.LensModel);
+    } catch { /* ignore */ }
+  });
+
+  renderChipGroup(cameraContainer, 'camera', Array.from(cameras).slice(0, 5));
+  renderChipGroup(lensContainer, 'lens', Array.from(lenses).slice(0, 5));
+}
+
+function renderChipGroup(container, prefix, items) {
+  container.innerHTML = '';
+  items.forEach(item => {
+    const key = `${prefix}-${encodeURIComponent(item)}`;
+    const chip = document.createElement('span');
+    chip.className = `filter-chip ${activeSmartFilters.has(key) ? 'active' : ''}`;
+    chip.dataset.filter = key;
+    chip.textContent = item;
+    chip.addEventListener('click', () => handleFilterChipClick(chip));
+    container.appendChild(chip);
+  });
+}
+
+// 智能筛选 chip
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => handleFilterChipClick(chip));
+});
+
+// 项目选择器
+document.getElementById('projectSelector').onchange = (e) => {
+  const id = parseInt(e.target.value, 10);
+  if (!isNaN(id)) selectProject(id);
+};
+document.getElementById('newProjectBtn').onclick = createNewProject;
+
+// 点击 Logo 返回样片库视图
+document.querySelector('header .text-accent')?.addEventListener('click', () => {
+  if (isRecycleBinView) switchToGallery();
+});
+
+// 浏览器面板开关
+document.getElementById('browserToggleBtn').onclick = () => {
+  const panel = document.getElementById('browserPanel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) currentPanel = 'browser';
+};
+document.getElementById('closeBrowserPanel').onclick = () => {
+  document.getElementById('browserPanel').classList.remove('open');
+};
+
+// 浏览器面板宽度拖拽
+let isBrowserResizing = false;
+const browserResizeHandle = document.querySelector('.browser-resize-handle');
+if (browserResizeHandle) {
+  browserResizeHandle.addEventListener('mousedown', (e) => {
+    isBrowserResizing = true;
+    const panel = document.getElementById('browserPanel');
+    const startX = e.clientX;
+    const startWidth = panel.offsetWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMouseMove = (moveEvent) => {
+      if (!isBrowserResizing) return;
+      const delta = startX - moveEvent.clientX;
+      let newWidth = startWidth + delta;
+      newWidth = Math.max(400, Math.min(900, newWidth));
+      panel.style.width = `${newWidth}px`;
+    };
+
+    const onMouseUp = () => {
+      isBrowserResizing = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  });
+}
+
+// 状态栏
+document.getElementById('statusRecycleBtn').onclick = switchToRecycleBin;
+document.getElementById('statusSettingsBtn').onclick = () => document.getElementById('settingsBtn').click();
 document.getElementById('clearFilterBtn').onclick = () => {
   document.getElementById('searchInput').value = '';
   document.getElementById('ratingFilter').value = '';
   document.getElementById('tagFilter').value = '';
   photoFilterState = { search: '', rating: '', tag: '' };
+  activeSmartFilters.clear();
+  document.querySelectorAll('.filter-chip').forEach(chip => chip.classList.toggle('active', chip.dataset.filter === 'all'));
   selectedPhotos.clear();
   document.getElementById('selectedCount').textContent = '已选择 0 张照片';
   document.getElementById('deleteBtn').disabled = true;
@@ -530,9 +820,7 @@ document.getElementById('changelogModal').onclick = (e) => {
 };
 
 // ─── 视图切换 ───
-document.getElementById('nav-gallery').onclick = switchToGallery;
-document.getElementById('nav-recycle').onclick = switchToRecycleBin;
-document.getElementById('nav-browser').onclick = switchToBrowser;
+document.getElementById('statusRecycleBtn').onclick = switchToRecycleBin;
 
 // ─── 浏览器控制 ───
 document.getElementById('browserBack').onclick = () => {
@@ -603,7 +891,8 @@ if (window.electronAPI?.materialBrowser?.onDownloadComplete) {
       const result = await window.electronAPI.materialBrowser.importToLibrary(
         data.filePath,
         data.url || window.location.href,
-        []
+        [],
+        currentProjectId || undefined
       );
 
       hideProgress();
@@ -644,13 +933,16 @@ document.getElementById('viewToggleBtn').onclick = () => {
 };
 
 // ─── 初始化 ───
-document.addEventListener('DOMContentLoaded', () => {
+let appInitialized = false;
+function initApp() {
+  if (appInitialized) return;
+  appInitialized = true;
   initContextMenu();
   updateBrowserModeUI();
   initializeWebview();
-});
+  loadVersionInfo();
+  loadProjects();
+}
 
-updateBrowserModeUI();
-initializeWebview();
-loadVersionInfo();
-loadPhotos();
+document.addEventListener('DOMContentLoaded', initApp);
+initApp();
