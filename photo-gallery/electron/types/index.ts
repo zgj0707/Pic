@@ -24,6 +24,10 @@ export interface Photo {
   original_filepath?: string | null
   review_state: ReviewState
   delivered_at?: number | null
+  source_url?: string | null
+  source_domain?: string | null
+  source_type?: 'web' | 'local' | null
+  source_note?: string | null
   tags?: string[]
 }
 
@@ -109,6 +113,9 @@ export interface PhotoFilter {
   camera?: string
   lens?: string
   reviewState?: ReviewState | 'all'
+  sourceType?: 'web' | 'local'
+  sourceDomain?: string
+  tagsAll?: string[]
 }
 
 export interface PhotoQueryOptions {

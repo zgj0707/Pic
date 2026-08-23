@@ -28,6 +28,20 @@ function initializeWebview() {
     const urlInput = document.getElementById('browserUrl');
     if (urlInput) urlInput.value = webview.getURL();
   });
+
+  window.electronAPI?.materialBrowser?.onDownloadComplete?.(async data => {
+    if (currentProjectId === null) {
+      showToast('样片已下载，请先创建或选择项目后再导入', 'warning');
+      return;
+    }
+    const result = await window.electronAPI.materialBrowser.importToLibrary(data.filePath, webview.getURL(), [], currentProjectId);
+    if (result.success) {
+      await loadPhotos(true);
+      showToast('网页样片已加入当前项目', 'success');
+    } else {
+      showToast('网页样片导入失败: ' + (result.error || '未知错误'), 'warning');
+    }
+  });
 }
 
 function openMaterialBrowserPanel() {

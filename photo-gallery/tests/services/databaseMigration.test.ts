@@ -96,8 +96,13 @@ describe('legacy project database migration', () => {
     const columns = dbAdapter.query('PRAGMA table_info(photos)').map(column => column.name)
     expect(columns.filter(column => column === 'review_state')).toHaveLength(1)
     expect(columns.filter(column => column === 'delivered_at')).toHaveLength(1)
+    expect(columns.filter(column => column === 'source_url')).toHaveLength(1)
+    expect(columns.filter(column => column === 'source_domain')).toHaveLength(1)
+    expect(columns.filter(column => column === 'source_type')).toHaveLength(1)
+    expect(columns.filter(column => column === 'source_note')).toHaveLength(1)
     expect(dbAdapter.get('SELECT review_state, delivered_at FROM photos WHERE id = 1')?.review_state).toBe('unreviewed')
     expect(dbAdapter.get('SELECT review_state, delivered_at FROM photos WHERE id = 1')?.delivered_at).toBeNull()
+    expect(dbAdapter.get('SELECT source_type FROM photos WHERE id = 1')?.source_type).toBe('local')
 
     dbAdapter.run('UPDATE photos SET review_state = ? WHERE id = ?', ['pick', 1])
     expect(dbAdapter.get('SELECT review_state FROM photos WHERE id = 1')?.review_state).toBe('pick')

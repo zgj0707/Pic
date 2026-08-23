@@ -76,6 +76,8 @@ function buildBackendPhotoFilter() {
     if (key === 'rating-1') filter.rating = 1;
     if (key === 'orientation-landscape') filter.orientation = 'landscape';
     if (key === 'orientation-portrait') filter.orientation = 'portrait';
+    if (key === 'source-web') filter.sourceType = 'web';
+    if (key === 'source-local') filter.sourceType = 'local';
     if (key.startsWith('camera-')) filter.camera = decodeURIComponent(key.slice(7));
     if (key.startsWith('lens-')) filter.lens = decodeURIComponent(key.slice(5));
     if (key === 'recent') {
@@ -83,6 +85,11 @@ function buildBackendPhotoFilter() {
       filter.dateFrom = weekAgo;
     }
   });
+
+  const categoryTags = REFERENCE_CATEGORY_PRESETS
+    .filter(preset => activeSmartFilters.has(preset.key))
+    .map(preset => preset.tag);
+  if (categoryTags.length > 0) filter.tagsAll = categoryTags;
 
   return filter;
 }
@@ -184,7 +191,9 @@ function toggleSmartFilter(key) {
     'rating-1': ['rating-5', 'unrated'],
     'unrated': ['rating-5', 'rating-1'],
     'orientation-landscape': ['orientation-portrait'],
-    'orientation-portrait': ['orientation-landscape']
+    'orientation-portrait': ['orientation-landscape'],
+    'source-web': ['source-local'],
+    'source-local': ['source-web']
   };
 
   if (activeSmartFilters.has(key)) {
@@ -221,6 +230,12 @@ async function loadCameraLensFilters() {
 
     const cameraContainer = document.getElementById('cameraFilterChips');
     const lensContainer = document.getElementById('lensFilterChips');
+    const categoryContainer = document.getElementById('referenceCategoryFilterChips');
+    if (categoryContainer) {
+      categoryContainer.innerHTML = REFERENCE_CATEGORY_PRESETS.map(preset =>
+        `<span class="filter-chip" data-filter="${preset.key}">${escapeHtml(preset.label)}</span>`
+      ).join('');
+    }
     if (cameraContainer) {
       cameraContainer.innerHTML = Array.from(cameras).slice(0, 5).map(camera =>
         `<span class="filter-chip" data-filter="camera-${encodeURIComponent(camera)}">${escapeHtml(camera)}</span>`
@@ -287,6 +302,13 @@ function renderSinglePhotoInspector(photo) {
   document.getElementById('inspectorFilesize').textContent = formatFileSize(photo.filesize);
   document.getElementById('inspectorImportedAt').textContent = formatDateTime(photo.imported_at);
   document.getElementById('inspectorDateTaken').textContent = formatDateTime(photo.created_at);
+  document.getElementById('inspectorSourceType').textContent = photo.source_type === 'web' ? '网页采集' : '本地 / 未知';
+  document.getElementById('inspectorSourceDomain').textContent = photo.source_domain || '未知';
+  document.getElementById('inspectorSourceUrl').textContent = photo.source_url || '无原网页';
+  document.getElementById('inspectorSourceNote').value = photo.source_note || '';
+  const sourceButton = document.getElementById('inspectorOpenSourceBtn');
+  sourceButton.classList.toggle('hidden', !photo.source_url);
+  sourceButton.dataset.url = photo.source_url || '';
 
   let camera = '-';
   let lens = '-';
@@ -305,6 +327,24 @@ function renderSinglePhotoInspector(photo) {
   document.getElementById('inspectorRating').textContent = photo.rating > 0 ? `${photo.rating} 星` : '未评级';
   document.getElementById('inspectorTags').textContent = (photo.tags || []).join(', ') || '无标签';
 }
+
+async function saveInspectorSourceNote() {
+  const photoId = Array.from(selectedPhotos)[0];
+  const photo = photos.find(candidate => candidate.id === photoId);
+  const noteInput = document.getElementById('inspectorSourceNote');
+  if (!photo || !noteInput || !window.electronAPI?.photos?.updateSourceNote) return;
+  await window.electronAPI.photos.updateSourceNote(photo.id, noteInput.value);
+  photo.source_note = noteInput.value.trim() || null;
+  showToast('来源备注已保存', 'success');
+}
+
+document.getElementById('inspectorOpenSourceBtn')?.addEventListener('click', async () => {
+  const url = document.getElementById('inspectorOpenSourceBtn')?.dataset.url;
+  if (url && window.electronAPI?.materialBrowser?.openExternal) {
+    await window.electronAPI.materialBrowser.openExternal(url);
+  }
+});
+document.getElementById('inspectorSaveSourceNoteBtn')?.addEventListener('click', saveInspectorSourceNote);
 
 // ─── 状态栏 ───
 function updateStatusBar() {

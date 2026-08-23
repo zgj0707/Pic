@@ -32,6 +32,20 @@ async function updateTagFilter() {
   });
 }
 
+function renderReferenceCategoryPresets(currentTags = []) {
+  const container = document.getElementById('referenceCategoryPresets');
+  if (!container) return;
+  container.innerHTML = REFERENCE_CATEGORY_PRESETS.map(preset => `
+    <button type="button" class="tag-badge cursor-pointer hover:bg-accent/30 ${currentTags.includes(preset.tag) ? 'opacity-40' : ''}" data-reference-tag="${escapeHtml(preset.tag)}" ${currentTags.includes(preset.tag) ? 'disabled' : ''}>${escapeHtml(preset.label)}</button>
+  `).join('');
+  container.querySelectorAll('[data-reference-tag]').forEach(button => {
+    button.addEventListener('click', () => {
+      document.getElementById('tagInputField').value = button.dataset.referenceTag || '';
+      document.getElementById('tagInputField').focus();
+    });
+  });
+}
+
 async function handleAddTag() {
   if (filteredPhotos.length === 0) {
     showToast('没有可操作的样片', 'warning');
@@ -75,6 +89,7 @@ async function handleAddTag() {
   }
 
   const usedTags = document.getElementById('usedTagsList');
+  renderReferenceCategoryPresets(fullPhoto.tags || []);
   const allTags = [...new Set(photos.flatMap(p => p.tags || []))].sort();
   usedTags.innerHTML = allTags.filter(t => !(fullPhoto.tags || []).includes(t)).map(tag =>
     `<span class="tag-badge cursor-pointer hover:bg-accent/30" data-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</span>`

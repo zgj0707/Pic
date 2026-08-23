@@ -23,6 +23,7 @@ export interface ElectronAPI {
     batchSetReviewState: (ids: number[], state: ReviewState) => Promise<{ success: boolean; updated?: number }>
     countByReviewState: (projectId: number) => Promise<Record<ReviewState, number>>
     updateTags: (id: number, tags: string[]) => Promise<{ success: boolean }>
+    updateSourceNote: (id: number, note: string) => Promise<{ success: boolean }>
     toggleFavorite: (id: number) => Promise<{ success: boolean }>
     delete: (ids: number[]) => Promise<{ success: boolean; moved?: number; failed?: number; error?: string }>
     restore: (ids: number[]) => Promise<{ success: boolean; restored?: number; failed?: number; error?: string }>
@@ -76,6 +77,7 @@ export interface ElectronAPI {
     saveToDesktop: (pdfData: string, filename: string) => Promise<IpcResponse<{ path: string }>>
   }
   materialBrowser: {
+    openExternal: (url: string) => Promise<{ success: boolean }>
     getDownloadDir: () => Promise<string>
     setDownloadDir: (dir: string) => Promise<{ success: boolean }>
     openDownloadDir: () => Promise<string>
@@ -127,6 +129,7 @@ const api: ElectronAPI = {
     batchSetReviewState: (ids: number[], state: ReviewState) => ipcRenderer.invoke('photos:batchSetReviewState', ids, state),
     countByReviewState: (projectId: number) => ipcRenderer.invoke('photos:countByReviewState', projectId),
     updateTags: (id: number, tags: string[]) => ipcRenderer.invoke('photos:updateTags', id, tags),
+    updateSourceNote: (id: number, note: string) => ipcRenderer.invoke('photos:updateSourceNote', id, note),
     toggleFavorite: (id: number) => ipcRenderer.invoke('photos:toggleFavorite', id),
     delete: (ids: number[]) => ipcRenderer.invoke('photos:delete', ids),
     restore: (ids: number[]) => ipcRenderer.invoke('photos:restore', ids),
@@ -185,6 +188,7 @@ const api: ElectronAPI = {
     saveToDesktop: (pdfData: string, filename: string) => ipcRenderer.invoke('pdf:saveToDesktop', pdfData, filename)
   },
   materialBrowser: {
+    openExternal: (url: string) => ipcRenderer.invoke('material-browser:open-external', url),
     getDownloadDir: () => ipcRenderer.invoke('material-browser:get-download-dir'),
     setDownloadDir: (dir: string) => ipcRenderer.invoke('material-browser:set-download-dir', dir),
     openDownloadDir: () => ipcRenderer.invoke('material-browser:open-download-dir'),

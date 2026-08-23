@@ -105,10 +105,13 @@
           <span class="filter-chip" data-filter="unrated">未评级</span>
           <span class="filter-chip" data-filter="orientation-landscape">横构图</span>
           <span class="filter-chip" data-filter="orientation-portrait">竖构图</span>
+          <span class="filter-chip" data-filter="source-web">网页采集</span>
+          <span class="filter-chip" data-filter="source-local">本地导入</span>
           <span class="filter-chip" data-filter="favorite">收藏</span>
           <span class="filter-chip" data-filter="recent">最近 7 天</span>
           <div id="cameraFilterChips" class="filter-chip-group"></div>
           <div id="lensFilterChips" class="filter-chip-group"></div>
+          <div id="referenceCategoryFilterChips" class="filter-chip-group" aria-label="拍摄维度筛选"></div>
           <div class="filter-spacer"></div>
           <select id="ratingFilter" aria-label="评级筛选">
             <option value="">全部评级</option>
@@ -245,8 +248,13 @@
             <div class="info-row"><span class="info-label">路径</span><span id="inspectorPath" class="info-value"></span></div>
             <div class="info-row"><span class="info-label">尺寸</span><span id="inspectorDimensions" class="info-value"></span></div>
             <div class="info-row"><span class="info-label">大小</span><span id="inspectorFilesize" class="info-value"></span></div>
-            <div class="info-row"><span class="info-label">导入时间</span><span id="inspectorImportedAt" class="info-value"></span></div>
+            <div class="info-row"><span class="info-label">收集时间</span><span id="inspectorImportedAt" class="info-value"></span></div>
             <div class="info-row"><span class="info-label">拍摄时间</span><span id="inspectorDateTaken" class="info-value"></span></div>
+            <div class="info-row"><span class="info-label">来源类型</span><span id="inspectorSourceType" class="info-value"></span></div>
+            <div class="info-row"><span class="info-label">来源站点</span><span id="inspectorSourceDomain" class="info-value"></span></div>
+            <div class="info-row"><span class="info-label">来源 URL</span><span id="inspectorSourceUrl" class="info-value break-all"></span></div>
+            <button id="inspectorOpenSourceBtn" class="secondary-action w-full mt-2 hidden" type="button"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i><span>打开原网页</span></button>
+            <label class="info-row items-center"><span class="info-label">来源备注</span><input id="inspectorSourceNote" class="info-value bg-transparent border-b border-borderColor px-1" type="text" maxlength="240" placeholder="可选"><button id="inspectorSaveSourceNoteBtn" class="tool-button ml-2" type="button" title="保存来源备注" aria-label="保存来源备注"><i class="fa-solid fa-check" aria-hidden="true"></i></button></label>
             <div class="info-row"><span class="info-label">相机</span><span id="inspectorCamera" class="info-value"></span></div>
             <div class="info-row"><span class="info-label">镜头</span><span id="inspectorLens" class="info-value"></span></div>
             <div class="info-row"><span class="info-label">评级</span><span id="inspectorRating" class="info-value"></span></div>
@@ -523,6 +531,8 @@
     <div class="modal-content">
       <h3 class="text-lg font-semibold mb-4">添加标签</h3>
       <div class="mb-4">
+        <p class="text-sm text-textSecondary mb-2">拍摄维度预设：</p>
+        <div id="referenceCategoryPresets" class="flex flex-wrap gap-2 mb-3"></div>
         <p class="text-sm text-textSecondary mb-2">快速选择已使用的标签：</p>
         <div id="usedTagsList" class="flex flex-wrap gap-2 mb-3"></div>
       </div>

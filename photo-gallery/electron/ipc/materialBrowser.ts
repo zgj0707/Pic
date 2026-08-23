@@ -14,8 +14,16 @@ const activeDownloads: Map<string, DownloadItem> = new Map()
 export function registerMaterialBrowserIpc(_mainWindow: BrowserWindow | null) {
   ipcMain.handle('material-browser:open-external', wrapHandler('material-browser:open-external',
     (_event, url: string) => {
-      shell.openExternal(url)
-      return { success: true }
+      try {
+        const parsed = new URL(url)
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          return { success: false, error: '仅支持打开网页来源' }
+        }
+        void shell.openExternal(parsed.toString())
+        return { success: true }
+      } catch {
+        return { success: false, error: '来源网址无效' }
+      }
     }
   ))
 
@@ -95,6 +103,13 @@ export function registerMaterialBrowserIpc(_mainWindow: BrowserWindow | null) {
 
   ipcMain.handle('material-browser:import-to-library', wrapAsyncHandler('material-browser:import-to-library',
     async (_event, filePath: string, sourceUrl: string, tags: string[] = [], projectId?: number | null): Promise<IpcResponse<{ photoId: number; photo?: unknown; alreadyImported: boolean }>> => {
+      if (projectId === null || projectId === undefined) {
+        return { success: false, error: '请先创建或选择一个拍摄项目' }
+      }
+      if (!dbAdapter.get('SELECT id FROM projects WHERE id = ?', [projectId])) {
+        return { success: false, error: '当前拍摄项目不存在，请重新选择项目' }
+      }
+
       // Wait for file to be fully written (download in progress)
       let fileReady = false
       let retryCount = 0
@@ -128,7 +143,7 @@ export function registerMaterialBrowserIpc(_mainWindow: BrowserWindow | null) {
         return { success: true, data: { photoId: existing.id, alreadyImported: true } }
       }
 
-      const photo = await importPhotoToDatabase(filePath, projectId)
+      const photo = await importPhotoToDatabase(filePath, projectId, { type: 'web', url: sourceUrl })
 
       if (photo) {
         // 缩略图改为按需生成，导入时不再同步生成

@@ -74,6 +74,16 @@ function buildPhotoFilterSql(filter: PhotoFilter): { whereClause: string; params
     params.push(filter.projectId)
   }
 
+  if (filter.sourceType) {
+    conditions.push('p.source_type = ?')
+    params.push(filter.sourceType)
+  }
+
+  if (filter.sourceDomain) {
+    conditions.push('p.source_domain = ?')
+    params.push(filter.sourceDomain)
+  }
+
   if (filter.reviewState && filter.reviewState !== 'all') {
     conditions.push('p.review_state = ?')
     params.push(filter.reviewState)
@@ -93,9 +103,9 @@ function buildPhotoFilterSql(filter: PhotoFilter): { whereClause: string; params
   }
 
   if (filter.search) {
-    conditions.push('(p.filename LIKE ? OR p.filepath LIKE ? OR EXISTS (SELECT 1 FROM photo_tags pt JOIN tags t ON pt.tag_id = t.id WHERE pt.photo_id = p.id AND t.name LIKE ?))')
+    conditions.push('(p.filename LIKE ? OR p.filepath LIKE ? OR p.source_url LIKE ? OR p.source_domain LIKE ? OR EXISTS (SELECT 1 FROM photo_tags pt JOIN tags t ON pt.tag_id = t.id WHERE pt.photo_id = p.id AND t.name LIKE ?))')
     const like = `%${filter.search}%`
-    params.push(like, like, like)
+    params.push(like, like, like, like, like)
   }
 
   if (filter.dateFrom) {
@@ -112,6 +122,13 @@ function buildPhotoFilterSql(filter: PhotoFilter): { whereClause: string; params
     const placeholders = buildInPlaceholders(filter.tags.length)
     conditions.push(`EXISTS (SELECT 1 FROM photo_tags pt JOIN tags t ON pt.tag_id = t.id WHERE pt.photo_id = p.id AND t.name IN (${placeholders}))`)
     params.push(...filter.tags)
+  }
+
+  if (filter.tagsAll && filter.tagsAll.length > 0) {
+    for (const tag of filter.tagsAll) {
+      conditions.push('EXISTS (SELECT 1 FROM photo_tags pt JOIN tags t ON pt.tag_id = t.id WHERE pt.photo_id = p.id AND t.name = ?)')
+      params.push(tag)
+    }
   }
 
   if (filter.orientation) {
@@ -233,6 +250,13 @@ export function registerPhotoIpc(): void {
       }
 
       await syncTagsToPhotoExif(id)
+      return { success: true }
+    }
+  ))
+
+  ipcMain.handle('photos:updateSourceNote', wrapHandler('photos:updateSourceNote',
+    (_event, id: number, note: string) => {
+      dbAdapter.run('UPDATE photos SET source_note = ? WHERE id = ?', [typeof note === 'string' ? note.trim() || null : null, id])
       return { success: true }
     }
   ))

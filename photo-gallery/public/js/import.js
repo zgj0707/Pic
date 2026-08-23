@@ -27,8 +27,15 @@ function stopImportProgressListener() {
   }
 }
 
+function ensureCurrentProjectForImport() {
+  if (currentProjectId !== null) return true;
+  showToast('请先创建或选择一个拍摄项目，再收集参考样片', 'warning');
+  createNewProject();
+  return false;
+}
+
 async function importFromFolder() {
-  if (!window.electronAPI) return;
+  if (!ensureCurrentProjectForImport() || !window.electronAPI) return;
   const dir = await window.electronAPI.dialog.openDirectory();
   if (!dir) return;
   showProgress('导入样片', '正在扫描...', '');
@@ -55,7 +62,7 @@ async function importFromFolder() {
 }
 
 async function importFromFiles() {
-  if (!window.electronAPI) return;
+  if (!ensureCurrentProjectForImport() || !window.electronAPI) return;
   const files = await window.electronAPI.dialog.openFile();
   if (!files || files.length === 0) return;
   showProgress('导入样片', '正在导入...', '');

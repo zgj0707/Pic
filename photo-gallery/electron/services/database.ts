@@ -46,7 +46,11 @@ CREATE TABLE IF NOT EXISTS photos (
   project_id INTEGER,
   original_filepath TEXT,
   review_state TEXT NOT NULL DEFAULT 'unreviewed',
-  delivered_at INTEGER
+  delivered_at INTEGER,
+  source_url TEXT,
+  source_domain TEXT,
+  source_type TEXT NOT NULL DEFAULT 'local',
+  source_note TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_photos_rating ON photos(rating);
@@ -200,7 +204,11 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
       project_id INTEGER,
       original_filepath TEXT,
       review_state TEXT NOT NULL DEFAULT 'unreviewed',
-      delivered_at INTEGER
+      delivered_at INTEGER,
+      source_url TEXT,
+      source_domain TEXT,
+      source_type TEXT NOT NULL DEFAULT 'local',
+      source_note TEXT
     )
   `)
   try {
@@ -243,6 +251,22 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
   if (!deliveryColumns.some(column => column.name === 'delivered_at')) {
     db.exec('ALTER TABLE photos ADD COLUMN delivered_at INTEGER')
   }
+
+  // Migration: keep source metadata for web-collected and local reference samples.
+  const sourceColumns = dbAdapter.query('PRAGMA table_info(photos)')
+  if (!sourceColumns.some(column => column.name === 'source_url')) {
+    db.exec('ALTER TABLE photos ADD COLUMN source_url TEXT')
+  }
+  if (!sourceColumns.some(column => column.name === 'source_domain')) {
+    db.exec('ALTER TABLE photos ADD COLUMN source_domain TEXT')
+  }
+  if (!sourceColumns.some(column => column.name === 'source_type')) {
+    db.exec("ALTER TABLE photos ADD COLUMN source_type TEXT NOT NULL DEFAULT 'local'")
+  }
+  if (!sourceColumns.some(column => column.name === 'source_note')) {
+    db.exec('ALTER TABLE photos ADD COLUMN source_note TEXT')
+  }
+  dbAdapter.run("UPDATE photos SET source_type = 'local' WHERE source_type IS NULL OR source_type = ''")
 
   db.exec(SCHEMA)
 
@@ -299,6 +323,13 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
     db.exec('CREATE INDEX IF NOT EXISTS idx_photos_review_state ON photos(review_state)')
   } catch (error) {
     console.error('[database] Failed to create review_state index:', error)
+  }
+
+  try {
+    db.exec('CREATE INDEX IF NOT EXISTS idx_photos_source_type ON photos(source_type)')
+    db.exec('CREATE INDEX IF NOT EXISTS idx_photos_source_domain ON photos(source_domain)')
+  } catch (error) {
+    console.error('[database] Failed to create source indexes:', error)
   }
 
   // 为没有项目的旧数据创建默认项目并关联

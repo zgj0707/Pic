@@ -146,6 +146,7 @@ function closeChangelogModal() {
 }
 
 async function takeBrowserScreenshot() {
+  if (!ensureCurrentProjectForImport()) return;
   const webview = document.getElementById('materialWebview');
   if (!webview) {
     showToast('浏览器未就绪', 'error');
@@ -168,11 +169,12 @@ async function takeBrowserScreenshot() {
 
     if (result.success) {
       showProgress('截图', '正在导入...', '75%');
-      const importResult = await window.electronAPI.materialBrowser.importToLibrary(result.filePath, webview.getURL(), []);
+      const importResult = await window.electronAPI.materialBrowser.importToLibrary(result.filePath, webview.getURL(), [], currentProjectId);
       hideProgress();
 
       if (importResult.success) {
-        showToast('截图已保存并导入样片库', 'success');
+        await loadPhotos(true);
+        showToast('截图已保存并加入当前项目', 'success');
       } else {
         showToast('截图已保存，但导入失败: ' + (importResult.error || ''), 'warning');
       }

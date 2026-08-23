@@ -10,6 +10,17 @@ let currentProjectId = null;
 let currentProjectName = '';
 let activeSmartFilters = new Set();
 
+const REFERENCE_CATEGORY_PRESETS = [
+  { key: 'reference-category-pose', label: '姿势', tag: '姿势' },
+  { key: 'reference-category-composition', label: '构图', tag: '构图' },
+  { key: 'reference-category-lighting', label: '灯光', tag: '灯光' },
+  { key: 'reference-category-scene', label: '场景', tag: '场景' },
+  { key: 'reference-category-styling', label: '服装', tag: '服装' },
+  { key: 'reference-category-makeup', label: '妆发', tag: '妆发' },
+  { key: 'reference-category-color', label: '色彩', tag: '色彩' },
+  { key: 'reference-category-lens', label: '镜头', tag: '镜头' }
+];
+
 const PicState = window.PicState = {};
 Object.defineProperties(PicState, {
   currentProjectId: {
