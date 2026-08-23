@@ -134,6 +134,7 @@ function createNewProject() {
 
 function bindProjectEvents() {
   document.getElementById('createProjectBtn')?.addEventListener('click', createNewProject);
+  document.getElementById('emptyCreateProjectBtn')?.addEventListener('click', createNewProject);
   document.getElementById('projectInputCancel')?.addEventListener('click', closeProjectInputModal);
   document.getElementById('projectInputConfirm')?.addEventListener('click', confirmCreateProject);
   document.getElementById('projectInputField')?.addEventListener('keydown', event => {

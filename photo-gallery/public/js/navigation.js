@@ -65,19 +65,43 @@ function resetToolbarForGallery() {
   document.getElementById('importFolderBtn').classList.remove('hidden');
   document.getElementById('importFilesBtn').classList.remove('hidden');
   document.getElementById('searchInput').parentElement.classList.remove('hidden');
-  document.getElementById('ratingFilter').parentElement.parentElement.classList.remove('hidden');
+  document.getElementById('ratingFilter').parentElement.classList.remove('hidden');
 }
 
 function setEmptyStateForGallery() {
-  document.getElementById('emptyStateTitle').textContent = '还没有导入任何照片';
-  document.getElementById('emptyStateSubtitle').textContent = '点击下方按钮开始导入您的样片';
-  document.getElementById('emptyStateActions').classList.remove('hidden');
+  const title = document.getElementById('emptyStateTitle');
+  const subtitle = document.getElementById('emptyStateSubtitle');
+  const createButton = document.getElementById('emptyCreateProjectBtn');
+  const importButton = document.getElementById('emptyImportFolderBtn2');
+  const clearButton = document.getElementById('emptyClearFilterBtn');
+  const hasFilter = Boolean(
+    photoFilterState?.search || photoFilterState?.rating || photoFilterState?.tag ||
+    Array.from(activeSmartFilters).some(key => key !== 'all')
+  );
+  const noProject = currentProjectId === null;
+
+  if (noProject) {
+    if (title) title.textContent = '还没有项目';
+    if (subtitle) subtitle.textContent = '创建一个项目开始收集和整理照片';
+  } else if (hasFilter) {
+    if (title) title.textContent = '没有符合条件的照片';
+    if (subtitle) subtitle.textContent = '尝试清除筛选条件，或换一个关键词继续查找';
+  } else {
+    if (title) title.textContent = '项目里还没有照片';
+    if (subtitle) subtitle.textContent = '导入文件夹或文件，开始建立当前项目的素材收件箱';
+  }
+
+  createButton?.classList.toggle('hidden', !noProject);
+  importButton?.classList.toggle('hidden', noProject || hasFilter);
+  clearButton?.classList.toggle('hidden', !hasFilter);
 }
 
 function setEmptyStateForRecycleBin() {
   document.getElementById('emptyStateTitle').textContent = '回收站为空';
   document.getElementById('emptyStateSubtitle').textContent = '删除的照片会在这里保留 30 天';
-  document.getElementById('emptyStateActions').classList.add('hidden');
+  document.getElementById('emptyCreateProjectBtn')?.classList.add('hidden');
+  document.getElementById('emptyImportFolderBtn2')?.classList.add('hidden');
+  document.getElementById('emptyClearFilterBtn')?.classList.add('hidden');
 }
 
 function switchToGallery() {
@@ -192,6 +216,3 @@ function bindNavigationEvents() {
 }
 
 bindNavigationEvents();
-
-
-

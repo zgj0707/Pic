@@ -17,71 +17,88 @@
   <script src="vendor/jspdf.umd.min.js"></script>
 </head>
 <body class="bg-bgPrimary text-textPrimary h-screen overflow-hidden select-none">
-  <div class="flex flex-col h-screen">
-    <header class="h-12 bg-bgSecondary flex items-center px-4 border-b border-borderColor shrink-0">
-      <div class="flex items-center space-x-4 mr-4">
-        <span class="text-lg font-semibold text-accent" style="font-family: 'DM Serif Display', serif;">Pic</span>
-        <button id="importFolderBtn" class="px-3 py-1.5 bg-accent text-white text-sm rounded hover:bg-accent/80">
-          <i class="fa-solid fa-folder-open mr-1"></i>导入文件夹
-        </button>
-        <button id="importFilesBtn" class="px-3 py-1.5 bg-bgPrimary border border-borderColor text-textPrimary text-sm rounded hover:bg-bgSecondary">
-          <i class="fa-solid fa-file-import mr-1"></i>导入文件
-        </button>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand-lockup">
+        <span class="brand-mark">Pic</span>
+        <span class="brand-context">摄影工作台</span>
       </div>
-      <div class="relative flex-1 max-w-md">
-        <input type="text" id="searchInput" placeholder="搜索关键词、标签、评级..." 
-          class="w-full h-8 bg-bgPrimary border border-borderColor rounded px-10 text-sm text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent">
-        <i class="fa-solid fa-magnifying-glass absolute right-3 top-1/2 -translate-y-1/2 text-textDisabled"></i>
+      <div class="header-project-context">
+        <span class="header-project-label">当前项目</span>
+        <strong id="headerProjectName">未选择项目</strong>
       </div>
-      <div class="flex items-center space-x-2 ml-4">
-        <button id="deleteBtn" class="p-2 hover:bg-bgPrimary rounded text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed" title="删除选中" disabled>
-          <i class="fa-solid fa-trash"></i>
-        </button>
-        <button id="restoreBtn" class="hidden p-2 hover:bg-bgPrimary rounded text-green-400 hover:text-green-300 disabled:opacity-50 disabled:cursor-not-allowed" title="恢复选中" disabled>
-          <i class="fa-solid fa-rotate-left"></i>
-        </button>
-        <button id="permanentDeleteBtn" class="hidden p-2 hover:bg-bgPrimary rounded text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed" title="彻底删除" disabled>
-          <i class="fa-solid fa-trash-can"></i>
-        </button>
-        <button id="exportPdfBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary disabled:opacity-50 disabled:cursor-not-allowed" title="导出为PDF" disabled>
-          <i class="fa-solid fa-file-pdf"></i>
-        </button>
-        <button id="copyToDesktopBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary disabled:opacity-50 disabled:cursor-not-allowed" title="复制选中到桌面" disabled>
-          <i class="fa-solid fa-copy"></i>
-        </button>
-        <button id="viewToggleBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary" title="切换到紧凑视图">
-          <i class="fa-solid fa-th-large" id="viewToggleIcon"></i>
-        </button>
-        <button id="settingsBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary" title="设置">
-          <i class="fa-solid fa-gear"></i>
-        </button>
-        <button id="metadataPanelBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary" title="批量操作">
-          <i class="fa-solid fa-list-check"></i>
-        </button>
-        <button id="aboutBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary" title="关于">
-          <i class="fa-solid fa-circle-info"></i>
-        </button>
-      </div>
-    </header>
-    
-    <main class="flex-1 overflow-hidden flex">
-      <!-- 左侧项目栏 -->
-      <aside class="project-sidebar">
-        <div class="project-sidebar-header">
-          <h3 class="text-sm font-medium text-textPrimary">项目</h3>
-          <button id="createProjectBtn" class="create-project-btn" title="新建项目">
-            <i class="fa-solid fa-folder-plus text-xs"></i>
+      <div class="header-actions">
+        <div class="header-primary-actions">
+          <button id="importFolderBtn" class="primary-action" type="button">
+            <i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>导入文件夹</span>
+          </button>
+          <button id="importFilesBtn" class="secondary-action" type="button">
+            <i class="fa-solid fa-file-import" aria-hidden="true"></i><span>导入文件</span>
           </button>
         </div>
-        <div id="projectList" class="project-list custom-scrollbar">
-          <!-- projects rendered here -->
+        <div class="header-search">
+          <input type="text" id="searchInput" placeholder="搜索关键词、标签、评级..." aria-label="搜索照片">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        </div>
+        <div class="header-tool-actions" aria-label="照片工具">
+          <button id="deleteBtn" class="tool-button danger" type="button" title="删除选中" aria-label="删除选中" disabled><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+          <button id="restoreBtn" class="tool-button success hidden" type="button" title="恢复选中" aria-label="恢复选中" disabled><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>
+          <button id="permanentDeleteBtn" class="tool-button danger hidden" type="button" title="彻底删除" aria-label="彻底删除" disabled><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
+          <button id="exportPdfBtn" class="tool-button" type="button" title="导出为 PDF" aria-label="导出为 PDF" disabled><i class="fa-solid fa-file-pdf" aria-hidden="true"></i></button>
+          <button id="copyToDesktopBtn" class="tool-button" type="button" title="复制选中到桌面" aria-label="复制选中到桌面" disabled><i class="fa-solid fa-copy" aria-hidden="true"></i></button>
+          <button id="viewToggleBtn" class="tool-button" type="button" title="切换到紧凑视图" aria-label="切换照片视图"><i class="fa-solid fa-th-large" id="viewToggleIcon" aria-hidden="true"></i></button>
+          <button id="metadataPanelBtn" class="tool-button" type="button" title="照片详情和批量操作" aria-label="打开照片详情和批量操作"><i class="fa-solid fa-list-check" aria-hidden="true"></i></button>
+          <button id="aboutBtn" class="tool-button" type="button" title="关于" aria-label="关于 Pic"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
+          <button id="settingsBtn" class="tool-button" type="button" title="设置" aria-label="设置"><i class="fa-solid fa-gear" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </header>
+
+    <div class="workspace-frame">
+      <aside class="project-sidebar" aria-label="项目导航">
+        <div class="project-sidebar-header">
+          <div>
+            <span class="sidebar-eyebrow">工作项目</span>
+            <h2 class="sidebar-title">项目</h2>
+          </div>
+          <button id="createProjectBtn" class="create-project-btn" type="button" title="新建项目">
+            <i class="fa-solid fa-folder-plus" aria-hidden="true"></i><span>新建项目</span>
+          </button>
+        </div>
+        <div id="projectList" class="project-list custom-scrollbar" aria-label="项目列表"></div>
+        <div class="sidebar-auxiliary" aria-label="辅助空间">
+          <span class="sidebar-section-label">辅助空间</span>
+          <button id="statusRecycleBtn" type="button"><i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>回收站</span><span id="recycleCount" class="auxiliary-count"></span></button>
+          <button id="statusBrowserBtn" type="button"><i class="fa-solid fa-photo-film" aria-hidden="true"></i><span>素材浏览器</span></button>
+          <button id="statusSettingsBtn" type="button"><i class="fa-solid fa-gear" aria-hidden="true"></i><span>设置</span></button>
         </div>
       </aside>
-      
-      <!-- 中间主内容 -->
-      <div class="flex-1 flex flex-col overflow-hidden">
-        <!-- 智能筛选条 -->
-        <div class="h-11 bg-bgPrimary border-b border-borderColor shrink-0 px-4 flex items-center gap-2 overflow-x-auto custom-scrollbar">
+
+      <main class="workspace-main" aria-label="项目工作区">
+        <section class="project-titlebar" aria-labelledby="currentProjectTitle">
+          <div class="project-heading">
+            <span class="section-eyebrow">当前项目</span>
+            <h1 id="currentProjectTitle">未选择项目</h1>
+            <p id="currentProjectDescription">创建或选择一个项目开始整理照片</p>
+            <p id="currentProjectDate" class="project-date">尚未设置拍摄日期</p>
+          </div>
+          <div class="project-summary" aria-label="项目统计">
+            <div class="project-stat"><span>照片</span><strong id="projectPhotoCount">0</strong></div>
+            <div class="project-stat"><span>未处理</span><strong id="projectUnprocessedCount">0</strong></div>
+            <div class="project-stat"><span>精选</span><strong id="projectSelectionCount">0</strong></div>
+          </div>
+        </section>
+
+        <nav class="workflow-stagebar" aria-label="工作阶段">
+          <div class="workflow-stage active" aria-current="step"><span class="stage-index">01</span><span>收件箱</span></div>
+          <div class="workflow-stage"><span class="stage-index">02</span><span>全部照片</span></div>
+          <div class="workflow-stage"><span class="stage-index">03</span><span>初筛</span></div>
+          <div class="workflow-stage"><span class="stage-index">04</span><span>精选集</span></div>
+          <div class="workflow-stage"><span class="stage-index">05</span><span>交付</span></div>
+          <span class="workflow-stage-note">当前阶段：收集素材</span>
+        </nav>
+
+        <div class="filter-bar custom-scrollbar" aria-label="照片筛选">
           <span class="filter-chip active" data-filter="all">全部</span>
           <span class="filter-chip" data-filter="rating-5">5 星</span>
           <span class="filter-chip" data-filter="rating-1">1 星及以上</span>
@@ -90,10 +107,10 @@
           <span class="filter-chip" data-filter="orientation-portrait">竖构图</span>
           <span class="filter-chip" data-filter="favorite">收藏</span>
           <span class="filter-chip" data-filter="recent">最近 7 天</span>
-          <div id="cameraFilterChips" class="flex items-center gap-2"></div>
-          <div id="lensFilterChips" class="flex items-center gap-2"></div>
-          <div class="flex-1"></div>
-          <select id="ratingFilter" class="bg-bgSecondary border border-borderColor rounded px-3 py-1 text-xs text-textPrimary focus:outline-none cursor-pointer h-7">
+          <div id="cameraFilterChips" class="filter-chip-group"></div>
+          <div id="lensFilterChips" class="filter-chip-group"></div>
+          <div class="filter-spacer"></div>
+          <select id="ratingFilter" aria-label="评级筛选">
             <option value="">全部评级</option>
             <option value="5">5星</option>
             <option value="4">4星及以上</option>
@@ -101,50 +118,37 @@
             <option value="2">2星及以上</option>
             <option value="1">1星及以上</option>
           </select>
-          <select id="tagFilter" class="bg-bgSecondary border border-borderColor rounded px-3 py-1 text-xs text-textPrimary focus:outline-none cursor-pointer h-7">
-            <option value="">全部标签</option>
-          </select>
-          <button id="clearFilterBtn" class="px-2 py-1 text-xs text-textSecondary hover:text-textPrimary">
-            <i class="fa-solid fa-undo mr-1"></i>重置
-          </button>
-          <span id="photoCount" class="text-textSecondary text-xs ml-2"></span>
+          <select id="tagFilter" aria-label="标签筛选"><option value="">全部标签</option></select>
+          <button id="clearFilterBtn" class="filter-reset" type="button"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>重置</span></button>
+          <span id="photoCount" class="photo-count-label"></span>
         </div>
-        
-        <!-- 样片库 / 回收站 视图 -->
-        <div id="galleryPanel" class="flex-1 flex flex-col overflow-hidden">
-          <div class="flex-1 overflow-y-auto custom-scrollbar" id="photoGridContainer">
-            <div id="emptyState" class="hidden absolute inset-0 flex flex-col items-center justify-center text-textSecondary">
-              <div class="w-20 h-20 rounded-full bg-white/[0.03] flex items-center justify-center mb-6 border border-white/[0.04]">
-                <i class="fa-regular fa-images text-3xl text-accent/60"></i>
-              </div>
-              <p id="emptyStateTitle" class="text-lg mb-1" style="font-family: 'DM Serif Display', serif; color: #f0ede8;">还没有导入任何照片</p>
-              <p id="emptyStateSubtitle" class="text-sm text-textDisabled mb-6">点击下方按钮开始导入您的样片</p>
-              <div id="emptyStateActions" class="flex gap-3">
-                <button id="emptyImportFolderBtn2" class="px-5 py-2.5 bg-accent text-white text-sm rounded-lg hover:bg-accent/90 transition-all duration-200 shadow-lg shadow-accent/20">
-                  <i class="fa-solid fa-folder-open mr-2"></i>导入文件夹
-                </button>
+
+        <section id="galleryPanel" class="gallery-panel" aria-label="照片浏览器">
+          <div class="photo-grid-container custom-scrollbar" id="photoGridContainer">
+            <div id="emptyState" class="empty-state hidden" role="status">
+              <div class="empty-state-icon"><i class="fa-regular fa-images" aria-hidden="true"></i></div>
+              <p id="emptyStateTitle" class="empty-state-title">还没有项目</p>
+              <p id="emptyStateSubtitle" class="empty-state-subtitle">创建一个项目开始收集和整理照片</p>
+              <div id="emptyStateActions" class="empty-state-actions">
+                <button id="emptyCreateProjectBtn" class="primary-action" type="button"><i class="fa-solid fa-folder-plus" aria-hidden="true"></i><span>新建项目</span></button>
+                <button id="emptyImportFolderBtn2" class="secondary-action" type="button"><i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>导入文件夹</span></button>
+                <button id="emptyClearFilterBtn" class="secondary-action hidden" type="button"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>清除筛选</span></button>
               </div>
             </div>
             <div id="photoGrid" class="photo-grid"></div>
           </div>
-        </div>
-        
-        <!-- 底部状态栏 -->
+        </section>
+
         <footer class="status-bar">
-          <div class="flex items-center gap-4">
-            <button id="statusProject" class="hover:text-textPrimary font-medium text-textPrimary"><i class="fa-solid fa-folder mr-1"></i><span>默认项目</span></button>
+          <div class="status-context">
+            <button id="statusProject" type="button"><i class="fa-solid fa-folder" aria-hidden="true"></i><span>未选择项目</span></button>
             <span id="statusView">瀑布流</span>
             <span id="statusCount">0 张照片</span>
-            <button id="statusBackToGallery" class="hidden hover:text-textPrimary text-accent"><i class="fa-solid fa-arrow-left mr-1"></i>回到样片库</button>
+            <button id="statusBackToGallery" class="hidden" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>回到样片库</span></button>
           </div>
-          <div class="flex items-center gap-4">
-            <button id="statusBrowserBtn" class="hover:text-textPrimary"><i class="fa-solid fa-photo-film mr-1"></i>素材浏览器</button>
-            <button id="statusRecycleBtn" class="hover:text-textPrimary"><i class="fa-solid fa-trash-can mr-1"></i>回收站 <span id="recycleCount"></span></button>
-            <button id="statusSettingsBtn" class="hover:text-textPrimary"><i class="fa-solid fa-gear mr-1"></i>设置</button>
-          </div>
+          <div class="status-shortcuts"><span><i class="fa-regular fa-keyboard" aria-hidden="true"></i> 快捷键：Enter 打开，Esc 返回</span></div>
         </footer>
-      </div>
-      
+      </main>
       <!-- 右侧上下文面板 -->
       <div id="metadataPanel" class="metadata-panel">
         <div class="resize-handle"></div>
@@ -211,9 +215,20 @@
           </div>
         </div>
       </div>
-    </main>
+      <aside id="selectionTray" class="selection-tray" aria-label="精选篮">
+        <div class="selection-tray-header">
+          <div><span class="section-eyebrow">交付候选</span><h2>精选篮</h2></div>
+          <span id="selectionTrayCount" class="selection-tray-count">0</span>
+        </div>
+        <div id="selectionTrayEmpty" class="selection-tray-empty">
+          <div class="selection-tray-icon"><i class="fa-solid fa-basket-shopping" aria-hidden="true"></i></div>
+          <p>暂无精选照片</p>
+          <span>精选篮将在后续工作流阶段启用。当前可使用照片选择和批量操作。</span>
+        </div>
+        <div id="selectionTrayItems" class="selection-tray-items hidden"></div>
+      </aside>
+    </div>
   </div>
-  
   <!-- 素材浏览器滑出面板 -->
   <div id="materialBrowserPanel" class="material-browser-panel">
     <div class="h-10 bg-bgPrimary flex items-center px-4 border-b border-borderColor shrink-0">

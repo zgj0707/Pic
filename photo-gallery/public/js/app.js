@@ -287,11 +287,28 @@ function updateStatusBar() {
   const viewEl = document.getElementById('statusView');
   const countEl = document.getElementById('statusCount');
   const backBtn = document.getElementById('statusBackToGallery');
+  const project = projects.find(candidate => candidate.id === currentProjectId);
+  const projectName = project?.name || currentProjectName || '未选择项目';
+  const projectDescription = project?.description || (project ? '未添加项目描述' : '创建或选择一个项目开始整理照片');
+  const projectDate = project?.created_at
+    ? `创建于 ${new Date(Number(project.created_at) * 1000).toLocaleDateString('zh-CN')}`
+    : '尚未设置拍摄日期';
+  const projectPhotoCount = project?.photo_count ?? (isRecycleBinView ? 0 : photoTotalCount);
+  const unprocessedCount = isRecycleBinView ? 0 : projectPhotoCount;
 
   if (projectEl) {
     const span = projectEl.querySelector('span');
-    if (span) span.textContent = currentProjectName || '默认项目';
+    if (span) span.textContent = projectName;
   }
+  document.getElementById('headerProjectName')?.replaceChildren(document.createTextNode(projectName));
+  document.getElementById('currentProjectTitle')?.replaceChildren(document.createTextNode(projectName));
+  document.getElementById('currentProjectDescription')?.replaceChildren(document.createTextNode(projectDescription));
+  document.getElementById('currentProjectDate')?.replaceChildren(document.createTextNode(projectDate));
+  document.getElementById('projectPhotoCount')?.replaceChildren(document.createTextNode(String(projectPhotoCount)));
+  document.getElementById('projectUnprocessedCount')?.replaceChildren(document.createTextNode(String(unprocessedCount)));
+  document.getElementById('projectSelectionCount')?.replaceChildren(document.createTextNode('0'));
+  document.getElementById('selectionTrayCount')?.replaceChildren(document.createTextNode('0'));
+
   if (viewEl) viewEl.textContent = currentViewMode === 'compact' ? '紧凑视图' : '瀑布流';
   if (countEl) {
     countEl.textContent = isRecycleBinView
@@ -304,7 +321,6 @@ function updateStatusBar() {
     backBtn.classList.toggle('hidden', !(isRecycleBinView || browserOpen || settingsOpen));
   }
 }
-
 function updateToolbarForGallery() {
   const deleteBtn = document.getElementById('deleteBtn');
   const restoreBtn = document.getElementById('restoreBtn');
@@ -707,9 +723,11 @@ document.addEventListener('keydown', (e) => {
       closeChangelogModal();
     } else if (!document.getElementById('aboutModal').classList.contains('hidden')) {
       closeAboutModal();
-    } else if (!metadataPanel.classList.contains('open')) {
-      // do nothing
-    } else {
+    } else if (!document.getElementById('settingsModal').classList.contains('hidden')) {
+      returnToGallery();
+    } else if (document.getElementById('materialBrowserPanel').classList.contains('open')) {
+      returnToGallery();
+    } else if (metadataPanel.classList.contains('open')) {
       metadataPanel.classList.remove('open');
     }
   }

@@ -111,7 +111,9 @@ function renderPhotoGrid(resetScroll = false) {
     });
   }
 
-  document.getElementById('emptyState').classList.toggle('hidden', photos.length > 0);
+  if (isRecycleBinView) setEmptyStateForRecycleBin();
+  else setEmptyStateForGallery();
+  document.getElementById('emptyState').classList.toggle('hidden', filteredPhotos.length > 0);
 
   photoGrid.innerHTML = '';
   if (resetScroll && gridScrollContainer) gridScrollContainer.scrollTop = 0;
