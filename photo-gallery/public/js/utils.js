@@ -73,6 +73,30 @@ function hideContextMenu() {
   contextMenuFilePath = '';
 }
 
+function formatFileSize(bytes) {
+  if (bytes === undefined || bytes === null || bytes === 0) return '-';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let size = bytes;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  return `${size.toFixed(1)} ${units[unitIndex]}`;
+}
+
+function formatDateTime(timestamp) {
+  if (!timestamp) return '-';
+  const date = new Date(timestamp * 1000);
+  if (isNaN(date.getTime())) return '-';
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+}
+
 function initContextMenu() {
   const contextMenu = document.getElementById('contextMenu');
   if (!contextMenu) return;

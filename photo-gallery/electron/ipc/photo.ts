@@ -44,6 +44,11 @@ function buildPhotoFilterSql(filter: PhotoFilter): { whereClause: string; params
     params.push(filter.albumId)
   }
 
+  if (filter.projectId !== undefined) {
+    conditions.push('p.project_id = ?')
+    params.push(filter.projectId)
+  }
+
   if (filter.rating !== undefined) {
     conditions.push('p.rating >= ?')
     params.push(filter.rating)
@@ -74,6 +79,26 @@ function buildPhotoFilterSql(filter: PhotoFilter): { whereClause: string; params
     const placeholders = buildInPlaceholders(filter.tags.length)
     conditions.push(`EXISTS (SELECT 1 FROM photo_tags pt JOIN tags t ON pt.tag_id = t.id WHERE pt.photo_id = p.id AND t.name IN (${placeholders}))`)
     params.push(...filter.tags)
+  }
+
+  if (filter.orientation) {
+    if (filter.orientation === 'landscape') {
+      conditions.push('p.width > p.height')
+    } else if (filter.orientation === 'portrait') {
+      conditions.push('p.width < p.height')
+    } else if (filter.orientation === 'square') {
+      conditions.push('p.width = p.height')
+    }
+  }
+
+  if (filter.camera) {
+    conditions.push("(p.exif_json LIKE ? OR p.exif_json LIKE ?)")
+    params.push(`%"Model":"${filter.camera}"%`, `%"cameraModel":"${filter.camera}"%`)
+  }
+
+  if (filter.lens) {
+    conditions.push("(p.exif_json LIKE ? OR p.exif_json LIKE ?)")
+    params.push(`%"LensModel":"${filter.lens}"%`, `%"lensModel":"${filter.lens}"%`)
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''

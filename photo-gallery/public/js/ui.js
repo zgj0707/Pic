@@ -29,18 +29,14 @@ function initializeWebview() {
   }
 }
 
-function updateNavActiveState(activeId) {
-  ['nav-gallery', 'nav-recycle', 'nav-browser'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (id === activeId) {
-      el.classList.add('active', 'text-textPrimary');
-      el.classList.remove('text-textSecondary');
-    } else {
-      el.classList.remove('active', 'text-textPrimary');
-      el.classList.add('text-textSecondary');
-    }
-  });
+function openMaterialBrowserPanel() {
+  const panel = document.getElementById('materialBrowserPanel');
+  if (panel) panel.classList.add('open');
+}
+
+function closeMaterialBrowserPanel() {
+  const panel = document.getElementById('materialBrowserPanel');
+  if (panel) panel.classList.remove('open');
 }
 
 function resetToolbarForGallery() {
@@ -67,13 +63,7 @@ function setEmptyStateForRecycleBin() {
 
 function switchToGallery() {
   isRecycleBinView = false;
-  document.getElementById('galleryPanel').classList.remove('hidden');
-  document.getElementById('browserPanel').classList.add('hidden');
-  updateNavActiveState('nav-gallery');
   currentPanel = 'gallery';
-  document.getElementById('searchInput').value = '';
-  document.getElementById('ratingFilter').value = '';
-  document.getElementById('tagFilter').value = '';
   selectedPhotos.clear();
   document.getElementById('selectedCount').textContent = '已选择 0 张照片';
   document.getElementById('exportPdfBtn').disabled = true;
@@ -81,15 +71,14 @@ function switchToGallery() {
   document.getElementById('copyToDesktopBtn').disabled = true;
   resetToolbarForGallery();
   setEmptyStateForGallery();
+  updateStatusBar();
+  updateContextPanel();
   if (window.electronAPI) loadPhotos(true);
   else renderPhotoGrid();
 }
 
 function switchToRecycleBin() {
   isRecycleBinView = true;
-  document.getElementById('galleryPanel').classList.remove('hidden');
-  document.getElementById('browserPanel').classList.add('hidden');
-  updateNavActiveState('nav-recycle');
   currentPanel = 'recycle';
   selectedPhotos.clear();
   document.getElementById('selectedCount').textContent = '已选择 0 张照片';
@@ -100,20 +89,15 @@ function switchToRecycleBin() {
   document.getElementById('permanentDeleteBtn').disabled = true;
   document.getElementById('importFolderBtn').classList.add('hidden');
   document.getElementById('importFilesBtn').classList.add('hidden');
-  document.getElementById('searchInput').parentElement.classList.add('hidden');
-  document.getElementById('ratingFilter').parentElement.parentElement.classList.add('hidden');
+  const searchWrap = document.getElementById('searchInput')?.parentElement;
+  const ratingWrap = document.getElementById('ratingFilter')?.parentElement;
+  if (searchWrap) searchWrap.classList.add('hidden');
+  if (ratingWrap) ratingWrap.classList.add('hidden');
   setEmptyStateForRecycleBin();
+  updateStatusBar();
+  updateContextPanel();
   if (window.electronAPI) loadPhotos(true);
   else renderPhotoGrid();
-}
-
-function switchToBrowser() {
-  isRecycleBinView = false;
-  document.getElementById('galleryPanel').classList.add('hidden');
-  document.getElementById('browserPanel').classList.remove('hidden');
-  updateNavActiveState('nav-browser');
-  currentPanel = 'browser';
-  resetToolbarForGallery();
 }
 
 function updateBrowserModeUI() {
@@ -180,6 +164,7 @@ function setViewMode(mode) {
   }
 
   updateViewToggleButton();
+  updateStatusBar();
 }
 
 async function loadVersionInfo() {

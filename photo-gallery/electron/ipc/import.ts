@@ -28,7 +28,10 @@ function notifyProgress(progress: ImportProgress): void {
  * @returns The photo record if imported, or with alreadyImported=true if duplicate.
  *          Returns null if the file is unsupported or invalid.
  */
-export async function importPhotoToDatabase(filePath: string): Promise<{ id: number; filename: string; filepath: string; rating: number; tags: string[]; alreadyImported: boolean } | null> {
+export async function importPhotoToDatabase(
+  filePath: string,
+  projectId?: number | null
+): Promise<{ id: number; filename: string; filepath: string; rating: number; tags: string[]; alreadyImported: boolean } | null> {
   if (!isSupportedFile(filePath) || !existsSync(filePath)) {
     return null
   }
@@ -77,7 +80,7 @@ export async function importPhotoToDatabase(filePath: string): Promise<{ id: num
     }
   }
 
-  const photoId = dbAdapter.insert('photos', {
+  const insertData: Record<string, unknown> = {
     filename,
     filepath: filePath,
     filesize: statInfo.size,
@@ -85,7 +88,12 @@ export async function importPhotoToDatabase(filePath: string): Promise<{ id: num
     height,
     created_at: createdAt,
     exif_json: exifJson
-  })
+  }
+  if (projectId !== undefined && projectId !== null) {
+    insertData.project_id = projectId
+  }
+
+  const photoId = dbAdapter.insert('photos', insertData)
 
   if (photoId !== null) {
     return { id: photoId, filename, filepath: filePath, rating: 0, tags: [], alreadyImported: false }
@@ -99,7 +107,8 @@ export async function importPhotoToDatabase(filePath: string): Promise<{ id: num
  */
 async function performImport(
   filePaths: string[],
-  statusLabel: string
+  statusLabel: string,
+  projectId?: number | null
 ): Promise<ImportResult> {
   notifyProgress({ total: 0, current: 0, status: 'scanning', message: '扫描文件中...' })
   notifyProgress({ total: filePaths.length, current: 0, status: 'importing', message: `${statusLabel}... 0/${filePaths.length}` })
@@ -116,7 +125,7 @@ async function performImport(
       message: `${statusLabel}... ${i + 1}/${filePaths.length} (新增: ${imported}, 跳过: ${skipped})`
     })
 
-    const photo = await importPhotoToDatabase(filePath)
+    const photo = await importPhotoToDatabase(filePath, projectId)
     if (photo) {
       if (photo.alreadyImported) {
         skipped++
@@ -138,9 +147,9 @@ export function registerImportIpc(mainWindow: BrowserWindow | null): void {
   mainWindowRef = mainWindow
 
   ipcMain.handle('import:fromDirectory', wrapAsyncHandler('import:fromDirectory',
-    async (_event, dirPath: string): Promise<ImportResult> => {
+    async (_event, dirPath: string, projectId?: number | null): Promise<ImportResult> => {
       const filePaths = scanDirectory(dirPath)
-      const result = await performImport(filePaths, '导入中')
+      const result = await performImport(filePaths, '导入中', projectId)
 
       dbAdapter.insert('import_history', {
         source_path: dirPath,
@@ -152,8 +161,8 @@ export function registerImportIpc(mainWindow: BrowserWindow | null): void {
   ))
 
   ipcMain.handle('import:fromFiles', wrapAsyncHandler('import:fromFiles',
-    async (_event, filePaths: string[]): Promise<ImportResult> => {
-      return await performImport(filePaths, '导入中')
+    async (_event, filePaths: string[], projectId?: number | null): Promise<ImportResult> => {
+      return await performImport(filePaths, '导入中', projectId)
     }
   ))
 

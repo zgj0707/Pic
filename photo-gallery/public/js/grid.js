@@ -338,30 +338,36 @@ function updatePhotoCount() {
       ? `${photoLoadedCount}/${photoTotalCount} 张已删除照片`
       : `${photos.length} 张已删除照片`;
     document.getElementById('photoCount').textContent = hasMore ? `${base}（加载中…）` : base;
-    return;
+  } else {
+    const base = window.electronAPI
+      ? `${photoLoadedCount}/${photoTotalCount} 张照片`
+      : (filteredPhotos.length === photos.length
+          ? `${photos.length} 张照片`
+          : `${filteredPhotos.length}/${photos.length} 张照片`);
+    document.getElementById('photoCount').textContent = hasMore ? `${base}（加载中…）` : base;
   }
-  const base = window.electronAPI
-    ? `${photoLoadedCount}/${photoTotalCount} 张照片`
-    : (filteredPhotos.length === photos.length
-        ? `${photos.length} 张照片`
-        : `${filteredPhotos.length}/${photos.length} 张照片`);
-  document.getElementById('photoCount').textContent = hasMore ? `${base}（加载中…）` : base;
+  updateStatusBar();
 }
 
 function updateSelectedCount() {
   const count = selectedPhotos.size;
-  document.getElementById('selectedCount').textContent = `已选择 ${count} 张照片`;
+  const selectedCountEl = document.getElementById('selectedCount');
+  if (selectedCountEl) selectedCountEl.textContent = `已选择 ${count} 张照片`;
   if (isRecycleBinView) {
     const restoreBtn = document.getElementById('restoreBtn');
     const permanentDeleteBtn = document.getElementById('permanentDeleteBtn');
     if (restoreBtn) restoreBtn.disabled = count === 0;
     if (permanentDeleteBtn) permanentDeleteBtn.disabled = count === 0;
   } else {
-    document.getElementById('deleteBtn').disabled = count === 0;
-    document.getElementById('exportPdfBtn').disabled = count === 0;
-    document.getElementById('copyToDesktopBtn').disabled = count === 0;
+    const deleteBtn = document.getElementById('deleteBtn');
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+    const copyToDesktopBtn = document.getElementById('copyToDesktopBtn');
+    if (deleteBtn) deleteBtn.disabled = count === 0;
+    if (exportPdfBtn) exportPdfBtn.disabled = count === 0;
+    if (copyToDesktopBtn) copyToDesktopBtn.disabled = count === 0;
   }
   updateApplyButtons();
+  updateContextPanel();
 }
 
 function updateApplyButtons() {

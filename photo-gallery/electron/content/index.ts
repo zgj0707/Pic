@@ -42,6 +42,7 @@ import { registerRenameIpc } from '../ipc/rename'
 import { registerTagManagerIpc } from '../ipc/tagManager'
 import { registerExifToolIpc } from '../ipc/exifTool'
 import { registerDeleteIpc } from '../ipc/delete'
+import { registerProjectIpc } from '../ipc/project'
 import { registerMaterialBrowserIpc, setupDownloadHandler } from '../ipc/materialBrowser'
 
 // ─── Services (cache manager, thumbnail, exif sync) ───
@@ -51,11 +52,11 @@ import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
 import type { ChangelogEntry } from '../types'
 
 export const name = 'pic-content'
-export const version = '2.5.1'
+export const version = '3.2.0'
 
 // Content module capabilities (what the shell can rely on).
 export const capabilities = {
-  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser'],
+  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'projects'],
   services: ['cache', 'changelog', 'window'],
   db: true
 }
@@ -119,6 +120,7 @@ export function registerIpc(c: ContentContext): void {
   registerTagManagerIpc()
   registerExifToolIpc()
   registerDeleteIpc()
+  registerProjectIpc()
   registerMaterialBrowserIpc(c.getMainWindow())
 
   // ── Generic app/dialog/window/path/shell/cache handlers (moved from main.ts) ──

@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
-  Photo, PhotoQueryOptions, PhotoFilter, Tag, ExifData,
+  Photo, PhotoQueryOptions, PhotoFilter, Tag, ExifData, Project,
   ImportResult, ImportProgress,
   CacheStats, CacheCleanResult, IpcResponse, ChangelogEntry
 } from './types'
@@ -34,8 +34,8 @@ export interface ElectronAPI {
     copyImageToClipboard: (filePath: string) => Promise<{ success: boolean; error?: string }>
   }
   import: {
-    fromDirectory: (dirPath: string) => Promise<ImportResult>
-    fromFiles: (filePaths: string[]) => Promise<ImportResult>
+    fromDirectory: (dirPath: string, projectId?: number | null) => Promise<ImportResult>
+    fromFiles: (filePaths: string[], projectId?: number | null) => Promise<ImportResult>
     getProgress: () => Promise<ImportProgress>
     onProgress: (callback: (progress: ImportProgress) => void) => () => void
   }
@@ -68,12 +68,19 @@ export interface ElectronAPI {
     openDownloadDir: () => Promise<string>
     clearDownloadCache: () => Promise<{ success: boolean }>
     saveScreenshot: (imageData: Buffer | string, filename: string) => Promise<IpcResponse<{ filePath: string }>>
-    importToLibrary: (filePath: string, sourceUrl: string, tags: string[]) =>
+    importToLibrary: (filePath: string, sourceUrl: string, tags: string[], projectId?: number | null) =>
       Promise<IpcResponse<{ photoId: number; photo?: unknown; alreadyImported: boolean }>>
     onDownloadStarted: (callback: (data: { id: string; fileName: string; filePath: string; totalBytes: number }) => void) => void
     onDownloadProgress: (callback: (data: { id: string; receivedBytes: number; totalBytes: number; percent: number }) => void) => void
     onDownloadComplete: (callback: (data: { id: string; fileName: string; filePath: string }) => void) => void
     onDownloadFailed: (callback: (data: { id: string; fileName: string; state: string }) => void) => void
+  }
+  projects: {
+    getAll: () => Promise<Project[]>
+    getById: (id: number) => Promise<Project | null>
+    create: (name: string, description?: string) => Promise<{ success: boolean; id?: number; error?: string }>
+    update: (id: number, name: string, description?: string) => Promise<{ success: boolean; error?: string }>
+    delete: (id: number) => Promise<{ success: boolean; error?: string }>
   }
   app: {
     getVersionInfo: () => Promise<{ name: string; version: string; electronVersion: string; chromeVersion: string; nodeVersion: string }>
@@ -117,8 +124,10 @@ const api: ElectronAPI = {
     copyImageToClipboard: (filePath: string) => ipcRenderer.invoke('photos:copyImageToClipboard', filePath)
   },
   import: {
-    fromDirectory: (dirPath: string) => ipcRenderer.invoke('import:fromDirectory', dirPath),
-    fromFiles: (filePaths: string[]) => ipcRenderer.invoke('import:fromFiles', filePaths),
+    fromDirectory: (dirPath: string, projectId?: number | null) =>
+      ipcRenderer.invoke('import:fromDirectory', dirPath, projectId),
+    fromFiles: (filePaths: string[], projectId?: number | null) =>
+      ipcRenderer.invoke('import:fromFiles', filePaths, projectId),
     getProgress: () => ipcRenderer.invoke('import:getProgress'),
     onProgress: (callback) => {
       const wrapped = (_event: unknown, data: ImportProgress) => callback(data)
@@ -155,11 +164,19 @@ const api: ElectronAPI = {
     openDownloadDir: () => ipcRenderer.invoke('material-browser:open-download-dir'),
     clearDownloadCache: () => ipcRenderer.invoke('material-browser:clear-download-cache'),
     saveScreenshot: (imageData: Buffer | string, filename: string) => ipcRenderer.invoke('material-browser:save-screenshot', imageData, filename),
-    importToLibrary: (filePath: string, sourceUrl: string, tags: string[]) => ipcRenderer.invoke('material-browser:import-to-library', filePath, sourceUrl, tags),
+    importToLibrary: (filePath: string, sourceUrl: string, tags: string[], projectId?: number | null) =>
+      ipcRenderer.invoke('material-browser:import-to-library', filePath, sourceUrl, tags, projectId),
     onDownloadStarted: (callback) => ipcRenderer.on('material-browser:download-started', (_event, data) => callback(data)),
     onDownloadProgress: (callback) => ipcRenderer.on('material-browser:download-progress', (_event, data) => callback(data)),
     onDownloadComplete: (callback) => ipcRenderer.on('material-browser:download-complete', (_event, data) => callback(data)),
     onDownloadFailed: (callback) => ipcRenderer.on('material-browser:download-failed', (_event, data) => callback(data))
+  },
+  projects: {
+    getAll: () => ipcRenderer.invoke('projects:getAll'),
+    getById: (id: number) => ipcRenderer.invoke('projects:getById', id),
+    create: (name: string, description?: string) => ipcRenderer.invoke('projects:create', name, description),
+    update: (id: number, name: string, description?: string) => ipcRenderer.invoke('projects:update', id, name, description),
+    delete: (id: number) => ipcRenderer.invoke('projects:delete', id)
   },
   app: {
     getVersionInfo: () => ipcRenderer.invoke('app:getVersionInfo'),

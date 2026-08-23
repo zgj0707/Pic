@@ -461,29 +461,185 @@
       background: transparent !important;
       border-left: 1px solid rgba(255,255,255,0.04) !important;
     }
+
+    /* === Project Sidebar === */
+    .project-sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+    }
+    .project-sidebar-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .project-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    .project-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: background 0.15s ease, color 0.15s ease;
+      margin-bottom: 2px;
+    }
+    .project-item:hover {
+      background: rgba(255,255,255,0.04);
+      color: var(--text-warm);
+    }
+    .project-item.active {
+      background: rgba(201, 149, 90, 0.12);
+      color: var(--accent);
+    }
+    .project-item .project-name {
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+    .project-item .photo-count {
+      font-size: 11px;
+      color: inherit;
+      opacity: 0.7;
+      margin-left: 8px;
+    }
+    .create-project-btn {
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      color: var(--text-muted);
+      transition: all 0.15s ease;
+    }
+    .create-project-btn:hover {
+      background: rgba(255,255,255,0.08);
+      color: var(--text-warm);
+    }
+
+    /* === Smart Filter Bar === */
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .filter-chip:hover {
+      background: rgba(255,255,255,0.08);
+      color: var(--text-warm);
+    }
+    .filter-chip.active {
+      background: rgba(201, 149, 90, 0.15);
+      border-color: rgba(201, 149, 90, 0.35);
+      color: var(--accent);
+    }
+
+    /* === Status Bar === */
+    .status-bar {
+      height: 28px;
+      flex-shrink: 0;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .status-bar button {
+      color: inherit;
+      transition: color 0.15s ease;
+    }
+
+    /* === Material Browser Slide-over Panel === */
+    .material-browser-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 520px;
+      max-width: 90vw;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border-subtle);
+      z-index: 900;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      display: flex;
+      flex-direction: column;
+    }
+    .material-browser-panel.open {
+      transform: translateX(0);
+    }
+
+    /* === Single Photo Inspector === */
+    .single-photo-inspector .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 13px;
+    }
+    .single-photo-inspector .info-label {
+      color: var(--text-muted);
+    }
+    .single-photo-inspector .info-value {
+      color: var(--text-warm);
+      text-align: right;
+      max-width: 60%;
+      word-break: break-word;
+    }
+    .single-photo-inspector .inspector-thumb {
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      background: var(--bg-deep);
+    }
+
     .hidden { display: none !important; }
   </style>
 </head>
 <body class="bg-bgPrimary text-textPrimary h-screen overflow-hidden select-none">
   <div class="flex flex-col h-screen">
     <header class="h-12 bg-bgSecondary flex items-center px-4 border-b border-borderColor shrink-0">
-      <nav class="flex items-center space-x-6 mr-4">
-        <button id="nav-gallery" class="nav-item active text-textPrimary font-medium py-3 text-sm">样片库</button>
-        <button id="nav-recycle" class="nav-item text-textSecondary hover:text-textPrimary py-3 text-sm">回收站</button>
-        <button id="nav-browser" class="nav-item text-textSecondary hover:text-textPrimary py-3 text-sm">素材浏览器</button>
-      </nav>
-      <button id="importFolderBtn" class="px-3 py-1.5 bg-accent text-white text-sm rounded hover:bg-accent/80 mr-3">
-        <i class="fa-solid fa-folder-open mr-1"></i>导入文件夹
-      </button>
-      <button id="importFilesBtn" class="px-3 py-1.5 bg-bgPrimary border border-borderColor text-textPrimary text-sm rounded hover:bg-bgSecondary mr-4">
-        <i class="fa-solid fa-file-import mr-1"></i>导入文件
-      </button>
-      <div class="relative flex-1 max-w-sm">
+      <div class="flex items-center space-x-4 mr-4">
+        <span class="text-lg font-semibold text-accent" style="font-family: 'DM Serif Display', serif;">Pic</span>
+        <button id="importFolderBtn" class="px-3 py-1.5 bg-accent text-white text-sm rounded hover:bg-accent/80">
+          <i class="fa-solid fa-folder-open mr-1"></i>导入文件夹
+        </button>
+        <button id="importFilesBtn" class="px-3 py-1.5 bg-bgPrimary border border-borderColor text-textPrimary text-sm rounded hover:bg-bgSecondary">
+          <i class="fa-solid fa-file-import mr-1"></i>导入文件
+        </button>
+      </div>
+      <div class="relative flex-1 max-w-md">
         <input type="text" id="searchInput" placeholder="搜索关键词、标签、评级..." 
           class="w-full h-8 bg-bgPrimary border border-borderColor rounded px-10 text-sm text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent">
         <i class="fa-solid fa-magnifying-glass absolute right-3 top-1/2 -translate-y-1/2 text-textDisabled"></i>
       </div>
-      <div class="flex items-center space-x-3 ml-4">
+      <div class="flex items-center space-x-2 ml-4">
         <button id="deleteBtn" class="p-2 hover:bg-bgPrimary rounded text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed" title="删除选中" disabled>
           <i class="fa-solid fa-trash"></i>
         </button>
@@ -515,142 +671,204 @@
     </header>
     
     <main class="flex-1 overflow-hidden flex">
-      <div id="galleryPanel" class="flex-1 flex flex-col overflow-hidden">
-        <div class="h-10 bg-bgPrimary flex items-center justify-between px-4 border-b border-borderColor shrink-0">
-          <div class="flex items-center space-x-3">
-            <span class="text-textSecondary text-sm">筛选:</span>
-            <select id="ratingFilter" class="bg-bgSecondary border border-borderColor rounded px-3 py-1.5 text-sm text-textPrimary focus:outline-none cursor-pointer">
-              <option value="">全部评级</option>
-              <option value="5">5星</option>
-              <option value="4">4星及以上</option>
-              <option value="3">3星及以上</option>
-              <option value="2">2星及以上</option>
-              <option value="1">1星及以上</option>
-            </select>
-            <select id="tagFilter" class="bg-bgSecondary border border-borderColor rounded px-3 py-1.5 text-sm text-textPrimary focus:outline-none cursor-pointer">
-              <option value="">全部标签</option>
-            </select>
-            <button id="clearFilterBtn" class="px-2 py-1 text-xs text-textSecondary hover:text-textPrimary">
-              <i class="fa-solid fa-undo mr-1"></i>重置
-            </button>
-            <span id="photoCount" class="text-textSecondary text-sm ml-4"></span>
+      <!-- 左侧项目栏 -->
+      <aside class="project-sidebar">
+        <div class="project-sidebar-header">
+          <h3 class="text-sm font-medium text-textPrimary">项目</h3>
+          <button id="createProjectBtn" class="create-project-btn" title="新建项目">
+            <i class="fa-solid fa-plus text-xs"></i>
+          </button>
+        </div>
+        <div id="projectList" class="project-list custom-scrollbar">
+          <!-- projects rendered here -->
+        </div>
+      </aside>
+      
+      <!-- 中间主内容 -->
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <!-- 智能筛选条 -->
+        <div class="h-11 bg-bgPrimary border-b border-borderColor shrink-0 px-4 flex items-center gap-2 overflow-x-auto custom-scrollbar">
+          <span class="filter-chip active" data-filter="all">全部</span>
+          <span class="filter-chip" data-filter="rating-5">5 星</span>
+          <span class="filter-chip" data-filter="rating-1">1 星及以上</span>
+          <span class="filter-chip" data-filter="unrated">未评级</span>
+          <span class="filter-chip" data-filter="orientation-landscape">横构图</span>
+          <span class="filter-chip" data-filter="orientation-portrait">竖构图</span>
+          <span class="filter-chip" data-filter="favorite">收藏</span>
+          <span class="filter-chip" data-filter="recent">最近 7 天</span>
+          <div id="cameraFilterChips" class="flex items-center gap-2"></div>
+          <div id="lensFilterChips" class="flex items-center gap-2"></div>
+          <div class="flex-1"></div>
+          <select id="ratingFilter" class="bg-bgSecondary border border-borderColor rounded px-3 py-1 text-xs text-textPrimary focus:outline-none cursor-pointer h-7">
+            <option value="">全部评级</option>
+            <option value="5">5星</option>
+            <option value="4">4星及以上</option>
+            <option value="3">3星及以上</option>
+            <option value="2">2星及以上</option>
+            <option value="1">1星及以上</option>
+          </select>
+          <select id="tagFilter" class="bg-bgSecondary border border-borderColor rounded px-3 py-1 text-xs text-textPrimary focus:outline-none cursor-pointer h-7">
+            <option value="">全部标签</option>
+          </select>
+          <button id="clearFilterBtn" class="px-2 py-1 text-xs text-textSecondary hover:text-textPrimary">
+            <i class="fa-solid fa-undo mr-1"></i>重置
+          </button>
+          <span id="photoCount" class="text-textSecondary text-xs ml-2"></span>
+        </div>
+        
+        <!-- 样片库 / 回收站 视图 -->
+        <div id="galleryPanel" class="flex-1 flex flex-col overflow-hidden">
+          <div class="flex-1 overflow-y-auto custom-scrollbar" id="photoGridContainer">
+            <div id="emptyState" class="hidden absolute inset-0 flex flex-col items-center justify-center text-textSecondary">
+              <div class="w-20 h-20 rounded-full bg-white/[0.03] flex items-center justify-center mb-6 border border-white/[0.04]">
+                <i class="fa-regular fa-images text-3xl text-accent/60"></i>
+              </div>
+              <p id="emptyStateTitle" class="text-lg mb-1" style="font-family: 'DM Serif Display', serif; color: #f0ede8;">还没有导入任何照片</p>
+              <p id="emptyStateSubtitle" class="text-sm text-textDisabled mb-6">点击下方按钮开始导入您的样片</p>
+              <div id="emptyStateActions" class="flex gap-3">
+                <button id="emptyImportFolderBtn2" class="px-5 py-2.5 bg-accent text-white text-sm rounded-lg hover:bg-accent/90 transition-all duration-200 shadow-lg shadow-accent/20">
+                  <i class="fa-solid fa-folder-open mr-2"></i>导入文件夹
+                </button>
+              </div>
+            </div>
+            <div id="photoGrid" class="photo-grid"></div>
           </div>
         </div>
         
-        <div class="flex-1 overflow-y-auto custom-scrollbar" id="photoGridContainer">
-          <div id="emptyState" class="hidden absolute inset-0 flex flex-col items-center justify-center text-textSecondary">
-            <div class="w-20 h-20 rounded-full bg-white/[0.03] flex items-center justify-center mb-6 border border-white/[0.04]">
-              <i class="fa-regular fa-images text-3xl text-accent/60"></i>
-            </div>
-            <p id="emptyStateTitle" class="text-lg mb-1" style="font-family: 'DM Serif Display', serif; color: #f0ede8;">还没有导入任何照片</p>
-            <p id="emptyStateSubtitle" class="text-sm text-textDisabled mb-6">点击下方按钮开始导入您的样片</p>
-            <div id="emptyStateActions" class="flex gap-3">
-              <button id="emptyImportFolderBtn2" class="px-5 py-2.5 bg-accent text-white text-sm rounded-lg hover:bg-accent/90 transition-all duration-200 shadow-lg shadow-accent/20">
-                <i class="fa-solid fa-folder-open mr-2"></i>导入文件夹
-              </button>
-            </div>
+        <!-- 底部状态栏 -->
+        <footer class="status-bar">
+          <div class="flex items-center gap-4">
+            <span id="statusProject">默认项目</span>
+            <span id="statusView">瀑布流</span>
+            <span id="statusCount">0 张照片</span>
           </div>
-          <div id="photoGrid" class="photo-grid"></div>
-        </div>
+          <div class="flex items-center gap-4">
+            <button id="statusBrowserBtn" class="hover:text-textPrimary"><i class="fa-solid fa-globe mr-1"></i>素材浏览器</button>
+            <button id="statusRecycleBtn" class="hover:text-textPrimary"><i class="fa-solid fa-trash-can mr-1"></i>回收站 <span id="recycleCount"></span></button>
+            <button id="statusSettingsBtn" class="hover:text-textPrimary"><i class="fa-solid fa-cog mr-1"></i>设置</button>
+          </div>
+        </footer>
       </div>
       
-      <div id="browserPanel" class="flex-1 flex flex-col overflow-hidden hidden">
-        <div class="h-10 bg-bgPrimary flex items-center px-4 border-b border-borderColor shrink-0">
-          <div class="flex items-center space-x-2 mr-4">
-            <button id="browserBack" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="后退">
-              <i class="fa-solid fa-arrow-left"></i>
-            </button>
-            <button id="browserForward" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="前进">
-              <i class="fa-solid fa-arrow-right"></i>
-            </button>
-            <button id="browserRefresh" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="刷新">
-              <i class="fa-solid fa-rotate-right"></i>
-            </button>
-          </div>
-          <div class="flex-1 flex items-center space-x-2">
-            <input id="browserUrl" type="text" value="https://www.xiaohongshu.com" 
-              class="flex-1 h-8 bg-bgSecondary border border-borderColor rounded px-3 text-sm text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent">
-            <button id="browserGo" class="px-3 py-1.5 bg-accent text-white text-sm rounded hover:bg-accent/80">
-              <i class="fa-solid fa-paper-plane"></i>
-            </button>
-          </div>
-          <div class="flex items-center space-x-2 ml-4">
-            <button id="browserModeToggle" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="切换浏览器模式">
-              <i class="fa-solid fa-globe" id="browserModeIcon"></i>
-            </button>
-            <button id="takeScreenshot" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="截图并保存">
-              <i class="fa-solid fa-camera"></i>
-            </button>
-            <button id="openDownloadDir" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="打开下载目录">
-              <i class="fa-solid fa-folder-open"></i>
-            </button>
-            <button id="clearDownloadCache" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="清空下载缓存">
-              <i class="fa-solid fa-trash"></i>
-            </button>
-          </div>
-        </div>
-        
-        <div class="flex-1 overflow-hidden">
-          <webview id="materialWebview" src="https://www.xiaohongshu.com"
-            class="w-full h-full"
-            webpreferences="webviewTag=true;plugins=false;nodeIntegration=false;contextIsolation=true;javascript=yes;webSecurity=yes;spellcheck=false"
-            allowpopups></webview>
-        </div>
-        
-        <div id="downloadProgressBar" class="hidden h-2 bg-bgSecondary border-t border-borderColor">
-          <div id="downloadProgressInner" class="h-full bg-accent transition-all" style="width: 0%"></div>
-        </div>
-      </div>
+      <!-- 右侧上下文面板 -->
       <div id="metadataPanel" class="metadata-panel">
         <div class="resize-handle"></div>
         <div class="panel-content custom-scrollbar">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold">批量操作</h3>
+            <h3 id="metadataPanelTitle" class="text-lg font-semibold">批量操作</h3>
             <button id="closeMetadataPanel" class="p-1 hover:bg-white/10 rounded"><i class="fa-solid fa-times"></i></button>
           </div>
           <div id="selectedCount" class="text-textSecondary text-sm mb-4">已选择 0 张照片</div>
-          <div class="mb-6">
-            <h4 class="text-sm font-medium mb-2">批量评级</h4>
-            <div class="star-rating" id="batchRating">
-              <span class="star" data-rating="1"><i class="fa-regular fa-star"></i></span>
-              <span class="star" data-rating="2"><i class="fa-regular fa-star"></i></span>
-              <span class="star" data-rating="3"><i class="fa-regular fa-star"></i></span>
-              <span class="star" data-rating="4"><i class="fa-regular fa-star"></i></span>
-              <span class="star" data-rating="5"><i class="fa-regular fa-star"></i></span>
-            </div>
-            <div class="flex gap-2 mt-2">
-              <button id="applyBatchRatingBtn" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">应用评级</button>
-              <button id="clearBatchRatingBtn" class="px-3 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700">清空</button>
-            </div>
+          
+          <!-- 单张照片元数据 -->
+          <div id="singlePhotoInspector" class="single-photo-inspector hidden">
+            <img id="inspectorThumb" class="inspector-thumb" src="" alt="">
+            <div class="info-row"><span class="info-label">文件名</span><span id="inspectorFilename" class="info-value"></span></div>
+            <div class="info-row"><span class="info-label">路径</span><span id="inspectorPath" class="info-value"></span></div>
+            <div class="info-row"><span class="info-label">尺寸</span><span id="inspectorDimensions" class="info-value"></span></div>
+            <div class="info-row"><span class="info-label">大小</span><span id="inspectorFilesize" class="info-value"></span></div>
+            <div class="info-row"><span class="info-label">导入时间</span><span id="inspectorImportedAt" class="info-value"></span></div>
+            <div class="info-row"><span class="info-label">拍摄时间</span><span id="inspectorDateTaken" class="info-value"></span></div>
+            <div class="info-row"><span class="info-label">相机</span><span id="inspectorCamera" class="info-value"></span></div>
+            <div class="info-row"><span class="info-label">镜头</span><span id="inspectorLens" class="info-value"></span></div>
+            <div class="info-row"><span class="info-label">评级</span><span id="inspectorRating" class="info-value"></span></div>
+            <div class="info-row"><span class="info-label">标签</span><span id="inspectorTags" class="info-value"></span></div>
           </div>
-          <div class="mb-6">
-            <h4 class="text-sm font-medium mb-2">批量添加标签</h4>
-            <div class="flex gap-2 mb-2">
-              <input type="text" id="batchTagInput" placeholder="输入标签名" class="flex-1 h-8 bg-bgPrimary border border-borderColor rounded px-3 text-sm focus:outline-none focus:border-accent">
-              <button id="addBatchTagBtn" class="px-3 h-8 bg-accent text-white text-sm rounded hover:bg-accent/80"><i class="fa-solid fa-plus"></i></button>
+          
+          <!-- 批量操作 -->
+          <div id="batchOperationsPanel">
+            <div class="mb-6">
+              <h4 class="text-sm font-medium mb-2">批量评级</h4>
+              <div class="star-rating" id="batchRating">
+                <span class="star" data-rating="1"><i class="fa-regular fa-star"></i></span>
+                <span class="star" data-rating="2"><i class="fa-regular fa-star"></i></span>
+                <span class="star" data-rating="3"><i class="fa-regular fa-star"></i></span>
+                <span class="star" data-rating="4"><i class="fa-regular fa-star"></i></span>
+                <span class="star" data-rating="5"><i class="fa-regular fa-star"></i></span>
+              </div>
+              <div class="flex gap-2 mt-2">
+                <button id="applyBatchRatingBtn" class="flex-1 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">应用评级</button>
+                <button id="clearBatchRatingBtn" class="px-3 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700">清空</button>
+              </div>
             </div>
-            <div id="batchTags" class="flex flex-wrap gap-2 mb-2"></div>
-            <button id="applyBatchTagsBtn" class="w-full py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>应用标签到选中照片</button>
-          </div>
-          <div class="mb-6">
-            <h4 class="text-sm font-medium mb-2">批量移除标签</h4>
-            <div class="flex gap-2 mb-2">
-              <input type="text" id="removeTagInput" placeholder="输入要移除的标签名" class="flex-1 h-8 bg-bgPrimary border border-borderColor rounded px-3 text-sm focus:outline-none focus:border-accent">
-              <button id="addRemoveTagBtn" class="px-3 h-8 bg-red-600 text-white text-sm rounded hover:bg-red-700"><i class="fa-solid fa-minus"></i></button>
+            <div class="mb-6">
+              <h4 class="text-sm font-medium mb-2">批量添加标签</h4>
+              <div class="flex gap-2 mb-2">
+                <input type="text" id="batchTagInput" placeholder="输入标签名" class="flex-1 h-8 bg-bgPrimary border border-borderColor rounded px-3 text-sm focus:outline-none focus:border-accent">
+                <button id="addBatchTagBtn" class="px-3 h-8 bg-accent text-white text-sm rounded hover:bg-accent/80"><i class="fa-solid fa-plus"></i></button>
+              </div>
+              <div id="batchTags" class="flex flex-wrap gap-2 mb-2"></div>
+              <button id="applyBatchTagsBtn" class="w-full py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>应用标签到选中照片</button>
             </div>
-            <div id="removeTags" class="flex flex-wrap gap-2 mb-2"></div>
-            <button id="applyRemoveTagsBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>移除选中照片的标签</button>
-          </div>
-          <div class="mb-6">
-            <h4 class="text-sm font-medium mb-2">现有标签</h4>
-            <div id="existingTags" class="flex flex-wrap gap-2"></div>
+            <div class="mb-6">
+              <h4 class="text-sm font-medium mb-2">批量移除标签</h4>
+              <div class="flex gap-2 mb-2">
+                <input type="text" id="removeTagInput" placeholder="输入要移除的标签名" class="flex-1 h-8 bg-bgPrimary border border-borderColor rounded px-3 text-sm focus:outline-none focus:border-accent">
+                <button id="addRemoveTagBtn" class="px-3 h-8 bg-red-600 text-white text-sm rounded hover:bg-red-700"><i class="fa-solid fa-minus"></i></button>
+              </div>
+              <div id="removeTags" class="flex flex-wrap gap-2 mb-2"></div>
+              <button id="applyRemoveTagsBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>移除选中照片的标签</button>
+            </div>
+            <div class="mb-6">
+              <h4 class="text-sm font-medium mb-2">现有标签</h4>
+              <div id="existingTags" class="flex flex-wrap gap-2"></div>
+            </div>
           </div>
         </div>
       </div>
-      <div class="w-16 bg-bgPrimary border-l border-borderColor flex flex-col items-center py-4 shrink-0">
-        <span class="text-textSecondary text-xs">2026</span>
-      </div>
     </main>
+  </div>
+  
+  <!-- 素材浏览器滑出面板 -->
+  <div id="materialBrowserPanel" class="material-browser-panel">
+    <div class="h-10 bg-bgPrimary flex items-center px-4 border-b border-borderColor shrink-0">
+      <div class="flex items-center space-x-2 mr-4">
+        <button id="browserBack" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="后退">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <button id="browserForward" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="前进">
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+        <button id="browserRefresh" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="刷新">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+      </div>
+      <div class="flex-1 flex items-center space-x-2">
+        <input id="browserUrl" type="text" value="https://www.xiaohongshu.com" 
+          class="flex-1 h-8 bg-bgSecondary border border-borderColor rounded px-3 text-sm text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent">
+        <button id="browserGo" class="px-3 py-1.5 bg-accent text-white text-sm rounded hover:bg-accent/80">
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </div>
+      <div class="flex items-center space-x-2 ml-4">
+        <button id="browserModeToggle" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="切换浏览器模式">
+          <i class="fa-solid fa-globe" id="browserModeIcon"></i>
+        </button>
+        <button id="takeScreenshot" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="截图并保存">
+          <i class="fa-solid fa-camera"></i>
+        </button>
+        <button id="openDownloadDir" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="打开下载目录">
+          <i class="fa-solid fa-folder-open"></i>
+        </button>
+        <button id="clearDownloadCache" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="清空下载缓存">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+        <button id="closeMaterialBrowserBtn" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="关闭">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+    </div>
+    
+    <div class="flex-1 overflow-hidden">
+      <webview id="materialWebview" src="https://www.xiaohongshu.com"
+        class="w-full h-full"
+        webpreferences="webviewTag=true;plugins=false;nodeIntegration=false;contextIsolation=true;javascript=yes;webSecurity=yes;spellcheck=false"
+        allowpopups></webview>
+    </div>
+    
+    <div id="downloadProgressBar" class="hidden h-2 bg-bgSecondary border-t border-borderColor">
+      <div id="downloadProgressInner" class="h-full bg-accent transition-all" style="width: 0%"></div>
+    </div>
   </div>
   
   <div id="lightbox" class="lightbox-viewer hidden">
