@@ -229,13 +229,35 @@ async function selectProject(projectId) {
   await loadPhotos(true);
 }
 
-async function createNewProject() {
-  const name = prompt('请输入项目名称：');
-  if (!name || !name.trim()) return;
+function openProjectInputModal() {
+  const modal = document.getElementById('projectInputModal');
+  const input = document.getElementById('projectInputField');
+  const descInput = document.getElementById('projectDescField');
+  if (!modal || !input) return;
+  input.value = '';
+  if (descInput) descInput.value = '';
+  modal.classList.remove('hidden');
+  input.focus();
+}
+
+function closeProjectInputModal() {
+  const modal = document.getElementById('projectInputModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function confirmCreateProject() {
+  const input = document.getElementById('projectInputField');
+  const descInput = document.getElementById('projectDescField');
+  const name = input?.value.trim();
+  if (!name) {
+    showToast('请输入项目名称', 'error');
+    return;
+  }
 
   try {
-    const result = await window.electronAPI.projects.create(name.trim());
+    const result = await window.electronAPI.projects.create(name, descInput?.value.trim());
     if (result.success) {
+      closeProjectInputModal();
       showToast('项目创建成功', 'success');
       await loadProjects();
       if (result.id) await selectProject(result.id);
@@ -245,6 +267,10 @@ async function createNewProject() {
   } catch (e) {
     showToast('项目创建失败: ' + e, 'error');
   }
+}
+
+async function createNewProject() {
+  openProjectInputModal();
 }
 
 // ─── 智能筛选 chip ───
@@ -381,13 +407,20 @@ function updateStatusBar() {
   const projectEl = document.getElementById('statusProject');
   const viewEl = document.getElementById('statusView');
   const countEl = document.getElementById('statusCount');
+  const backBtn = document.getElementById('statusBackToGallery');
 
-  if (projectEl) projectEl.textContent = currentProjectName || '默认项目';
+  if (projectEl) {
+    const span = projectEl.querySelector('span');
+    if (span) span.textContent = currentProjectName || '默认项目';
+  }
   if (viewEl) viewEl.textContent = currentViewMode === 'compact' ? '紧凑视图' : '瀑布流';
   if (countEl) {
     countEl.textContent = isRecycleBinView
       ? `${photoLoadedCount}/${photoTotalCount} 张已删除`
       : `${photoLoadedCount}/${photoTotalCount} 张照片`;
+  }
+  if (backBtn) {
+    backBtn.classList.toggle('hidden', !isRecycleBinView);
   }
 }
 
@@ -827,10 +860,39 @@ document.querySelectorAll('.filter-chip').forEach(chip => {
 });
 
 // ─── 视图切换 ───
-document.getElementById('statusBrowserBtn').onclick = openMaterialBrowserPanel;
+document.getElementById('statusBrowserBtn').onclick = () => {
+  const panel = document.getElementById('materialBrowserPanel');
+  if (panel?.classList.contains('open')) {
+    closeMaterialBrowserPanel();
+  } else {
+    openMaterialBrowserPanel();
+  }
+};
 document.getElementById('statusRecycleBtn').onclick = switchToRecycleBin;
-document.getElementById('statusSettingsBtn').onclick = () => document.getElementById('settingsBtn').click();
+document.getElementById('statusSettingsBtn').onclick = () => {
+  const modal = document.getElementById('settingsModal');
+  if (modal?.classList.contains('hidden')) {
+    document.getElementById('settingsBtn').click();
+  } else {
+    document.getElementById('closeSettingsBtn')?.click();
+  }
+};
+document.getElementById('statusProject').onclick = () => {
+  if (isRecycleBinView) switchToGallery();
+};
+document.getElementById('statusBackToGallery').onclick = switchToGallery;
 document.getElementById('closeMaterialBrowserBtn').onclick = closeMaterialBrowserPanel;
+
+// ─── 新建项目弹窗 ───
+document.getElementById('projectInputCancel').onclick = closeProjectInputModal;
+document.getElementById('projectInputConfirm').onclick = confirmCreateProject;
+document.getElementById('projectInputField').onkeydown = e => {
+  if (e.key === 'Enter') confirmCreateProject();
+  if (e.key === 'Escape') closeProjectInputModal();
+};
+document.getElementById('projectInputModal').onclick = e => {
+  if (e.target.id === 'projectInputModal') closeProjectInputModal();
+};
 
 // ─── 浏览器控制 ───
 document.getElementById('browserBack').onclick = () => {

@@ -738,9 +738,10 @@
         <!-- 底部状态栏 -->
         <footer class="status-bar">
           <div class="flex items-center gap-4">
-            <span id="statusProject">默认项目</span>
+            <button id="statusProject" class="hover:text-textPrimary font-medium text-textPrimary"><i class="fa-solid fa-folder mr-1"></i><span>默认项目</span></button>
             <span id="statusView">瀑布流</span>
             <span id="statusCount">0 张照片</span>
+            <button id="statusBackToGallery" class="hidden hover:text-textPrimary text-accent"><i class="fa-solid fa-arrow-left mr-1"></i>回到样片库</button>
           </div>
           <div class="flex items-center gap-4">
             <button id="statusBrowserBtn" class="hover:text-textPrimary"><i class="fa-solid fa-globe mr-1"></i>素材浏览器</button>
@@ -1038,6 +1039,24 @@
       <div class="flex justify-end gap-3">
         <button id="tagInputCancel" class="px-4 py-2 text-textSecondary hover:text-textPrimary hover:bg-bgPrimary rounded">取消</button>
         <button id="tagInputConfirm" class="px-4 py-2 bg-accent text-white rounded hover:bg-accent/80">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="projectInputModal" class="modal-overlay hidden">
+    <div class="modal-content max-w-sm">
+      <h3 class="text-lg font-semibold mb-4">新建项目</h3>
+      <div class="mb-4">
+        <label class="text-sm text-textSecondary block mb-2">项目名称</label>
+        <input type="text" id="projectInputField" placeholder="请输入项目名称" class="w-full h-10 bg-bgPrimary border border-borderColor rounded px-3 text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent" autocomplete="off">
+      </div>
+      <div class="mb-4">
+        <label class="text-sm text-textSecondary block mb-2">项目描述（可选）</label>
+        <input type="text" id="projectDescField" placeholder="请输入项目描述" class="w-full h-10 bg-bgPrimary border border-borderColor rounded px-3 text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent" autocomplete="off">
+      </div>
+      <div class="flex justify-end gap-3">
+        <button id="projectInputCancel" class="px-4 py-2 text-textSecondary hover:text-textPrimary hover:bg-bgPrimary rounded">取消</button>
+        <button id="projectInputConfirm" class="px-4 py-2 bg-accent text-white rounded hover:bg-accent/80">确定</button>
       </div>
     </div>
   </div>

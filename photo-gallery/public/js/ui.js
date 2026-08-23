@@ -65,10 +65,21 @@ function switchToGallery() {
   isRecycleBinView = false;
   currentPanel = 'gallery';
   selectedPhotos.clear();
-  document.getElementById('selectedCount').textContent = '已选择 0 张照片';
-  document.getElementById('exportPdfBtn').disabled = true;
-  document.getElementById('deleteBtn').disabled = true;
-  document.getElementById('copyToDesktopBtn').disabled = true;
+  const selectedCountEl = document.getElementById('selectedCount');
+  if (selectedCountEl) selectedCountEl.textContent = '已选择 0 张照片';
+  const exportPdfBtn = document.getElementById('exportPdfBtn');
+  const deleteBtn = document.getElementById('deleteBtn');
+  const copyToDesktopBtn = document.getElementById('copyToDesktopBtn');
+  if (exportPdfBtn) exportPdfBtn.disabled = true;
+  if (deleteBtn) deleteBtn.disabled = true;
+  if (copyToDesktopBtn) copyToDesktopBtn.disabled = true;
+
+  // 恢复回收站视图隐藏的控件
+  const searchWrap = document.getElementById('searchInput')?.parentElement;
+  const ratingWrap = document.getElementById('ratingFilter')?.parentElement;
+  if (searchWrap) searchWrap.classList.remove('hidden');
+  if (ratingWrap) ratingWrap.classList.remove('hidden');
+
   resetToolbarForGallery();
   setEmptyStateForGallery();
   updateStatusBar();
@@ -81,14 +92,24 @@ function switchToRecycleBin() {
   isRecycleBinView = true;
   currentPanel = 'recycle';
   selectedPhotos.clear();
-  document.getElementById('selectedCount').textContent = '已选择 0 张照片';
-  document.getElementById('deleteBtn').classList.add('hidden');
-  document.getElementById('restoreBtn').classList.remove('hidden');
-  document.getElementById('permanentDeleteBtn').classList.remove('hidden');
-  document.getElementById('restoreBtn').disabled = true;
-  document.getElementById('permanentDeleteBtn').disabled = true;
-  document.getElementById('importFolderBtn').classList.add('hidden');
-  document.getElementById('importFilesBtn').classList.add('hidden');
+  const selectedCountEl = document.getElementById('selectedCount');
+  if (selectedCountEl) selectedCountEl.textContent = '已选择 0 张照片';
+  const deleteBtn = document.getElementById('deleteBtn');
+  const restoreBtn = document.getElementById('restoreBtn');
+  const permanentDeleteBtn = document.getElementById('permanentDeleteBtn');
+  const importFolderBtn = document.getElementById('importFolderBtn');
+  const importFilesBtn = document.getElementById('importFilesBtn');
+  if (deleteBtn) deleteBtn.classList.add('hidden');
+  if (restoreBtn) {
+    restoreBtn.classList.remove('hidden');
+    restoreBtn.disabled = true;
+  }
+  if (permanentDeleteBtn) {
+    permanentDeleteBtn.classList.remove('hidden');
+    permanentDeleteBtn.disabled = true;
+  }
+  if (importFolderBtn) importFolderBtn.classList.add('hidden');
+  if (importFilesBtn) importFilesBtn.classList.add('hidden');
   const searchWrap = document.getElementById('searchInput')?.parentElement;
   const ratingWrap = document.getElementById('ratingFilter')?.parentElement;
   if (searchWrap) searchWrap.classList.add('hidden');
