@@ -52,7 +52,7 @@ const contextMenu = document.getElementById('contextMenu');
 const metadataPanel = document.getElementById('metadataPanel');
 const metadataPanelBtn = document.getElementById('metadataPanelBtn');
 
-// ─── 照片数据加载 ───
+// ─── 样片数据加载 ───
 function buildBackendPhotoFilter() {
   const search = document.getElementById('searchInput').value.toLowerCase().trim();
   const rating = document.getElementById('ratingFilter').value;
@@ -264,8 +264,8 @@ function updateContextPanel() {
       renderSinglePhotoInspector(photo);
       singlePanel.classList.remove('hidden');
       batchPanel.classList.add('hidden');
-      panelTitle.textContent = '照片信息';
-      countEl.textContent = '已选择 1 张照片';
+      panelTitle.textContent = '样片信息';
+      countEl.textContent = '已选择 1 张样片';
       return;
     }
   }
@@ -273,7 +273,7 @@ function updateContextPanel() {
   singlePanel.classList.add('hidden');
   batchPanel.classList.remove('hidden');
   panelTitle.textContent = '批量操作';
-  countEl.textContent = `已选择 ${selectedPhotos.size} 张照片`;
+  countEl.textContent = `已选择 ${selectedPhotos.size} 张样片`;
 }
 
 function renderSinglePhotoInspector(photo) {
@@ -314,7 +314,7 @@ function updateStatusBar() {
   const backBtn = document.getElementById('statusBackToGallery');
   const project = projects.find(candidate => candidate.id === currentProjectId);
   const projectName = project?.name || currentProjectName || '未选择项目';
-  const projectDescription = project?.description || (project ? '未添加项目描述' : '创建或选择一个项目开始整理照片');
+  const projectDescription = project?.description || (project ? '未添加项目描述' : '创建或选择一个项目开始整理样片');
   const projectDate = project?.created_at
     ? `创建于 ${new Date(Number(project.created_at) * 1000).toLocaleDateString('zh-CN')}`
     : '尚未设置拍摄日期';
@@ -339,7 +339,7 @@ function updateStatusBar() {
   if (countEl) {
     countEl.textContent = isRecycleBinView
       ? `${photoLoadedCount}/${photoTotalCount} 张已删除`
-      : `${photoLoadedCount}/${photoTotalCount} 张照片`;
+      : `${photoLoadedCount}/${photoTotalCount} 张样片`;
   }
   if (backBtn) {
     const browserOpen = document.getElementById('materialBrowserPanel')?.classList.contains('open');
@@ -453,7 +453,7 @@ lightboxImage.addEventListener('contextmenu', (e) => {
 document.querySelectorAll('#lightboxRating .star').forEach(star => {
   star.addEventListener('click', async () => {
     if (filteredPhotos.length === 0) {
-      showToast('没有可操作的照片', 'warning');
+      showToast('没有可操作的样片', 'warning');
       return;
     }
 
@@ -464,13 +464,13 @@ document.querySelectorAll('#lightboxRating .star').forEach(star => {
     const rating = parseInt(star.dataset.rating);
     const photo = filteredPhotos[currentPhotoIndex];
     if (!photo) {
-      showToast('无法获取当前照片信息', 'error');
+      showToast('无法获取当前样片信息', 'error');
       return;
     }
 
     const fullPhoto = photos.find(p => p.id === photo.id);
     if (!fullPhoto) {
-      showToast('照片数据已失效，请刷新后重试', 'error');
+      showToast('样片数据已失效，请刷新后重试', 'error');
       await loadPhotos();
       return;
     }
@@ -513,7 +513,7 @@ document.getElementById('clearFilterBtn').addEventListener('click', () => {
   activeSmartFilters.clear();
   updateFilterChipUI();
   selectedPhotos.clear();
-  document.getElementById('selectedCount').textContent = '已选择 0 张照片';
+  document.getElementById('selectedCount').textContent = '已选择 0 张样片';
   document.getElementById('deleteBtn').disabled = true;
   document.getElementById('exportPdfBtn').disabled = true;
   document.getElementById('copyToDesktopBtn').disabled = true;

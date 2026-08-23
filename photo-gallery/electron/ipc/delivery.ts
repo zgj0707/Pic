@@ -9,7 +9,7 @@ export function registerDeliveryIpc(): void {
   }))
 
   ipcMain.handle('delivery:openFolder', wrapHandler('delivery:openFolder', (_event, folderPath: string) => {
-    if (!folderPath || !existsSync(folderPath)) return { success: false, error: '交付文件夹不存在' }
+    if (!folderPath || !existsSync(folderPath)) return { success: false, error: '方案目录不存在' }
     shell.openPath(folderPath)
     return { success: true }
   }))

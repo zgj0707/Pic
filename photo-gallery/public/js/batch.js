@@ -4,10 +4,10 @@
 async function deleteSelectedPhotos() {
   if (selectedPhotos.size === 0) return;
 
-  const confirmed = confirm(`确定要将选中的 ${selectedPhotos.size} 张照片移入回收站吗？\n移入回收站后可在 30 天内恢复。`);
+  const confirmed = confirm(`确定要将选中的 ${selectedPhotos.size} 张样片移入回收站吗？\n移入回收站后可在 30 天内恢复。`);
   if (!confirmed) return;
 
-  showProgress('移入回收站', `正在移动 ${selectedPhotos.size} 张照片...`, '');
+  showProgress('移入回收站', `正在移动 ${selectedPhotos.size} 张样片...`, '');
 
   try {
     const ids = Array.from(selectedPhotos);
@@ -20,9 +20,9 @@ async function deleteSelectedPhotos() {
     updateSelectedCount();
     hideProgress();
     if (result.success) {
-      showToast(`已将 ${result.moved || 0} 张照片移入回收站`, 'success');
+      showToast(`已将 ${result.moved || 0} 张样片移入回收站`, 'success');
     } else {
-      showToast(result.error || `有 ${result.failed || 0} 张照片移入回收站失败`, 'error');
+      showToast(result.error || `有 ${result.failed || 0} 张样片移入回收站失败`, 'error');
     }
     await loadPhotos(true);
   } catch (e) {
@@ -34,10 +34,10 @@ async function deleteSelectedPhotos() {
 async function restoreSelectedPhotos() {
   if (selectedPhotos.size === 0) return;
 
-  const confirmed = confirm(`确定要恢复选中的 ${selectedPhotos.size} 张照片吗？`);
+  const confirmed = confirm(`确定要恢复选中的 ${selectedPhotos.size} 张样片吗？`);
   if (!confirmed) return;
 
-  showProgress('恢复照片', `正在恢复 ${selectedPhotos.size} 张照片...`, '');
+  showProgress('恢复样片', `正在恢复 ${selectedPhotos.size} 张样片...`, '');
 
   try {
     const ids = Array.from(selectedPhotos);
@@ -47,9 +47,9 @@ async function restoreSelectedPhotos() {
     updateSelectedCount();
     hideProgress();
     if (result.success) {
-      showToast(`已恢复 ${result.restored || 0} 张照片`, 'success');
+      showToast(`已恢复 ${result.restored || 0} 张样片`, 'success');
     } else {
-      showToast(result.error || `有 ${result.failed || 0} 张照片恢复失败`, 'error');
+      showToast(result.error || `有 ${result.failed || 0} 张样片恢复失败`, 'error');
     }
     await loadPhotos(true);
   } catch (e) {
@@ -61,10 +61,10 @@ async function restoreSelectedPhotos() {
 async function permanentlyDeleteSelectedPhotos() {
   if (selectedPhotos.size === 0) return;
 
-  const confirmed = confirm(`确定要彻底删除选中的 ${selectedPhotos.size} 张照片吗？\n此操作不可恢复！`);
+  const confirmed = confirm(`确定要彻底删除选中的 ${selectedPhotos.size} 张样片吗？\n此操作不可恢复！`);
   if (!confirmed) return;
 
-  showProgress('彻底删除', `正在彻底删除 ${selectedPhotos.size} 张照片...`, '');
+  showProgress('彻底删除', `正在彻底删除 ${selectedPhotos.size} 张样片...`, '');
 
   try {
     const ids = Array.from(selectedPhotos);
@@ -74,9 +74,9 @@ async function permanentlyDeleteSelectedPhotos() {
     updateSelectedCount();
     hideProgress();
     if (result.success) {
-      showToast(`已彻底删除 ${result.deleted || 0} 张照片`, 'success');
+      showToast(`已彻底删除 ${result.deleted || 0} 张样片`, 'success');
     } else {
-      showToast(result.error || `有 ${result.failed || 0} 张照片删除失败`, 'error');
+      showToast(result.error || `有 ${result.failed || 0} 张样片删除失败`, 'error');
     }
     await loadPhotos(true);
   } catch (e) {
@@ -114,7 +114,7 @@ async function applyBatchRating() {
     hideProgress();
     if (window.electronAPI) await loadPhotos(true);
     else renderPhotoGrid();
-    showToast(`已为 ${selectedPhotos.size} 张照片设置 ${batchRatingValue} 星评级`, 'success');
+    showToast(`已为 ${selectedPhotos.size} 张样片设置 ${batchRatingValue} 星评级`, 'success');
   } catch (e) {
     hideProgress();
     showToast('批量评分失败: ' + e, 'error');
@@ -145,7 +145,7 @@ async function clearBatchRating() {
     hideProgress();
     if (window.electronAPI) await loadPhotos(true);
     else renderPhotoGrid();
-    showToast(`已清空 ${selectedPhotos.size} 张照片的评分`, 'success');
+    showToast(`已清空 ${selectedPhotos.size} 张样片的评分`, 'success');
   } catch (e) {
     hideProgress();
     showToast('清空评分失败: ' + e, 'error');
@@ -154,14 +154,14 @@ async function clearBatchRating() {
 
 async function copySelectedToDesktop() {
   if (selectedPhotos.size === 0) {
-    showToast('请先选择要复制的照片', 'warning');
+    showToast('请先选择要复制的样片', 'warning');
     return;
   }
   const selectedPhotoObjs = Array.from(selectedPhotos).map(id => photos.find(p => p.id === id)).filter(Boolean);
   const filePaths = selectedPhotoObjs.map(p => p.filepath).filter(Boolean);
 
   if (filePaths.length === 0) {
-    showToast('没有可复制的照片', 'error');
+    showToast('没有可复制的样片', 'error');
     return;
   }
 
@@ -201,9 +201,9 @@ async function copySelectedToDesktop() {
       const result = await window.electronAPI.photos.copyToDesktopFolder(filePaths, folderName);
       if (result.success) {
         if (result.failed > 0) {
-          showToast(`已复制 ${result.copied} 张照片到桌面 ${folderName}，${result.failed} 张失败`, 'success');
+          showToast(`已复制 ${result.copied} 张样片到桌面 ${folderName}，${result.failed} 张失败`, 'success');
         } else {
-          showToast(`已复制 ${result.copied} 张照片到桌面 ${folderName}`, 'success');
+          showToast(`已复制 ${result.copied} 张样片到桌面 ${folderName}`, 'success');
         }
       } else {
         showToast('复制失败: ' + (result.error || '未知错误'), 'error');
@@ -220,7 +220,7 @@ async function applyBatchTags() {
   if (selectedPhotos.size === 0 || batchTags.length === 0) return;
 
   const tagsToAdd = batchTags.length;
-  showProgress('批量添加标签', `正在为 ${selectedPhotos.size} 张照片添加 ${tagsToAdd} 个标签...`, '');
+  showProgress('批量添加标签', `正在为 ${selectedPhotos.size} 张样片添加 ${tagsToAdd} 个标签...`, '');
 
   try {
     for (const id of selectedPhotos) {
@@ -239,7 +239,7 @@ async function applyBatchTags() {
     hideProgress();
     renderPhotoGrid();
     await updateTagFilter();
-    showToast(`已为 ${selectedPhotos.size} 张照片添加 ${tagsToAdd} 个标签`, 'success');
+    showToast(`已为 ${selectedPhotos.size} 张样片添加 ${tagsToAdd} 个标签`, 'success');
     await loadPhotos();
   } catch (e) {
     hideProgress();
@@ -251,7 +251,7 @@ async function applyRemoveTags() {
   if (selectedPhotos.size === 0 || removeTags.length === 0) return;
 
   const tagsToRemove = removeTags.length;
-  showProgress('批量移除标签', `正在从 ${selectedPhotos.size} 张照片移除 ${tagsToRemove} 个标签...`, '');
+  showProgress('批量移除标签', `正在从 ${selectedPhotos.size} 张样片移除 ${tagsToRemove} 个标签...`, '');
 
   try {
     for (const id of selectedPhotos) {
@@ -269,7 +269,7 @@ async function applyRemoveTags() {
     document.getElementById('removeTags').innerHTML = '';
     hideProgress();
     await loadPhotos();
-    showToast(`已从 ${selectedPhotos.size} 张照片移除 ${tagsToRemove} 个标签`, 'success');
+    showToast(`已从 ${selectedPhotos.size} 张样片移除 ${tagsToRemove} 个标签`, 'success');
   } catch (e) {
     hideProgress();
     showToast('批量移除标签失败: ' + e, 'error');
@@ -278,7 +278,7 @@ async function applyRemoveTags() {
 
 async function exportSelectedToPdf() {
   if (selectedPhotos.size === 0) {
-    showToast('请先选择要导出的照片', 'warning');
+    showToast('请先选择要导出的样片', 'warning');
     return;
   }
 
@@ -299,7 +299,7 @@ async function exportSelectedToPdf() {
 
     for (let i = 0; i < selectedPhotoList.length; i++) {
       const photo = selectedPhotoList[i];
-      updateProgress(((i + 1) / selectedPhotoList.length) * 100, `正在处理第 ${i + 1}/${selectedPhotoList.length} 张照片`);
+      updateProgress(((i + 1) / selectedPhotoList.length) * 100, `正在处理第 ${i + 1}/${selectedPhotoList.length} 张样片`);
 
       const imgData = await getImageData(photo.filepath || photo.thumbnail_path);
 
@@ -331,7 +331,7 @@ async function exportSelectedToPdf() {
 
     const pdfData = doc.output('datauristring');
     const timestamp = new Date().toISOString().slice(0, 10);
-    const filename = `照片集_${timestamp}_${Date.now()}.pdf`;
+    const filename = `样片集_${timestamp}_${Date.now()}.pdf`;
 
     if (window.electronAPI?.pdf?.saveToDesktop) {
       const result = await window.electronAPI.pdf.saveToDesktop(pdfData, filename);

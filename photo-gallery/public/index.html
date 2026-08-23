@@ -37,17 +37,17 @@
           </button>
         </div>
         <div class="header-search">
-          <input type="text" id="searchInput" placeholder="搜索关键词、标签、评级..." aria-label="搜索照片">
+          <input type="text" id="searchInput" placeholder="搜索关键词、标签、评级..." aria-label="搜索样片">
           <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
         </div>
-        <div class="header-tool-actions" aria-label="照片工具">
+        <div class="header-tool-actions" aria-label="样片工具">
           <button id="deleteBtn" class="tool-button danger" type="button" title="删除选中" aria-label="删除选中" disabled><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
           <button id="restoreBtn" class="tool-button success hidden" type="button" title="恢复选中" aria-label="恢复选中" disabled><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>
           <button id="permanentDeleteBtn" class="tool-button danger hidden" type="button" title="彻底删除" aria-label="彻底删除" disabled><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
           <button id="exportPdfBtn" class="tool-button" type="button" title="导出为 PDF" aria-label="导出为 PDF" disabled><i class="fa-solid fa-file-pdf" aria-hidden="true"></i></button>
           <button id="copyToDesktopBtn" class="tool-button" type="button" title="复制选中到桌面" aria-label="复制选中到桌面" disabled><i class="fa-solid fa-copy" aria-hidden="true"></i></button>
-          <button id="viewToggleBtn" class="tool-button" type="button" title="切换到紧凑视图" aria-label="切换照片视图"><i class="fa-solid fa-th-large" id="viewToggleIcon" aria-hidden="true"></i></button>
-          <button id="metadataPanelBtn" class="tool-button" type="button" title="照片详情和批量操作" aria-label="打开照片详情和批量操作"><i class="fa-solid fa-list-check" aria-hidden="true"></i></button>
+          <button id="viewToggleBtn" class="tool-button" type="button" title="切换到紧凑视图" aria-label="切换样片视图"><i class="fa-solid fa-th-large" id="viewToggleIcon" aria-hidden="true"></i></button>
+          <button id="metadataPanelBtn" class="tool-button" type="button" title="样片详情和批量操作" aria-label="打开样片详情和批量操作"><i class="fa-solid fa-list-check" aria-hidden="true"></i></button>
           <button id="aboutBtn" class="tool-button" type="button" title="关于" aria-label="关于 Pic"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
           <button id="settingsBtn" class="tool-button" type="button" title="设置" aria-label="设置"><i class="fa-solid fa-gear" aria-hidden="true"></i></button>
         </div>
@@ -77,28 +77,28 @@
       <main class="workspace-main" aria-label="项目工作区">
         <section class="project-titlebar" aria-labelledby="currentProjectTitle">
           <div class="project-heading">
-            <span class="section-eyebrow">当前项目</span>
+            <span class="section-eyebrow">拍摄简报</span>
             <h1 id="currentProjectTitle">未选择项目</h1>
-            <p id="currentProjectDescription">创建或选择一个项目开始整理照片</p>
+            <p id="currentProjectDescription">创建或选择一个项目开始整理参考样片</p>
             <p id="currentProjectDate" class="project-date">尚未设置拍摄日期</p>
           </div>
           <div class="project-summary" aria-label="项目统计">
-            <div class="project-stat"><span>照片</span><strong id="projectPhotoCount">0</strong></div>
+            <div class="project-stat"><span>参考样片</span><strong id="projectPhotoCount">0</strong></div>
             <div class="project-stat"><span>未处理</span><strong id="projectUnprocessedCount">0</strong></div>
-            <div class="project-stat"><span>精选</span><strong id="projectSelectionCount">0</strong></div>
+            <div class="project-stat"><span>灵感板</span><strong id="projectSelectionCount">0</strong></div>
           </div>
         </section>
 
         <nav class="workflow-stagebar" aria-label="工作阶段">
           <div class="workflow-stage active" aria-current="step"><span class="stage-index">01</span><span>收件箱</span></div>
-          <div class="workflow-stage"><span class="stage-index">02</span><span>全部照片</span></div>
+          <div class="workflow-stage"><span class="stage-index">02</span><span>全部样片</span></div>
           <button id="cullingModeBtn" class="workflow-stage stage-action" type="button"><span class="stage-index">03</span><span>初筛</span></button>
-          <div class="workflow-stage"><span class="stage-index">04</span><span>精选集</span></div>
-          <button id="deliveryModeBtn" class="workflow-stage stage-action" type="button"><span class="stage-index">05</span><span>交付</span></button>
-          <span class="workflow-stage-note">当前阶段：收集素材</span>
+          <div class="workflow-stage"><span class="stage-index">04</span><span>灵感板</span></div>
+          <button id="deliveryModeBtn" class="workflow-stage stage-action" type="button"><span class="stage-index">05</span><span>方案</span></button>
+          <span class="workflow-stage-note">当前阶段：收集参考</span>
         </nav>
 
-        <div class="filter-bar custom-scrollbar" aria-label="照片筛选">
+        <div class="filter-bar custom-scrollbar" aria-label="样片筛选">
           <span class="filter-chip active" data-filter="all">全部</span>
           <span class="filter-chip" data-filter="rating-5">5 星</span>
           <span class="filter-chip" data-filter="rating-1">1 星及以上</span>
@@ -123,12 +123,12 @@
           <span id="photoCount" class="photo-count-label"></span>
         </div>
 
-        <section id="galleryPanel" class="gallery-panel" aria-label="照片浏览器">
+        <section id="galleryPanel" class="gallery-panel" aria-label="样片浏览器">
           <div class="photo-grid-container custom-scrollbar" id="photoGridContainer">
             <div id="emptyState" class="empty-state hidden" role="status">
               <div class="empty-state-icon"><i class="fa-regular fa-images" aria-hidden="true"></i></div>
               <p id="emptyStateTitle" class="empty-state-title">还没有项目</p>
-              <p id="emptyStateSubtitle" class="empty-state-subtitle">创建一个项目开始收集和整理照片</p>
+              <p id="emptyStateSubtitle" class="empty-state-subtitle">创建一个项目开始收集和整理样片</p>
               <div id="emptyStateActions" class="empty-state-actions">
                 <button id="emptyCreateProjectBtn" class="primary-action" type="button"><i class="fa-solid fa-folder-plus" aria-hidden="true"></i><span>新建项目</span></button>
                 <button id="emptyImportFolderBtn2" class="secondary-action" type="button"><i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>导入文件夹</span></button>
@@ -139,11 +139,11 @@
           </div>
         </section>
 
-        <section id="cullingWorkspace" class="culling-workspace hidden" aria-label="照片初筛工作区">
+        <section id="cullingWorkspace" class="culling-workspace hidden" aria-label="样片初筛工作区">
           <header class="culling-header">
             <div>
               <span class="section-eyebrow">键盘优先</span>
-              <h2 id="cullingStageTitle">照片初筛</h2>
+              <h2 id="cullingStageTitle">样片初筛</h2>
               <p id="cullingProgress" class="culling-progress">准备开始</p>
             </div>
             <div class="culling-header-actions">
@@ -158,16 +158,16 @@
               <button id="cullingImmersiveViewBtn" class="filter-chip" type="button"><i class="fa-solid fa-expand" aria-hidden="true"></i><span>沉浸式</span></button>
             </div>
             <div class="culling-shortcuts" aria-label="初筛快捷键">
-              <span>← → 浏览</span><span>P 保留</span><span>X 拒绝</span><span>U 未处理</span><span>1–5 评级</span><span>Space 放大/适配</span><span>C 精选篮</span>
+              <span>← → 浏览</span><span>P 保留</span><span>X 拒绝</span><span>U 未处理</span><span>1–5 评级</span><span>Space 放大/适配</span><span>C 加入灵感板</span>
             </div>
           </div>
-          <div id="cullingGrid" class="culling-grid custom-scrollbar" tabindex="0" aria-label="初筛照片网格"></div>
-          <div id="cullingImmersive" class="culling-immersive hidden" aria-label="沉浸式照片预览">
+          <div id="cullingGrid" class="culling-grid custom-scrollbar" tabindex="0" aria-label="初筛样片网格"></div>
+          <div id="cullingImmersive" class="culling-immersive hidden" aria-label="沉浸式样片预览">
             <button id="cullingPreviousBtn" class="culling-nav culling-nav-previous" type="button" aria-label="上一张"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
             <div class="culling-immersive-stage">
               <img id="cullingImmersiveImage" class="culling-immersive-image" src="" alt="">
               <div class="culling-immersive-caption">
-                <strong id="cullingImmersiveFilename">未选择照片</strong>
+                <strong id="cullingImmersiveFilename">未选择样片</strong>
                 <span id="cullingImmersiveMeta"></span>
               </div>
             </div>
@@ -180,25 +180,25 @@
           </div>
         </section>
 
-        <section id="compareWorkspace" class="compare-workspace hidden" aria-label="精选照片并排对比">
+        <section id="compareWorkspace" class="compare-workspace hidden" aria-label="灵感板参考样片并排对比">
           <header class="compare-header">
-            <div><span class="section-eyebrow">精选集</span><h2>并排对比</h2><p id="compareSummary" class="compare-summary">选择 2–4 张照片进行比较</p></div>
+            <div><span class="section-eyebrow">灵感板</span><h2>并排对比</h2><p id="compareSummary" class="compare-summary">选择 2–4 张参考样片进行比较</p></div>
             <div class="compare-header-actions"><label class="compare-zoom-control" for="compareZoomRange">同步缩放 <input id="compareZoomRange" type="range" min="1" max="2.5" step="0.1" value="1"><output id="compareZoomValue">100%</output></label><button id="compareExitBtn" class="secondary-action" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>返回图库</span></button></div>
           </header>
           <div id="compareGrid" class="compare-grid"></div>
         </section>
 
-        <section id="deliveryWorkspace" class="delivery-workspace hidden" aria-label="精选照片交付工作区">
+        <section id="deliveryWorkspace" class="delivery-workspace hidden" aria-label="拍摄方案工作区">
           <header class="delivery-header">
-            <div><span class="section-eyebrow">交付阶段</span><h2>制作交付包</h2><p id="deliverySummary" class="delivery-summary">选择精选照片后，预览并复制交付文件。</p></div>
+            <div><span class="section-eyebrow">拍摄方案</span><h2>整理拍摄方案</h2><p id="deliverySummary" class="delivery-summary">从灵感板生成参考图册和拍摄前方案。</p></div>
             <button id="deliveryExitBtn" class="secondary-action" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>返回图库</span></button>
           </header>
           <div class="delivery-config-grid">
             <label class="delivery-field delivery-field-wide">目标目录
               <div class="delivery-directory-control"><input id="deliveryTargetDir" type="text" readonly placeholder="请选择目标目录" aria-describedby="deliveryTargetHint"><button id="deliveryChooseDirBtn" class="secondary-action" type="button">选择目录</button></div>
-              <span id="deliveryTargetHint" class="delivery-field-hint">交付文件夹会创建在此目录中。</span>
+              <span id="deliveryTargetHint" class="delivery-field-hint">方案文件会创建在此目录中。</span>
             </label>
-            <label class="delivery-field">交付文件夹
+            <label class="delivery-field">方案目录
               <input id="deliveryFolderName" type="text" maxlength="80" autocomplete="off">
             </label>
             <label class="delivery-field">文件名前缀
@@ -207,13 +207,13 @@
           </div>
           <div id="deliveryWarnings" class="delivery-warnings" role="status" aria-live="polite"></div>
           <div class="delivery-preview-panel">
-            <div class="delivery-preview-heading"><div><span class="section-eyebrow">顺序预览</span><h3>交付文件清单</h3></div><span id="deliveryPreviewCount" class="delivery-preview-count"></span></div>
+            <div class="delivery-preview-heading"><div><span class="section-eyebrow">顺序预览</span><h3>参考文件清单</h3></div><span id="deliveryPreviewCount" class="delivery-preview-count"></span></div>
             <div id="deliveryPreviewList" class="delivery-preview-list"></div>
           </div>
-          <div class="delivery-actions" role="group" aria-label="交付操作">
-            <button id="deliveryExportBtn" class="primary-action" type="button" disabled><i class="fa-solid fa-copy" aria-hidden="true"></i><span>复制并交付</span></button>
-            <button id="deliveryContactSheetBtn" class="secondary-action" type="button"><i class="fa-regular fa-file-pdf" aria-hidden="true"></i><span>生成联系表 PDF</span></button>
-            <button id="deliveryOpenFolderBtn" class="secondary-action" type="button" disabled><i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>打开交付文件夹</span></button>
+          <div class="delivery-actions" role="group" aria-label="方案操作">
+            <button id="deliveryExportBtn" class="primary-action" type="button" disabled><i class="fa-solid fa-copy" aria-hidden="true"></i><span>生成参考副本</span></button>
+            <button id="deliveryContactSheetBtn" class="secondary-action" type="button"><i class="fa-regular fa-file-pdf" aria-hidden="true"></i><span>生成 Moodboard PDF</span></button>
+            <button id="deliveryOpenFolderBtn" class="secondary-action" type="button" disabled><i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>打开方案目录</span></button>
           </div>
           <div id="deliveryResult" class="delivery-result hidden" role="status" aria-live="polite"></div>
         </section>
@@ -222,7 +222,7 @@
           <div class="status-context">
             <button id="statusProject" type="button"><i class="fa-solid fa-folder" aria-hidden="true"></i><span>未选择项目</span></button>
             <span id="statusView">瀑布流</span>
-            <span id="statusCount">0 张照片</span>
+            <span id="statusCount">0 张样片</span>
             <button id="statusBackToGallery" class="hidden" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>回到样片库</span></button>
           </div>
           <div class="status-shortcuts"><span><i class="fa-regular fa-keyboard" aria-hidden="true"></i> 快捷键：Enter 打开，Esc 返回</span></div>
@@ -234,11 +234,11 @@
         <div class="panel-content custom-scrollbar">
           <div class="flex items-center justify-between mb-4">
             <h3 id="metadataPanelTitle" class="text-lg font-semibold">批量操作</h3>
-            <button id="closeMetadataPanel" class="p-1 hover:bg-white/10 rounded" aria-label="关闭照片详情"><i class="fa-solid fa-xmark"></i></button>
+            <button id="closeMetadataPanel" class="p-1 hover:bg-white/10 rounded" aria-label="关闭样片详情"><i class="fa-solid fa-xmark"></i></button>
           </div>
-          <div id="selectedCount" class="text-textSecondary text-sm mb-4">已选择 0 张照片</div>
+          <div id="selectedCount" class="text-textSecondary text-sm mb-4">已选择 0 张样片</div>
           
-          <!-- 单张照片元数据 -->
+          <!-- 单张样片元数据 -->
           <div id="singlePhotoInspector" class="single-photo-inspector hidden">
             <img id="inspectorThumb" class="inspector-thumb" src="" alt="">
             <div class="info-row"><span class="info-label">文件名</span><span id="inspectorFilename" class="info-value"></span></div>
@@ -276,7 +276,7 @@
                 <button id="addBatchTagBtn" class="px-3 h-8 bg-accent text-white text-sm rounded hover:bg-accent/80" aria-label="添加标签"><i class="fa-solid fa-plus"></i></button>
               </div>
               <div id="batchTags" class="flex flex-wrap gap-2 mb-2"></div>
-              <button id="applyBatchTagsBtn" class="w-full py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>应用标签到选中照片</button>
+              <button id="applyBatchTagsBtn" class="w-full py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>应用标签到选中样片</button>
             </div>
             <div class="mb-6">
               <h4 class="text-sm font-medium mb-2">批量移除标签</h4>
@@ -285,7 +285,7 @@
                 <button id="addRemoveTagBtn" class="px-3 h-8 bg-red-600 text-white text-sm rounded hover:bg-red-700" aria-label="移除标签"><i class="fa-solid fa-minus"></i></button>
               </div>
               <div id="removeTags" class="flex flex-wrap gap-2 mb-2"></div>
-              <button id="applyRemoveTagsBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>移除选中照片的标签</button>
+              <button id="applyRemoveTagsBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>移除选中样片的标签</button>
             </div>
             <div class="mb-6">
               <h4 class="text-sm font-medium mb-2">现有标签</h4>
@@ -294,15 +294,15 @@
           </div>
         </div>
       </div>
-      <aside id="selectionTray" class="selection-tray" aria-label="精选篮">
+      <aside id="selectionTray" class="selection-tray" aria-label="灵感板">
         <div class="selection-tray-header">
-          <div><span class="section-eyebrow">交付候选</span><h2>精选篮</h2></div>
-          <div class="selection-tray-header-actions"><span id="selectionTrayCount" class="selection-tray-count">0</span><button id="selectionCompareBtn" class="selection-compare-btn" type="button" disabled><i class="fa-solid fa-columns" aria-hidden="true"></i><span>对比</span></button><button id="deliveryBtn" class="selection-compare-btn" type="button" disabled><i class="fa-solid fa-paper-plane" aria-hidden="true"></i><span>交付</span></button></div>
+          <div><span class="section-eyebrow">拍摄参考</span><h2>灵感板</h2></div>
+          <div class="selection-tray-header-actions"><span id="selectionTrayCount" class="selection-tray-count">0</span><button id="selectionCompareBtn" class="selection-compare-btn" type="button" disabled><i class="fa-solid fa-columns" aria-hidden="true"></i><span>对比</span></button><button id="deliveryBtn" class="selection-compare-btn" type="button" disabled><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i><span>方案</span></button></div>
         </div>
         <div id="selectionTrayEmpty" class="selection-tray-empty">
           <div class="selection-tray-icon"><i class="fa-solid fa-basket-shopping" aria-hidden="true"></i></div>
-          <p>暂无精选照片</p>
-          <span>可拖动调整交付顺序；选择 2–4 张照片后可并排比较。</span>
+          <p>暂无灵感板样片</p>
+          <span>可拖动调整参考顺序；选择 2–4 张样片后可并排比较。</span>
         </div>
         <div id="selectionTrayItems" class="selection-tray-items hidden"></div>
       </aside>
@@ -364,13 +364,13 @@
   </div>
   
   <div id="lightbox" class="lightbox-viewer hidden">
-    <button id="closeLightbox" class="absolute top-4 right-4 p-2 hover:bg-white/10 rounded text-white text-2xl z-10" aria-label="关闭照片预览">
+    <button id="closeLightbox" class="absolute top-4 right-4 p-2 hover:bg-white/10 rounded text-white text-2xl z-10" aria-label="关闭样片预览">
       <i class="fa-solid fa-xmark"></i>
     </button>
-    <button id="prevPhoto" class="absolute left-4 top-1/2 -translate-y-1/2 p-3 hover:bg-white/10 rounded text-white text-2xl z-10" aria-label="上一张照片">
+    <button id="prevPhoto" class="absolute left-4 top-1/2 -translate-y-1/2 p-3 hover:bg-white/10 rounded text-white text-2xl z-10" aria-label="上一张样片">
       <i class="fa-solid fa-chevron-left"></i>
     </button>
-    <button id="nextPhoto" class="absolute right-4 top-1/2 -translate-y-1/2 p-3 hover:bg-white/10 rounded text-white text-2xl z-10" aria-label="下一张照片">
+    <button id="nextPhoto" class="absolute right-4 top-1/2 -translate-y-1/2 p-3 hover:bg-white/10 rounded text-white text-2xl z-10" aria-label="下一张样片">
       <i class="fa-solid fa-chevron-right"></i>
     </button>
     <button id="rotateLeft" class="absolute top-4 left-1/2 -translate-x-1/2 p-2 hover:bg-white/10 rounded text-white text-xl z-10" title="向左旋转" aria-label="向左旋转">
@@ -383,9 +383,9 @@
       <img id="lightboxImage" src="" alt="">
     </div>
     <div class="zoom-controls bg-bgSecondary rounded-full px-4 py-2">
-      <button id="zoomOut" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white" aria-label="缩小照片"><i class="fa-solid fa-minus"></i></button>
+      <button id="zoomOut" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white" aria-label="缩小样片"><i class="fa-solid fa-minus"></i></button>
       <span id="zoomLevel" class="px-3 py-1 text-white">100%</span>
-      <button id="zoomIn" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white" aria-label="放大照片"><i class="fa-solid fa-plus"></i></button>
+      <button id="zoomIn" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white" aria-label="放大样片"><i class="fa-solid fa-plus"></i></button>
       <button id="zoomReset" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white ml-2">重置</button>
     </div>
     <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 p-4 z-10">

@@ -272,7 +272,7 @@ export function registerPhotoIpc(): void {
         success: failed === 0,
         moved,
         failed,
-        error: failed > 0 ? `${failed} 张照片移动失败` : undefined
+        error: failed > 0 ? `${failed} 张样片移动失败` : undefined
       }
     }
   ))
@@ -319,7 +319,7 @@ export function registerPhotoIpc(): void {
         success: failed === 0,
         restored,
         failed,
-        error: failed > 0 ? `${failed} 张照片恢复失败` : undefined
+        error: failed > 0 ? `${failed} 张样片恢复失败` : undefined
       }
     }
   ))
@@ -355,7 +355,7 @@ export function registerPhotoIpc(): void {
         success: failed === 0,
         deleted: deletedIds.length,
         failed,
-        error: failed > 0 ? `${failed} 张照片删除失败` : undefined
+        error: failed > 0 ? `${failed} 张样片删除失败` : undefined
       }
     }
   ))

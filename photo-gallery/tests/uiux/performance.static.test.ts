@@ -26,7 +26,7 @@ describe('UI/UX refactor guardrails', () => {
   it('exposes keyboard and reduced-motion hooks for the core workflow', () => {
     expect(htmlSource).toContain('id="deliveryModeBtn"')
     expect(htmlSource).toContain('id="deliveryBtn"')
-    expect(htmlSource).toContain('aria-label="关闭照片详情"')
+    expect(htmlSource).toContain('aria-label="关闭样片详情"')
     const tokens = readFileSync(join(publicRoot, 'styles', 'tokens.css'), 'utf8')
     expect(tokens).toContain(':focus-visible')
     expect(tokens).toContain('prefers-reduced-motion: reduce')

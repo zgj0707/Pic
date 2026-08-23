@@ -1,4 +1,4 @@
-// 键盘优先的照片初筛工作区
+// 键盘优先的样片初筛工作区
 // 与 state.js / app.js / grid.js 共享全局状态变量。
 
 let cullingMode = false
@@ -42,7 +42,7 @@ function updateCullingProgress() {
   const progress = document.getElementById('cullingProgress')
   if (!progress) return
   if (cullingPhotos.length === 0) {
-    progress.textContent = '当前项目没有可初筛的照片'
+    progress.textContent = '当前项目没有可初筛的样片'
     return
   }
   const counts = cullingPhotos.reduce((result, photo) => {
@@ -71,7 +71,7 @@ function renderCullingGrid() {
     card.className = `culling-card culling-state-${state}${index === cullingIndex ? ' active' : ''}${selectedPhotos.has(photo.id) ? ' selected' : ''}`
     card.dataset.id = String(photo.id)
     card.dataset.index = String(index)
-    card.setAttribute('aria-label', `${photo.filename || '照片'}，${REVIEW_STATE_LABELS[state]}，${photo.rating || 0} 星`)
+    card.setAttribute('aria-label', `${photo.filename || '样片'}，${REVIEW_STATE_LABELS[state]}，${photo.rating || 0} 星`)
     card.innerHTML = `
       <span class="culling-card-image"><img src="${escapeHtml(cullingPhotoSource(photo))}" alt="${escapeHtml(photo.filename || '')}" loading="lazy"></span>
       <span class="culling-card-footer"><strong>${escapeHtml(photo.filename || '未命名')}</strong><span>${REVIEW_STATE_LABELS[state]} · ${photo.rating || 0} 星</span></span>
@@ -94,7 +94,7 @@ function renderCullingImmersive() {
   const meta = document.getElementById('cullingImmersiveMeta')
   if (!photo || !image || !filename || !meta) {
     if (image) image.removeAttribute('src')
-    if (filename) filename.textContent = '未选择照片'
+    if (filename) filename.textContent = '未选择样片'
     if (meta) meta.textContent = ''
     return
   }
@@ -161,7 +161,7 @@ async function enterCullingMode() {
   document.getElementById('cullingWorkspace')?.classList.remove('hidden')
   document.getElementById('cullingModeBtn')?.classList.add('active')
   const statusView = document.getElementById('statusView')
-  if (statusView) statusView.textContent = '照片初筛'
+  if (statusView) statusView.textContent = '样片初筛'
   await loadCullingPhotos()
   document.getElementById('cullingGrid')?.focus()
 }

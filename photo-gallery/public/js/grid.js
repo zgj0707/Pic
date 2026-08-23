@@ -1,4 +1,4 @@
-// 照片网格、虚拟滚动、选择与批量标签显示
+// 样片网格、虚拟滚动、选择与批量标签显示
 // 与 index.html 共享全局状态变量
 
 function createPhotoItem(photo, index, layout = null) {
@@ -40,7 +40,7 @@ function createPhotoItem(photo, index, layout = null) {
     <div class="selection-indicator">
       <i class="fa-solid ${selectedPhotos.has(photo.id) ? 'fa-check' : 'fa-plus'}"></i>
     </div>
-    <button class="selection-tray-indicator" type="button" aria-label="${typeof selectionTrayIds !== 'undefined' && selectionTrayIds.includes(photo.id) ? '移出精选篮' : '加入精选篮'}"><i class="fa-solid fa-bookmark"></i></button>
+    <button class="selection-tray-indicator" type="button" aria-label="${typeof selectionTrayIds !== 'undefined' && selectionTrayIds.includes(photo.id) ? '移出灵感板' : '加入灵感板'}"><i class="fa-solid fa-bookmark"></i></button>
     <div class="rating-overlay">${ratingHtml}</div>
     <div class="tags-overlay">${tagsHtml}</div>
   `;
@@ -155,7 +155,7 @@ function renderPhotoGrid(resetScroll = false) {
   }
 }
 
-// 虚拟滚动：计算所有照片的瀑布流位置
+// 虚拟滚动：计算所有样片的瀑布流位置
 function computeGridLayout() {
   const containerWidth = photoGrid.clientWidth - 32;
   const gap = 12;
@@ -350,15 +350,15 @@ function updatePhotoCount() {
   const hasMore = window.electronAPI && photoTotalCount > 0 && photoLoadedCount < photoTotalCount;
   if (isRecycleBinView) {
     const base = window.electronAPI
-      ? `${photoLoadedCount}/${photoTotalCount} 张已删除照片`
-      : `${photos.length} 张已删除照片`;
+      ? `${photoLoadedCount}/${photoTotalCount} 张已删除样片`
+      : `${photos.length} 张已删除样片`;
     document.getElementById('photoCount').textContent = hasMore ? `${base}（加载中…）` : base;
   } else {
     const base = window.electronAPI
-      ? `${photoLoadedCount}/${photoTotalCount} 张照片`
+      ? `${photoLoadedCount}/${photoTotalCount} 张样片`
       : (filteredPhotos.length === photos.length
-          ? `${photos.length} 张照片`
-          : `${filteredPhotos.length}/${photos.length} 张照片`);
+          ? `${photos.length} 张样片`
+          : `${filteredPhotos.length}/${photos.length} 张样片`);
     document.getElementById('photoCount').textContent = hasMore ? `${base}（加载中…）` : base;
   }
   updateStatusBar();
@@ -367,7 +367,7 @@ function updatePhotoCount() {
 function updateSelectedCount() {
   const count = selectedPhotos.size;
   const selectedCountEl = document.getElementById('selectedCount');
-  if (selectedCountEl) selectedCountEl.textContent = `已选择 ${count} 张照片`;
+  if (selectedCountEl) selectedCountEl.textContent = `已选择 ${count} 张样片`;
   if (isRecycleBinView) {
     const restoreBtn = document.getElementById('restoreBtn');
     const permanentDeleteBtn = document.getElementById('permanentDeleteBtn');

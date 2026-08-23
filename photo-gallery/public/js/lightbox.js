@@ -77,7 +77,7 @@ function renderLightboxTags(tags) {
 
 async function removeLightboxTag(tagName) {
   if (filteredPhotos.length === 0) {
-    showToast('没有可操作的照片', 'warning');
+    showToast('没有可操作的样片', 'warning');
     return;
   }
 
@@ -87,13 +87,13 @@ async function removeLightboxTag(tagName) {
 
   const photo = filteredPhotos[currentPhotoIndex];
   if (!photo) {
-    showToast('无法获取当前照片信息', 'error');
+    showToast('无法获取当前样片信息', 'error');
     return;
   }
 
   const fullPhoto = photos.find(p => p.id === photo.id);
   if (!fullPhoto) {
-    showToast('照片数据已失效，请刷新后重试', 'error');
+    showToast('样片数据已失效，请刷新后重试', 'error');
     await loadPhotos();
     return;
   }

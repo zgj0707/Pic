@@ -51,8 +51,8 @@ export function listProjectSelections(projectId: number): ProjectSelection[] {
 
 function assertPhotoBelongsToProject(projectId: number, photoId: number): void {
   const photo = dbAdapter.get('SELECT id, project_id FROM photos WHERE id = ?', [photoId])
-  if (!photo) throw new Error('照片不存在')
-  if (Number(photo.project_id) !== projectId) throw new Error('照片不属于当前项目')
+  if (!photo) throw new Error('样片不存在')
+  if (Number(photo.project_id) !== projectId) throw new Error('样片不属于当前项目')
 }
 
 export function addProjectSelection(projectId: number, photoId: number): ProjectSelection {
@@ -72,7 +72,7 @@ export function addProjectSelection(projectId: number, photoId: number): Project
   })
   saveDatabase()
   const added = listProjectSelections(projectId).find(selection => selection.photo_id === photoId)
-  if (!added) throw new Error('精选照片写入失败')
+  if (!added) throw new Error('灵感板样片写入失败')
   return added
 }
 
@@ -90,10 +90,10 @@ export function reorderProjectSelections(projectId: number, photoIds: number[]):
   const currentIds = current.map(selection => selection.photo_id)
   const nextIds = photoIds.map(Number)
   if (new Set(nextIds).size !== nextIds.length || nextIds.length !== currentIds.length) {
-    throw new Error('精选顺序与当前精选篮不一致')
+    throw new Error('灵感板顺序与当前灵感板不一致')
   }
   const allowed = new Set(currentIds)
-  if (nextIds.some(photoId => !allowed.has(photoId))) throw new Error('包含不属于当前精选篮的照片')
+  if (nextIds.some(photoId => !allowed.has(photoId))) throw new Error('包含不属于当前灵感板的样片')
 
   nextIds.forEach((photoId, position) => {
     dbAdapter.run(

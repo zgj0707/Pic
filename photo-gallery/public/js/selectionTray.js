@@ -34,7 +34,7 @@ function refreshGridSelectionTrayIndicators() {
     item.classList.toggle('in-selection-tray', inTray)
     const button = item.querySelector('.selection-tray-indicator')
     if (button) {
-      button.setAttribute('aria-label', inTray ? '移出精选篮' : '加入精选篮')
+      button.setAttribute('aria-label', inTray ? '移出灵感板' : '加入灵感板')
     }
   })
 }
@@ -58,14 +58,14 @@ function renderSelectionTray() {
     item.dataset.position = String(index)
     item.innerHTML = `
       <button class="selection-tray-drag" type="button" title="拖动调整顺序" aria-label="拖动调整顺序"><i class="fa-solid fa-grip-vertical" aria-hidden="true"></i></button>
-      <button class="selection-tray-preview" type="button" aria-label="预览 ${escapeHtml(photo.filename || '照片')}">
+      <button class="selection-tray-preview" type="button" aria-label="预览 ${escapeHtml(photo.filename || '样片')}">
         <img src="${escapeHtml(photo.thumbnail_path || photo.filepath || '')}" alt="${escapeHtml(photo.filename || '')}">
       </button>
       <div class="selection-tray-item-info">
         <strong title="${escapeHtml(photo.filename || '')}">${escapeHtml(photo.filename || '未命名')}</strong>
         <span>${photo.deleted_at ? '文件在回收站' : `${photo.rating || 0} 星 · ${photo.tags?.length || 0} 标签`}</span>
       </div>
-      <button class="selection-tray-remove" type="button" aria-label="移出精选篮"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <button class="selection-tray-remove" type="button" aria-label="移出灵感板"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     `
     item.querySelector('.selection-tray-preview')?.addEventListener('click', () => {
       if (typeof openLightbox === 'function') openLightbox(photo, index)
@@ -118,8 +118,8 @@ async function loadSelectionTray(projectId = currentProjectId) {
     }
     selectionTrayIds = selectionTrayItems.map(selection => selection.photo_id)
   } catch (error) {
-    console.error('加载精选篮失败:', error)
-    showToast('精选篮加载失败', 'error')
+    console.error('加载灵感板失败:', error)
+    showToast('灵感板加载失败', 'error')
   }
   renderSelectionTray()
 }
@@ -130,7 +130,7 @@ async function addSelectionTray(photo) {
   try {
     if (window.electronAPI?.selections?.add) {
       const result = await window.electronAPI.selections.add(selectionTrayProjectId, photo.id)
-      if (!result.success) throw new Error(result.error || '写入精选篮失败')
+      if (!result.success) throw new Error(result.error || '写入灵感板失败')
     } else {
       const ids = [...selectionTrayIds, photo.id]
       localStorage.setItem(selectionTrayStorageKey(selectionTrayProjectId), JSON.stringify(ids))
@@ -138,7 +138,7 @@ async function addSelectionTray(photo) {
     await loadSelectionTray(selectionTrayProjectId)
     return true
   } catch (error) {
-    showToast(`加入精选篮失败：${error instanceof Error ? error.message : '未知错误'}`, 'error')
+    showToast(`加入灵感板失败：${error instanceof Error ? error.message : '未知错误'}`, 'error')
     return false
   }
 }
@@ -148,7 +148,7 @@ async function removeSelectionTray(photoId) {
   try {
     if (window.electronAPI?.selections?.remove) {
       const result = await window.electronAPI.selections.remove(selectionTrayProjectId, photoId)
-      if (!result.success) throw new Error(result.error || '移出精选篮失败')
+      if (!result.success) throw new Error(result.error || '移出灵感板失败')
     } else {
       const ids = selectionTrayIds.filter(id => id !== photoId)
       localStorage.setItem(selectionTrayStorageKey(selectionTrayProjectId), JSON.stringify(ids))
@@ -156,7 +156,7 @@ async function removeSelectionTray(photoId) {
     await loadSelectionTray(selectionTrayProjectId)
     return true
   } catch (error) {
-    showToast(`移出精选篮失败：${error instanceof Error ? error.message : '未知错误'}`, 'error')
+    showToast(`移出灵感板失败：${error instanceof Error ? error.message : '未知错误'}`, 'error')
     return false
   }
 }
@@ -166,7 +166,7 @@ async function toggleSelectionTray(photo) {
   const removed = selectionTrayIds.includes(photo.id)
   const success = removed ? await removeSelectionTray(photo.id) : await addSelectionTray(photo)
   if (success) {
-    if (typeof setCullingLastAction === 'function') setCullingLastAction(`${removed ? '移出精选篮' : '加入精选篮'} · ${photo.filename || '未命名'}`)
+    if (typeof setCullingLastAction === 'function') setCullingLastAction(`${removed ? '移出灵感板' : '加入灵感板'} · ${photo.filename || '未命名'}`)
   }
   return success
 }
@@ -181,14 +181,14 @@ async function reorderSelectionTray(draggedPhotoId, targetPhotoId) {
   try {
     if (window.electronAPI?.selections?.reorder) {
       const result = await window.electronAPI.selections.reorder(selectionTrayProjectId, ids)
-      if (!result.success) throw new Error(result.error || '保存精选顺序失败')
+      if (!result.success) throw new Error(result.error || '保存灵感板顺序失败')
     } else {
       localStorage.setItem(selectionTrayStorageKey(selectionTrayProjectId), JSON.stringify(ids))
     }
     await loadSelectionTray(selectionTrayProjectId)
-    showToast('精选顺序已更新', 'success')
+    showToast('灵感板顺序已更新', 'success')
   } catch (error) {
-    showToast(`保存精选顺序失败：${error instanceof Error ? error.message : '未知错误'}`, 'error')
+    showToast(`保存灵感板顺序失败：${error instanceof Error ? error.message : '未知错误'}`, 'error')
   }
 }
 

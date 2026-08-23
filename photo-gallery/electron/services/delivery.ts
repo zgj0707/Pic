@@ -1,6 +1,6 @@
 import { extname, join } from 'path'
 import { copyFileSync, existsSync, mkdirSync, statSync } from 'fs'
-import { dbAdapter, saveDatabase } from './database'
+import { dbAdapter } from './database'
 
 export interface DeliveryItemResult {
   photoId: number
@@ -41,13 +41,13 @@ export function exportProjectDelivery(
   prefix: string
 ): DeliveryExportResult {
   if (!Array.isArray(photoIds) || photoIds.length === 0) {
-    return { success: false, copied: 0, failed: 0, results: [], error: '精选篮为空' }
+    return { success: false, copied: 0, failed: 0, results: [], error: '灵感板为空' }
   }
   if (!targetDir || !existsSync(targetDir) || !statSync(targetDir).isDirectory()) {
     return { success: false, copied: 0, failed: photoIds.length, results: [], error: '目标目录不存在' }
   }
 
-  const safeFolderName = sanitizeSegment(folderName, 'Pic-交付')
+  const safeFolderName = sanitizeSegment(folderName, 'Pic-方案')
   const safePrefix = sanitizeSegment(prefix, 'PIC-')
   const folderPath = join(targetDir, safeFolderName)
   mkdirSync(folderPath, { recursive: true })
@@ -57,19 +57,19 @@ export function exportProjectDelivery(
   )
   const byId = new Map(rows.map(row => [Number(row.id), row]))
   const results: DeliveryItemResult[] = []
-  const deliveredIds: number[] = []
+  let copiedCount = 0
 
   photoIds.forEach((photoId, index) => {
     const photo = byId.get(Number(photoId))
-    const filename = photo?.filename ? String(photo.filename) : `照片-${photoId}`
+    const filename = photo?.filename ? String(photo.filename) : `样片-${photoId}`
     const filepath = photo?.filepath ? String(photo.filepath) : ''
     const targetPath = join(folderPath, `${safePrefix}${String(index + 1).padStart(3, '0')}${getExtension(filename, filepath)}`)
     if (!photo) {
-      results.push({ photoId, filename, targetPath, success: false, error: '照片不属于当前项目或已不存在' })
+      results.push({ photoId, filename, targetPath, success: false, error: '样片不属于当前项目或已不存在' })
       return
     }
     if (photo.deleted_at) {
-      results.push({ photoId, filename, targetPath, success: false, error: '照片位于回收站' })
+      results.push({ photoId, filename, targetPath, success: false, error: '样片位于回收站' })
       return
     }
     if (!filepath || !existsSync(filepath)) {
@@ -82,28 +82,20 @@ export function exportProjectDelivery(
     }
     try {
       copyFileSync(filepath, targetPath)
-      deliveredIds.push(photoId)
+      copiedCount += 1
       results.push({ photoId, filename, targetPath, success: true })
     } catch (error) {
       results.push({ photoId, filename, targetPath, success: false, error: error instanceof Error ? error.message : '复制失败' })
     }
   })
 
-  if (deliveredIds.length > 0) {
-    const placeholders = deliveredIds.map(() => '?').join(', ')
-    dbAdapter.run(
-      `UPDATE photos SET delivered_at = ? WHERE project_id = ? AND id IN (${placeholders})`,
-      [Math.floor(Date.now() / 1000), projectId, ...deliveredIds]
-    )
-    saveDatabase()
-  }
   const failed = results.filter(result => !result.success).length
   return {
     success: failed === 0,
     folderPath,
-    copied: deliveredIds.length,
+    copied: copiedCount,
     failed,
     results,
-    error: failed > 0 ? `${failed} 个文件未能交付` : undefined
+    error: failed > 0 ? String(failed) + ' 个参考样片未能加入方案' : undefined
   }
 }

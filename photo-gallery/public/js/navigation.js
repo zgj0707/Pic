@@ -82,12 +82,12 @@ function setEmptyStateForGallery() {
 
   if (noProject) {
     if (title) title.textContent = '还没有项目';
-    if (subtitle) subtitle.textContent = '创建一个项目开始收集和整理照片';
+    if (subtitle) subtitle.textContent = '创建一个项目开始收集和整理样片';
   } else if (hasFilter) {
-    if (title) title.textContent = '没有符合条件的照片';
+    if (title) title.textContent = '没有符合条件的样片';
     if (subtitle) subtitle.textContent = '尝试清除筛选条件，或换一个关键词继续查找';
   } else {
-    if (title) title.textContent = '项目里还没有照片';
+    if (title) title.textContent = '项目里还没有样片';
     if (subtitle) subtitle.textContent = '导入文件夹或文件，开始建立当前项目的素材收件箱';
   }
 
@@ -98,7 +98,7 @@ function setEmptyStateForGallery() {
 
 function setEmptyStateForRecycleBin() {
   document.getElementById('emptyStateTitle').textContent = '回收站为空';
-  document.getElementById('emptyStateSubtitle').textContent = '删除的照片会在这里保留 30 天';
+  document.getElementById('emptyStateSubtitle').textContent = '删除的样片会在这里保留 30 天';
   document.getElementById('emptyCreateProjectBtn')?.classList.add('hidden');
   document.getElementById('emptyImportFolderBtn2')?.classList.add('hidden');
   document.getElementById('emptyClearFilterBtn')?.classList.add('hidden');
@@ -112,7 +112,7 @@ function switchToGallery() {
   currentPanel = 'gallery';
   selectedPhotos.clear();
   const selectedCountEl = document.getElementById('selectedCount');
-  if (selectedCountEl) selectedCountEl.textContent = '已选择 0 张照片';
+  if (selectedCountEl) selectedCountEl.textContent = '已选择 0 张样片';
   const exportPdfBtn = document.getElementById('exportPdfBtn');
   const deleteBtn = document.getElementById('deleteBtn');
   const copyToDesktopBtn = document.getElementById('copyToDesktopBtn');
@@ -139,7 +139,7 @@ function switchToRecycleBin() {
   currentPanel = 'recycle';
   selectedPhotos.clear();
   const selectedCountEl = document.getElementById('selectedCount');
-  if (selectedCountEl) selectedCountEl.textContent = '已选择 0 张照片';
+  if (selectedCountEl) selectedCountEl.textContent = '已选择 0 张样片';
   const deleteBtn = document.getElementById('deleteBtn');
   const restoreBtn = document.getElementById('restoreBtn');
   const permanentDeleteBtn = document.getElementById('permanentDeleteBtn');

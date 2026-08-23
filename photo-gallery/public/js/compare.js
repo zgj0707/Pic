@@ -36,7 +36,7 @@ function renderCompareWorkspace() {
   const grid = document.getElementById('compareGrid')
   const summary = document.getElementById('compareSummary')
   if (!grid) return
-  if (summary) summary.textContent = `${comparePhotos.length} 张照片 · 同步缩放 ${Math.round(compareZoom * 100)}%`
+  if (summary) summary.textContent = `${comparePhotos.length} 张样片 · 同步缩放 ${Math.round(compareZoom * 100)}%`
   grid.innerHTML = comparePhotos.map(photo => {
     const candidates = compareCandidatePhotos.filter(candidate => !selectionTrayIds.includes(candidate.id) && candidate.id !== photo.id)
     const options = candidates.map(candidate => `<option value="${candidate.id}">${escapeHtml(candidate.filename || '未命名')}</option>`).join('')
@@ -47,11 +47,11 @@ function renderCompareWorkspace() {
           <h3 title="${escapeHtml(photo.filename || '')}">${escapeHtml(photo.filename || '未命名')}</h3>
           <p>${escapeHtml(comparePhotoMeta(photo))}</p>
           <p class="compare-exif">${escapeHtml(compareExifSummary(photo))}</p>
-          <div class="compare-actions" role="group" aria-label="${escapeHtml(photo.filename || '照片')}操作">
+          <div class="compare-actions" role="group" aria-label="${escapeHtml(photo.filename || '样片')}操作">
             <div class="compare-rating-actions">${[1, 2, 3, 4, 5].map(rating => `<button class="compare-rating-btn${rating <= (photo.rating || 0) ? ' active' : ''}" type="button" data-rating="${rating}" aria-label="${rating} 星">★</button>`).join('')}</div>
             <button class="compare-reject-btn" type="button"><i class="fa-solid fa-xmark" aria-hidden="true"></i><span>淘汰</span></button>
           </div>
-          <label class="compare-replace-label">替换精选<select class="compare-replace-select" aria-label="替换 ${escapeHtml(photo.filename || '未命名')}"><option value="">选择照片…</option>${options}</select></label>
+          <label class="compare-replace-label">替换灵感板<select class="compare-replace-select" aria-label="替换 ${escapeHtml(photo.filename || '未命名')}"><option value="">选择样片…</option>${options}</select></label>
         </div>
       </article>
     `
@@ -69,7 +69,7 @@ async function loadCompareCandidates() {
 
 async function openCompareWorkspace() {
   if (selectionTrayItems.length < 2) {
-    showToast('至少选择 2 张精选照片才能对比', 'warning')
+    showToast('至少选择 2 张参考样片才能对比', 'warning')
     return
   }
   comparePhotos = selectionTrayItems.slice(0, 4).map(selection => selection.photo)
@@ -80,7 +80,7 @@ async function openCompareWorkspace() {
   document.getElementById('cullingWorkspace')?.classList.add('hidden')
   document.querySelector('.filter-bar')?.classList.add('hidden')
   document.getElementById('compareWorkspace')?.classList.remove('hidden')
-  document.getElementById('statusView')?.replaceChildren(document.createTextNode('精选对比'))
+  document.getElementById('statusView')?.replaceChildren(document.createTextNode('灵感板对比'))
   currentPanel = 'compare'
   renderCompareWorkspace()
 }
@@ -117,12 +117,12 @@ async function rejectComparePhoto(photoId) {
     await removeSelectionTray(photoId)
     if (selectionTrayItems.length < 2) {
       await closeCompareWorkspace()
-      showToast('精选照片少于 2 张，已退出对比', 'warning')
+      showToast('参考样片少于 2 张，已退出对比', 'warning')
       return
     }
     comparePhotos = selectionTrayItems.slice(0, 4).map(selection => selection.photo)
     renderCompareWorkspace()
-    showToast('照片已淘汰并移出精选篮', 'success')
+    showToast('参考样片已淘汰并移出灵感板', 'success')
   } catch (error) {
     showToast(`淘汰失败：${error instanceof Error ? error.message : '未知错误'}`, 'error')
   }
@@ -142,9 +142,9 @@ async function replaceComparePhoto(oldPhotoId, newPhotoId) {
     }
     comparePhotos = selectionTrayItems.slice(0, 4).map(selection => selection.photo)
     renderCompareWorkspace()
-    showToast('精选照片已替换', 'success')
+    showToast('参考样片已替换', 'success')
   } catch (error) {
-    showToast(`替换精选失败：${error instanceof Error ? error.message : '未知错误'}`, 'error')
+    showToast(`替换灵感板失败：${error instanceof Error ? error.message : '未知错误'}`, 'error')
   }
 }
 

@@ -8,7 +8,7 @@ function deliveryDateStamp() {
 
 function deliveryCurrentFolderName() {
   const projectName = typeof currentProjectName === 'string' && currentProjectName ? currentProjectName : 'Pic'
-  return projectName + '-交付-' + deliveryDateStamp()
+  return projectName + '-拍摄方案-' + deliveryDateStamp()
 }
 
 function deliverySafeExtension(photo) {
@@ -36,9 +36,8 @@ function deliveryWarnings(items) {
     if (filepath) {
       const count = (paths.get(filepath) || 0) + 1
       paths.set(filepath, count)
-      if (count === 2) warnings.push((photo.filename || '未命名') + ' 与另一张精选照片使用相同原图路径')
+      if (count === 2) warnings.push((photo.filename || '未命名') + ' 与另一张参考样片使用相同原图路径')
     }
-    if (photo.delivered_at) warnings.push((photo.filename || '未命名') + ' 已有交付记录，复制时仍不会覆盖目标文件')
   })
   return warnings
 }
@@ -53,7 +52,7 @@ function renderDeliveryWorkspace() {
   if (prefixInput && !prefixInput.value) prefixInput.value = 'PIC-'
 
   const summary = document.getElementById('deliverySummary')
-  if (summary) summary.textContent = items.length + ' 张精选照片 · 按精选篮顺序复制并重命名，原图保持不变'
+  if (summary) summary.textContent = items.length + ' 张参考样片 · 按灵感板顺序复制并重命名，原图保持不变'
   const count = document.getElementById('deliveryPreviewCount')
   if (count) count.textContent = items.length + ' 个文件'
   const warnings = document.getElementById('deliveryWarnings')
@@ -61,7 +60,7 @@ function renderDeliveryWorkspace() {
   if (warnings) {
     warnings.classList.toggle('hidden', warningItems.length === 0)
     warnings.innerHTML = warningItems.length
-      ? '<strong>交付前请确认</strong><ul>' + warningItems.map(item => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul>'
+      ? '<strong>生成方案前请确认</strong><ul>' + warningItems.map(item => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul>'
       : ''
   }
 
@@ -69,16 +68,15 @@ function renderDeliveryWorkspace() {
   if (list) {
     list.innerHTML = items.length
       ? items.map((photo, index) => {
-        const delivered = photo.delivered_at ? ' 已交付过' : ''
         const deleted = photo.deleted_at ? ' is-deleted' : ''
         return '<article class="delivery-preview-item' + deleted + '">' +
           '<span class="delivery-preview-index">' + String(index + 1).padStart(2, '0') + '</span>' +
           '<div class="delivery-preview-thumb"><img src="' + escapeHtml(photo.thumbnail_path || photo.filepath || '') + '" alt=""></div>' +
           '<div class="delivery-preview-source"><strong title="' + escapeHtml(photo.filename || '') + '">' + escapeHtml(photo.filename || '未命名') + '</strong><span>' + escapeHtml(photo.filepath || '无原图路径') + '</span></div>' +
-          '<div class="delivery-preview-target"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i><strong>' + escapeHtml(deliveryFilename(photo, index)) + '</strong><span>' + escapeHtml((folderInput?.value || '交付文件夹')) + '</span><em>' + delivered + '</em></div>' +
+          '<div class="delivery-preview-target"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i><strong>' + escapeHtml(deliveryFilename(photo, index)) + '</strong><span>' + escapeHtml((folderInput?.value || '方案目录')) + '</span></div>' +
           '</article>'
       }).join('')
-      : '<div class="delivery-empty">精选篮为空，请先从图库或初筛中加入照片。</div>'
+      : '<div class="delivery-empty">灵感板为空，请先从图库或初筛中加入参考样片。</div>'
   }
 
   const exportButton = document.getElementById('deliveryExportBtn')
@@ -95,9 +93,9 @@ function deliveryShowResult(result) {
   const failed = result.results?.filter(item => !item.success) || []
   box.classList.remove('hidden')
   box.classList.toggle('is-error', failed.length > 0)
-  box.innerHTML = '<strong>' + (result.success ? '交付完成' : '交付已完成但存在失败文件') + '</strong>' +
+  box.innerHTML = '<strong>' + (result.success ? '方案已生成' : '方案已生成但存在失败文件') + '</strong>' +
     '<span>成功复制 ' + (result.copied || 0) + ' 个，失败 ' + (result.failed || 0) + ' 个。</span>' +
-    (result.folderPath ? '<span>输出文件夹：' + escapeHtml(result.folderPath) + '</span>' : '') +
+    (result.folderPath ? '<span>方案目录：' + escapeHtml(result.folderPath) + '</span>' : '') +
     (failed.length ? '<ul>' + failed.map(item => '<li>' + escapeHtml(item.filename) + '：' + escapeHtml(item.error || '复制失败') + '</li>').join('') + '</ul>' : '')
 }
 
@@ -119,11 +117,11 @@ async function exportDelivery() {
   const folderName = document.getElementById('deliveryFolderName')?.value.trim() || deliveryCurrentFolderName()
   const prefix = document.getElementById('deliveryPrefix')?.value.trim() || 'PIC-'
   if (!deliveryTargetDir || !items.length || currentProjectId === null) {
-    showToast('请先选择目标目录并确认精选篮不为空', 'warning')
+    showToast('请先选择目标目录并确认灵感板不为空', 'warning')
     return
   }
   const expected = deliveryTargetDir + '\\' + folderName
-  const confirmed = window.confirm('将创建目标文件夹：' + expected + '\n复制并重命名 ' + items.length + ' 个文件，原图不会被修改。继续吗？')
+  const confirmed = window.confirm('将创建方案目录：' + expected + '\n复制并重命名 ' + items.length + ' 个文件，原图不会被修改。继续吗？')
   if (!confirmed) return
   const button = document.getElementById('deliveryExportBtn')
   if (button) button.disabled = true
@@ -131,17 +129,12 @@ async function exportDelivery() {
     const result = await window.electronAPI.delivery.export(currentProjectId, selectionTrayIds.slice(), deliveryTargetDir, folderName, prefix)
     deliveryLastResult = result
     deliveryFolderPath = result.folderPath || ''
-    ;(result.results || []).forEach(item => {
-      if (!item.success) return
-      const selection = selectionTrayItems.find(candidate => candidate.photo_id === item.photoId)
-      if (selection?.photo) selection.photo.delivered_at = Math.floor(Date.now() / 1000)
-    })
     renderDeliveryWorkspace()
     deliveryShowResult(result)
-    if (result.success) showToast('交付完成：已复制 ' + result.copied + ' 个文件', 'success')
-    else showToast('交付部分完成：有 ' + result.failed + ' 个文件失败', 'warning')
+    if (result.success) showToast('方案已生成：已复制 ' + result.copied + ' 个文件', 'success')
+    else showToast('方案部分生成：有 ' + result.failed + ' 个文件失败', 'warning')
   } catch (error) {
-    showToast('交付失败：' + (error instanceof Error ? error.message : '未知错误'), 'error')
+    showToast('方案失败：' + (error instanceof Error ? error.message : '未知错误'), 'error')
   } finally {
     if (button) button.disabled = false
     renderDeliveryWorkspace()
@@ -172,11 +165,11 @@ function deliveryImageData(filePath) {
 async function generateDeliveryContactSheet() {
   const items = deliveryItems()
   if (!items.length) {
-    showToast('请先加入精选照片', 'warning')
+    showToast('请先加入参考样片', 'warning')
     return
   }
   if (!window.jspdf?.jsPDF || !window.electronAPI?.pdf?.saveToDesktop) {
-    showToast('当前环境不支持生成联系表', 'error')
+    showToast('当前环境不支持生成 Moodboard', 'error')
     return
   }
   const button = document.getElementById('deliveryContactSheetBtn')
@@ -190,7 +183,7 @@ async function generateDeliveryContactSheet() {
     const cellHeight = 57
     const gapX = 7
     const gapY = 8
-    const title = 'Pic 交付联系表 · ' + (typeof currentProjectName === 'string' ? currentProjectName : '')
+    const title = 'Pic Moodboard · ' + (typeof currentProjectName === 'string' ? currentProjectName : '')
     let placed = 0
     let skipped = 0
     for (let index = 0; index < items.length; index += 1) {
@@ -216,14 +209,14 @@ async function generateDeliveryContactSheet() {
         skipped += 1
       }
     }
-    if (placed === 0) throw new Error('没有可读取的照片')
+    if (placed === 0) throw new Error('没有可读取的样片')
     const pdfData = doc.output('datauristring')
-    const filename = 'Pic联系表_' + deliveryDateStamp() + '.pdf'
+    const filename = 'Pic-Moodboard_' + deliveryDateStamp() + '.pdf'
     const result = await window.electronAPI.pdf.saveToDesktop(pdfData, filename)
-    if (result.success) showToast('联系表已保存到桌面' + (skipped ? '，跳过 ' + skipped + ' 张无法读取的照片' : ''), 'success')
-    else showToast('保存联系表失败：' + (result.error || '未知错误'), 'error')
+    if (result.success) showToast('Moodboard已保存到桌面' + (skipped ? '，跳过 ' + skipped + ' 张无法读取的样片' : ''), 'success')
+    else showToast('保存 Moodboard失败：' + (result.error || '未知错误'), 'error')
   } catch (error) {
-    showToast('生成联系表失败：' + (error instanceof Error ? error.message : '未知错误'), 'error')
+    showToast('生成 Moodboard失败：' + (error instanceof Error ? error.message : '未知错误'), 'error')
   } finally {
     if (button) button.disabled = false
   }
@@ -231,7 +224,7 @@ async function generateDeliveryContactSheet() {
 
 async function openDeliveryWorkspace() {
   if (!selectionTrayItems.length) {
-    showToast('请先加入至少 1 张精选照片', 'warning')
+    showToast('请先加入至少 1 张参考样片', 'warning')
     return
   }
   if (typeof cullingMode !== 'undefined') cullingMode = false
@@ -240,7 +233,7 @@ async function openDeliveryWorkspace() {
   document.getElementById('compareWorkspace')?.classList.add('hidden')
   document.querySelector('.filter-bar')?.classList.add('hidden')
   document.getElementById('deliveryWorkspace')?.classList.remove('hidden')
-  document.getElementById('statusView')?.replaceChildren(document.createTextNode('交付工作区'))
+  document.getElementById('statusView')?.replaceChildren(document.createTextNode('方案工作区'))
   currentPanel = 'delivery'
   renderDeliveryWorkspace()
 }
