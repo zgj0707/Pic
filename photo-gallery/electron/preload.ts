@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
-  Photo, PhotoQueryOptions, PhotoFilter, Tag, ExifData, Project,
+  Photo, PhotoQueryOptions, PhotoFilter, ReviewState, Tag, ExifData, Project,
   ImportResult, ImportProgress,
   CacheStats, CacheCleanResult, IpcResponse, ChangelogEntry
 } from './types'
@@ -19,6 +19,9 @@ export interface ElectronAPI {
     count: (filter?: PhotoFilter) => Promise<number>
     getById: (id: number) => Promise<Photo | null>
     updateRating: (id: number, rating: number) => Promise<{ success: boolean }>
+    setReviewState: (id: number, state: ReviewState) => Promise<{ success: boolean }>
+    batchSetReviewState: (ids: number[], state: ReviewState) => Promise<{ success: boolean; updated?: number }>
+    countByReviewState: (projectId: number) => Promise<Record<ReviewState, number>>
     updateTags: (id: number, tags: string[]) => Promise<{ success: boolean }>
     toggleFavorite: (id: number) => Promise<{ success: boolean }>
     delete: (ids: number[]) => Promise<{ success: boolean; moved?: number; failed?: number; error?: string }>
@@ -110,6 +113,9 @@ const api: ElectronAPI = {
     count: (filter?: PhotoFilter) => ipcRenderer.invoke('photos:count', filter),
     getById: (id: number) => ipcRenderer.invoke('photos:getById', id),
     updateRating: (id: number, rating: number) => ipcRenderer.invoke('photos:updateRating', id, rating),
+    setReviewState: (id: number, state: ReviewState) => ipcRenderer.invoke('photos:setReviewState', id, state),
+    batchSetReviewState: (ids: number[], state: ReviewState) => ipcRenderer.invoke('photos:batchSetReviewState', ids, state),
+    countByReviewState: (projectId: number) => ipcRenderer.invoke('photos:countByReviewState', projectId),
     updateTags: (id: number, tags: string[]) => ipcRenderer.invoke('photos:updateTags', id, tags),
     toggleFavorite: (id: number) => ipcRenderer.invoke('photos:toggleFavorite', id),
     delete: (ids: number[]) => ipcRenderer.invoke('photos:delete', ids),

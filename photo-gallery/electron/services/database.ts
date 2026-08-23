@@ -44,7 +44,8 @@ CREATE TABLE IF NOT EXISTS photos (
   exif_json TEXT,
   deleted_at INTEGER,
   project_id INTEGER,
-  original_filepath TEXT
+  original_filepath TEXT,
+  review_state TEXT NOT NULL DEFAULT 'unreviewed'
 );
 
 CREATE INDEX IF NOT EXISTS idx_photos_rating ON photos(rating);
@@ -185,7 +186,8 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
       exif_json TEXT,
       deleted_at INTEGER,
       project_id INTEGER,
-      original_filepath TEXT
+      original_filepath TEXT,
+      review_state TEXT NOT NULL DEFAULT 'unreviewed'
     )
   `)
   try {
@@ -216,6 +218,13 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
       console.error('[database] original_filepath migration failed:', error)
     }
   }
+  // Migration: add the keyboard-first culling state to legacy photo tables.
+  // Check PRAGMA first so the migration is idempotent.
+  const photoColumns = dbAdapter.query('PRAGMA table_info(photos)')
+  if (!photoColumns.some(column => column.name === 'review_state')) {
+    db.exec("ALTER TABLE photos ADD COLUMN review_state TEXT NOT NULL DEFAULT 'unreviewed'")
+  }
+
   db.exec(SCHEMA)
 
   // Migration: early project tables used client_id/date/album_id and did not
@@ -265,6 +274,12 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
     db.exec('CREATE INDEX IF NOT EXISTS idx_photos_project ON photos(project_id)')
   } catch (error) {
     console.error('[database] Failed to create project_id index:', error)
+  }
+
+  try {
+    db.exec('CREATE INDEX IF NOT EXISTS idx_photos_review_state ON photos(review_state)')
+  } catch (error) {
+    console.error('[database] Failed to create review_state index:', error)
   }
 
   // 为没有项目的旧数据创建默认项目并关联

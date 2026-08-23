@@ -6,10 +6,17 @@ import { getDownloadDir } from '../services/config'
 import { syncTagsToPhotoExif } from '../utils/exifSync'
 import { buildInPlaceholders } from '../utils/dbHelpers'
 import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
-import type { PhotoFilter, PhotoQueryOptions, Photo, IpcResponse } from '../types'
+import type { PhotoFilter, PhotoQueryOptions, Photo, IpcResponse, ReviewState } from '../types'
 
 const RECYCLE_BIN_DIR_NAME = '回收站'
 const RECYCLE_BIN_RETENTION_DAYS = 30
+
+const REVIEW_STATES: readonly ReviewState[] = ['unreviewed', 'pick', 'reject']
+
+function isReviewState(value: unknown): value is ReviewState {
+  return typeof value === 'string' && REVIEW_STATES.includes(value as ReviewState)
+ }
+
 
 function getRecycleBinDir(): string {
   return join(getDownloadDir(), RECYCLE_BIN_DIR_NAME)
@@ -64,6 +71,11 @@ function buildPhotoFilterSql(filter: PhotoFilter): { whereClause: string; params
   if (filter.projectId !== undefined) {
     conditions.push('p.project_id = ?')
     params.push(filter.projectId)
+  }
+
+  if (filter.reviewState && filter.reviewState !== 'all') {
+    conditions.push('p.review_state = ?')
+    params.push(filter.reviewState)
   }
 
   if (filter.unrated) {
@@ -167,7 +179,39 @@ export function registerPhotoIpc(): void {
   ipcMain.handle('photos:updateRating', wrapHandler('photos:updateRating',
     (_event, id: number, rating: number) => {
       dbAdapter.run('UPDATE photos SET rating = ? WHERE id = ?', [rating, id])
+      saveDatabase()
       return { success: true }
+    }
+  ))
+
+  ipcMain.handle('photos:setReviewState', wrapHandler('photos:setReviewState',
+    (_event, id: number, state: ReviewState) => {
+      if (!isReviewState(state)) throw new Error('Invalid review state')
+      dbAdapter.run('UPDATE photos SET review_state = ? WHERE id = ?', [state, id])
+      saveDatabase()
+      return { success: true }
+    }
+  ))
+
+  ipcMain.handle('photos:batchSetReviewState', wrapHandler('photos:batchSetReviewState',
+    (_event, ids: number[], state: ReviewState) => {
+      if (!isReviewState(state)) throw new Error('Invalid review state')
+      if (!Array.isArray(ids) || ids.length === 0) return { success: true, updated: 0 }
+      const placeholders = buildInPlaceholders(ids.length)
+      const result = dbAdapter.run('UPDATE photos SET review_state = ? WHERE id IN (' + placeholders + ')', [state, ...ids])
+      saveDatabase()
+      return { success: true, updated: result.changes }
+    }
+  ))
+
+  ipcMain.handle('photos:countByReviewState', wrapHandler('photos:countByReviewState',
+    (_event, projectId: number) => {
+      const rows = dbAdapter.query('SELECT review_state, COUNT(*) as total FROM photos WHERE project_id = ? AND deleted_at IS NULL GROUP BY review_state', [projectId])
+      const counts: Record<ReviewState, number> = { unreviewed: 0, pick: 0, reject: 0 }
+      for (const row of rows) {
+        if (isReviewState(row.review_state)) counts[row.review_state] = Number(row.total) || 0
+      }
+      return counts
     }
   ))
 

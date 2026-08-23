@@ -58,4 +58,50 @@ describe('legacy project database migration', () => {
     })
     expect(id).toBeGreaterThan(0)
   })
+
+  it('adds review_state to legacy photos and keeps the migration idempotent', async () => {
+    tempDir = mkdtempSync(join(tmpdir(), 'pic-legacy-photo-db-'))
+    const databaseDir = join(tempDir, 'database')
+    mkdirSync(databaseDir, { recursive: true })
+
+    const SQL = await initSqlJs({
+      locateFile: file => join(process.cwd(), 'node_modules', 'sql.js', 'dist', file)
+    })
+    const legacyDb = new SQL.Database()
+    legacyDb.exec(`
+      CREATE TABLE photos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        filename TEXT NOT NULL,
+        filepath TEXT NOT NULL UNIQUE,
+        filesize INTEGER,
+        width INTEGER,
+        height INTEGER,
+        created_at INTEGER,
+        imported_at INTEGER,
+        rating INTEGER DEFAULT 0,
+        is_favorite INTEGER DEFAULT 0,
+        thumbnail_path TEXT,
+        exif_json TEXT,
+        deleted_at INTEGER,
+        project_id INTEGER,
+        original_filepath TEXT
+      );
+      INSERT INTO photos (filename, filepath, imported_at) VALUES ('旧照片.jpg', 'C:/旧照片.jpg', 1700000000);
+    `)
+    writeFileSync(join(databaseDir, 'gallery.db'), Buffer.from(legacyDb.export()))
+    legacyDb.close()
+
+    await initializeDatabase(tempDir)
+
+    const columns = dbAdapter.query('PRAGMA table_info(photos)').map(column => column.name)
+    expect(columns.filter(column => column === 'review_state')).toHaveLength(1)
+    expect(dbAdapter.get('SELECT review_state FROM photos WHERE id = 1')?.review_state).toBe('unreviewed')
+
+    dbAdapter.run('UPDATE photos SET review_state = ? WHERE id = ?', ['pick', 1])
+    expect(dbAdapter.get('SELECT review_state FROM photos WHERE id = 1')?.review_state).toBe('pick')
+
+    closeDatabase()
+    await initializeDatabase(tempDir)
+    expect(dbAdapter.query('PRAGMA table_info(photos)').filter(column => column.name === 'review_state')).toHaveLength(1)
+  })
 })

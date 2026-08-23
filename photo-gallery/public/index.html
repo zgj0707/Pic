@@ -92,7 +92,7 @@
         <nav class="workflow-stagebar" aria-label="工作阶段">
           <div class="workflow-stage active" aria-current="step"><span class="stage-index">01</span><span>收件箱</span></div>
           <div class="workflow-stage"><span class="stage-index">02</span><span>全部照片</span></div>
-          <div class="workflow-stage"><span class="stage-index">03</span><span>初筛</span></div>
+          <button id="cullingModeBtn" class="workflow-stage stage-action" type="button"><span class="stage-index">03</span><span>初筛</span></button>
           <div class="workflow-stage"><span class="stage-index">04</span><span>精选集</span></div>
           <div class="workflow-stage"><span class="stage-index">05</span><span>交付</span></div>
           <span class="workflow-stage-note">当前阶段：收集素材</span>
@@ -136,6 +136,47 @@
               </div>
             </div>
             <div id="photoGrid" class="photo-grid"></div>
+          </div>
+        </section>
+
+        <section id="cullingWorkspace" class="culling-workspace hidden" aria-label="照片初筛工作区">
+          <header class="culling-header">
+            <div>
+              <span class="section-eyebrow">键盘优先</span>
+              <h2 id="cullingStageTitle">照片初筛</h2>
+              <p id="cullingProgress" class="culling-progress">准备开始</p>
+            </div>
+            <div class="culling-header-actions">
+              <span id="cullingLastAction" class="culling-last-action" role="status">最近操作：无</span>
+              <button id="cullingUndoBtn" class="secondary-action" type="button" disabled><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>撤销</span></button>
+              <button id="cullingExitBtn" class="secondary-action" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>返回图库</span></button>
+            </div>
+          </header>
+          <div class="culling-toolbar">
+            <div class="culling-view-switch" role="group" aria-label="初筛视图">
+              <button id="cullingGridViewBtn" class="filter-chip active" type="button"><i class="fa-solid fa-table-cells" aria-hidden="true"></i><span>网格</span></button>
+              <button id="cullingImmersiveViewBtn" class="filter-chip" type="button"><i class="fa-solid fa-expand" aria-hidden="true"></i><span>沉浸式</span></button>
+            </div>
+            <div class="culling-shortcuts" aria-label="初筛快捷键">
+              <span>← → 浏览</span><span>P 保留</span><span>X 拒绝</span><span>U 未处理</span><span>1–5 评级</span><span>Space 放大/适配</span><span>C 选择</span>
+            </div>
+          </div>
+          <div id="cullingGrid" class="culling-grid custom-scrollbar" tabindex="0" aria-label="初筛照片网格"></div>
+          <div id="cullingImmersive" class="culling-immersive hidden" aria-label="沉浸式照片预览">
+            <button id="cullingPreviousBtn" class="culling-nav culling-nav-previous" type="button" aria-label="上一张"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+            <div class="culling-immersive-stage">
+              <img id="cullingImmersiveImage" class="culling-immersive-image" src="" alt="">
+              <div class="culling-immersive-caption">
+                <strong id="cullingImmersiveFilename">未选择照片</strong>
+                <span id="cullingImmersiveMeta"></span>
+              </div>
+            </div>
+            <button id="cullingNextBtn" class="culling-nav culling-nav-next" type="button" aria-label="下一张"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+          </div>
+          <div class="culling-actionbar" role="group" aria-label="初筛操作">
+            <button id="cullingUnreviewedBtn" class="culling-action culling-action-neutral" type="button"><kbd>U</kbd><span>标为未处理</span></button>
+            <button id="cullingPickBtn" class="culling-action culling-action-pick" type="button"><kbd>P</kbd><span>保留</span></button>
+            <button id="cullingRejectBtn" class="culling-action culling-action-reject" type="button"><kbd>X</kbd><span>拒绝</span></button>
           </div>
         </section>
 
@@ -486,6 +527,7 @@
   <script src="js/batch.js"></script>
   <script src="js/import.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/culling.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

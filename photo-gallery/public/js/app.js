@@ -32,6 +32,7 @@ let photoLoadedCount = 0;
 let photoCurrentPage = 0;
 let isLoadingPhotos = false;
 let photoFilterState = { search: '', rating: '', tag: '' };
+let reviewStateCounts = { unreviewed: 0, pick: 0, reject: 0 };
 
 // ─── 其他状态 ───
 let batchRatingValue = 0;
@@ -84,6 +85,21 @@ function buildBackendPhotoFilter() {
   });
 
   return filter;
+}
+
+
+async function refreshReviewStateCounts() {
+  if (isRecycleBinView || currentProjectId === null || !window.electronAPI?.photos?.countByReviewState) {
+    reviewStateCounts = { unreviewed: 0, pick: 0, reject: 0 }
+  } else {
+    try {
+      reviewStateCounts = await window.electronAPI.photos.countByReviewState(currentProjectId)
+    } catch (error) {
+      console.warn('读取初筛统计失败:', error)
+    }
+  }
+  const unprocessed = document.getElementById('projectUnprocessedCount')
+  if (unprocessed) unprocessed.textContent = String(reviewStateCounts.unreviewed)
 }
 
 async function loadPhotos(reset = true) {
@@ -141,6 +157,7 @@ async function loadPhotos(reset = true) {
   } finally {
     isLoadingPhotos = false;
   }
+  if (reset && !isRecycleBinView) await refreshReviewStateCounts()
   if (!isRecycleBinView) {
     await updateTagFilter();
   }
@@ -294,7 +311,7 @@ function updateStatusBar() {
     ? `创建于 ${new Date(Number(project.created_at) * 1000).toLocaleDateString('zh-CN')}`
     : '尚未设置拍摄日期';
   const projectPhotoCount = project?.photo_count ?? (isRecycleBinView ? 0 : photoTotalCount);
-  const unprocessedCount = isRecycleBinView ? 0 : projectPhotoCount;
+  const unprocessedCount = isRecycleBinView ? 0 : (currentProjectId === null ? projectPhotoCount : reviewStateCounts.unreviewed);
 
   if (projectEl) {
     const span = projectEl.querySelector('span');

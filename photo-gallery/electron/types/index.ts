@@ -22,8 +22,11 @@ export interface Photo {
   deleted_at?: number | null
   project_id?: number | null
   original_filepath?: string | null
+  review_state: ReviewState
   tags?: string[]
 }
+
+export type ReviewState = 'unreviewed' | 'pick' | 'reject'
 
 export interface Project {
   id: number
@@ -95,6 +98,7 @@ export interface PhotoFilter {
   orientation?: 'landscape' | 'portrait' | 'square'
   camera?: string
   lens?: string
+  reviewState?: ReviewState | 'all'
 }
 
 export interface PhotoQueryOptions {
