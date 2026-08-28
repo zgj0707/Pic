@@ -94,19 +94,18 @@ export interface ElectronAPI {
     overlayReady: () => Promise<{ success: boolean; error?: string }>
     cancel: () => Promise<{ success: boolean; error?: string }>
     reportError: (error: string) => Promise<{ success: boolean; error?: string }>
-    saveToLibrary: (payload: { imageData: Uint8Array }) => Promise<{ success: boolean; data?: { photoId: number; projectId: number; filePath: string; width: number; height: number }; error?: string }>
+    saveToLibrary: (payload: { imageData: Uint8Array }) => Promise<{ success: boolean; data?: { photoId: number; projectId: number; filePath: string; width: number; height: number; clipboardCopied: boolean; clipboardError?: string }; error?: string }>
     trigger: () => Promise<{ success: boolean; error?: string }>
     setTargetProject: (projectId: number | null) => Promise<{ success: boolean; error?: string }>
-    onSaved: (callback: (data: { projectId: number; photoId: number; photo?: Photo }) => void) => () => void
+    onSaved: (callback: (data: { projectId: number; photoId: number; photo?: Photo; clipboardCopied: boolean; clipboardError?: string }) => void) => () => void
     onError: (callback: (data: { error: string }) => void) => () => void
   },
   materialBrowser: {
-    openExternal: (url: string) => Promise<{ success: boolean }>
+    openExternal: (url: string) => Promise<{ success: boolean; error?: string }>
     getDownloadDir: () => Promise<string>
     setDownloadDir: (dir: string) => Promise<{ success: boolean }>
     openDownloadDir: () => Promise<string>
     clearDownloadCache: () => Promise<{ success: boolean }>
-    saveScreenshot: (imageData: Buffer | string, filename: string) => Promise<IpcResponse<{ filePath: string }>>
     importToLibrary: (filePath: string, sourceUrl: string, tags: string[], projectId?: number | null) =>
       Promise<IpcResponse<{ photoId: number; photo?: unknown; alreadyImported: boolean }>>
     onDownloadStarted: (callback: (data: { id: string; fileName: string; filePath: string; totalBytes: number }) => void) => void
@@ -250,7 +249,7 @@ const api: ElectronAPI = {
     trigger: () => ipcRenderer.invoke('capture:trigger'),
     setTargetProject: (projectId: number | null) => ipcRenderer.invoke('capture:set-target-project', projectId),
     onSaved: (callback) => {
-      const wrapped = (_event: unknown, data: { projectId: number; photoId: number; photo?: Photo }) => callback(data)
+      const wrapped = (_event: unknown, data: { projectId: number; photoId: number; photo?: Photo; clipboardCopied: boolean; clipboardError?: string }) => callback(data)
       ipcRenderer.on('capture:saved', wrapped)
       return () => ipcRenderer.removeListener('capture:saved', wrapped)
     },
@@ -266,7 +265,6 @@ const api: ElectronAPI = {
     setDownloadDir: (dir: string) => ipcRenderer.invoke('material-browser:set-download-dir', dir),
     openDownloadDir: () => ipcRenderer.invoke('material-browser:open-download-dir'),
     clearDownloadCache: () => ipcRenderer.invoke('material-browser:clear-download-cache'),
-    saveScreenshot: (imageData: Buffer | string, filename: string) => ipcRenderer.invoke('material-browser:save-screenshot', imageData, filename),
     importToLibrary: (filePath: string, sourceUrl: string, tags: string[], projectId?: number | null) =>
       ipcRenderer.invoke('material-browser:import-to-library', filePath, sourceUrl, tags, projectId),
     onDownloadStarted: (callback) => ipcRenderer.on('material-browser:download-started', (_event, data) => callback(data)),

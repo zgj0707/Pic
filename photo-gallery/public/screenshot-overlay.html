@@ -36,7 +36,7 @@
   <div id="shade"></div>
   <div id="selection"></div>
   <div id="size"></div>
-  <div id="hint">拖动选择截图区域，松开鼠标自动保存 · Esc 取消</div>
+  <div id="hint">拖动选择截图区域，松开鼠标自动导入素材库并复制到剪贴板 · Esc 取消</div>
   <div id="error" hidden></div>
   <script>
     (() => {
@@ -144,7 +144,7 @@
         crop.getContext('2d').drawImage(image, sx, sy, sw, sh, 0, 0, sw, sh);
 
         saving = true;
-        hint.textContent = '正在保存到样片库…';
+        hint.textContent = '正在导入素材库并复制到剪贴板…';
         document.body.style.cursor = 'wait';
         crop.toBlob(async blob => {
           if (!blob) {

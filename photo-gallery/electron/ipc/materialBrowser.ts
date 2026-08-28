@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow, DownloadItem, shell } from 'electron'
 import { join, resolve } from 'path'
-import { existsSync, mkdirSync, statSync, promises as fsPromises } from 'fs'
+import { existsSync, statSync, promises as fsPromises } from 'fs'
 import { dbAdapter, saveDatabase } from '../services/database'
 import { importPhotoToDatabase } from './import'
 import { addTagToPhoto } from './tagManager'
@@ -10,19 +10,19 @@ import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
 import type { IpcResponse } from '../types'
 
 const activeDownloads: Map<string, DownloadItem> = new Map()
+const DOUYIN_EXTERNAL_URL = 'https://www.douyin.com/'
 
 export function registerMaterialBrowserIpc(_mainWindow: BrowserWindow | null) {
-  ipcMain.handle('material-browser:open-external', wrapHandler('material-browser:open-external',
-    (_event, url: string) => {
+  ipcMain.handle('material-browser:open-external', wrapAsyncHandler('material-browser:open-external',
+    async (_event, url: string) => {
+      if (url !== DOUYIN_EXTERNAL_URL) {
+        return { success: false, error: '仅支持打开抖音' }
+      }
       try {
-        const parsed = new URL(url)
-        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-          return { success: false, error: '仅支持打开网页来源' }
-        }
-        void shell.openExternal(parsed.toString())
+        await shell.openExternal(DOUYIN_EXTERNAL_URL)
         return { success: true }
-      } catch {
-        return { success: false, error: '来源网址无效' }
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : '无法打开系统浏览器' }
       }
     }
   ))
@@ -67,37 +67,6 @@ export function registerMaterialBrowserIpc(_mainWindow: BrowserWindow | null) {
         }
       }
       return { success: true }
-    }
-  ))
-
-  ipcMain.handle('material-browser:save-screenshot', wrapAsyncHandler('material-browser:save-screenshot',
-    async (_event, imageData: Buffer | Uint8Array | string, filename: string): Promise<IpcResponse<{ filePath: string }>> => {
-      const downloadDir = getDownloadDir()
-
-      if (!existsSync(downloadDir)) {
-        mkdirSync(downloadDir, { recursive: true })
-      }
-
-      const filePath = getUniqueFilePath(join(downloadDir, filename))
-
-      let bufferData: Buffer
-      if (Buffer.isBuffer(imageData)) {
-        bufferData = imageData
-      } else if (imageData instanceof Uint8Array) {
-        bufferData = Buffer.from(imageData)
-      } else if (typeof imageData === 'string') {
-        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '')
-        bufferData = Buffer.from(base64Data, 'base64')
-      } else {
-        return { success: false, error: 'Invalid image data format' }
-      }
-
-      const { Jimp } = await import('jimp')
-
-      const image = await Jimp.read(bufferData)
-      await (image as any).write(filePath, { quality: 95 })
-
-      return { success: true, data: { filePath } }
     }
   ))
 

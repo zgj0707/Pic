@@ -1,4 +1,4 @@
-import { BrowserWindow, desktopCapturer, globalShortcut, ipcMain, nativeImage, screen } from 'electron'
+import { app, BrowserWindow, clipboard, desktopCapturer, globalShortcut, ipcMain, nativeImage, screen } from 'electron'
 import { dirname, join } from 'path'
 import { promises as fsPromises } from 'fs'
 import { existsSync } from 'fs'
@@ -17,7 +17,7 @@ interface CapturePayload {
   imageData: Buffer | Uint8Array | ArrayBuffer | string
 }
 
-const HOTKEY = 'Control+Alt+Shift+S'
+const HOTKEY = 'Alt+A'
 const MAX_IMAGE_BYTES = 25 * 1024 * 1024
 const MIN_CAPTURE_SIZE = 12
 let captureContext: ScreenCaptureContext | null = null
@@ -25,6 +25,7 @@ let overlayPath = ''
 let overlayWindow: BrowserWindow | null = null
 let targetProjectId: number | null = null
 let hotkeyRegistered = false
+const hotkeyGuardHandlers = new Map<Electron.WebContents, (event: Electron.Event, input: Electron.Input) => void>()
 let activeDisplayConfig: {
   displayId: string
   physicalWidth: number
@@ -60,6 +61,30 @@ function normalizeImageData(input: unknown): Buffer {
 
 function notifyFailure(error: string): void {
   sendToMain('capture:error', { error })
+}
+
+function isScreenshotHotkey(input: Electron.Input): boolean {
+  return input.type === 'keyDown' && input.key.toLowerCase() === 'a' && input.alt &&
+    !input.control && !input.shift && !input.meta
+}
+
+function guardHotkeyInContents(contents: Electron.WebContents): void {
+  if (hotkeyGuardHandlers.has(contents)) return
+  const handler = (event: Electron.Event, input: Electron.Input) => {
+    if (isScreenshotHotkey(input)) event.preventDefault()
+  }
+  contents.on('before-input-event', handler)
+  hotkeyGuardHandlers.set(contents, handler)
+}
+
+function unguardHotkeyInContents(contents: Electron.WebContents): void {
+  const handler = hotkeyGuardHandlers.get(contents)
+  if (handler) contents.removeListener('before-input-event', handler)
+  hotkeyGuardHandlers.delete(contents)
+}
+
+function handleNewWebContents(_event: Electron.Event, contents: Electron.WebContents): void {
+  guardHotkeyInContents(contents)
 }
 
 async function beginCapture(): Promise<{ success: boolean; error?: string }> {
@@ -168,16 +193,26 @@ async function saveCaptureToLibrary(event: Electron.IpcMainInvokeEvent, payload:
     return { success: false, error: '截图区域太小，请重新框选' }
   }
 
+  let clipboardCopied = false
+  let clipboardError: string | undefined
+  try {
+    clipboard.writeImage(image)
+    clipboardCopied = true
+  } catch (error) {
+    clipboardError = error instanceof Error ? error.message : String(error)
+    console.warn('[capture] Failed to copy screenshot to clipboard:', clipboardError)
+  }
+
   const downloadDir = getDownloadDir()
   await fsPromises.mkdir(downloadDir, { recursive: true })
   const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14)
-  const filePath = getUniqueFilePath(join(downloadDir, 'douyin-screenshot-' + stamp + '.png'))
+  const filePath = getUniqueFilePath(join(downloadDir, 'pic-screenshot-' + stamp + '.png'))
 
   try {
     await fsPromises.writeFile(filePath, buffer)
     const photo = await importPhotoToDatabase(filePath, targetProjectId, {
       type: 'local',
-      note: '抖音截图'
+      note: 'Pic 截图'
     })
     if (!photo) throw new Error('截图未能写入样片库')
 
@@ -186,7 +221,9 @@ async function saveCaptureToLibrary(event: Electron.IpcMainInvokeEvent, payload:
     sendToMain('capture:saved', {
       projectId: targetProjectId,
       photoId: photo.id,
-      photo: savedPhoto
+      photo: savedPhoto,
+      clipboardCopied,
+      clipboardError
     })
     closeOverlay()
     return {
@@ -196,7 +233,9 @@ async function saveCaptureToLibrary(event: Electron.IpcMainInvokeEvent, payload:
         projectId: targetProjectId,
         filePath,
         width: dimensions.width,
-        height: dimensions.height
+        height: dimensions.height,
+        clipboardCopied,
+        clipboardError
       }
     }
   } catch (error) {
@@ -208,6 +247,9 @@ async function saveCaptureToLibrary(event: Electron.IpcMainInvokeEvent, payload:
 export function registerScreenCapture(context: ScreenCaptureContext, rendererPath: string): void {
   captureContext = context
   overlayPath = join(dirname(rendererPath), 'screenshot-overlay.html')
+  const mainWindow = captureContext.getMainWindow()
+  if (mainWindow) guardHotkeyInContents(mainWindow.webContents)
+  app.on('web-contents-created', handleNewWebContents)
 
   ipcMain.handle('capture:set-target-project', wrapHandler('capture:set-target-project',
     (_event, projectId: number | null) => {
@@ -299,6 +341,12 @@ export function disposeScreenCapture(): void {
     globalShortcut.unregister(HOTKEY)
     hotkeyRegistered = false
   }
+  if (typeof app.off === 'function') {
+    app.off('web-contents-created', handleNewWebContents)
+  } else if (typeof app.removeListener === 'function') {
+    app.removeListener('web-contents-created', handleNewWebContents)
+  }
+  for (const contents of hotkeyGuardHandlers.keys()) unguardHotkeyInContents(contents)
   closeOverlay()
   captureContext = null
   targetProjectId = null

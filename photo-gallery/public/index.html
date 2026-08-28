@@ -313,11 +313,7 @@
       <div class="material-browser-context">
         <span class="material-browser-title">素材浏览器</span>
         <span id="browserProjectContext" class="material-browser-project">未选择项目</span>
-        <div class="material-browser-sources" role="tablist" aria-label="素材来源">
-          <button id="browserSourceXhs" class="material-browser-source active" type="button" role="tab" aria-selected="true">小红书</button>
-          <button id="browserSourceDouyin" class="material-browser-source" type="button" role="tab" aria-selected="false">抖音</button>
-        </div>
-        <span id="browserModeNotice" class="material-browser-mode-note">当前为网页浏览模式</span>
+        <span id="browserModeNotice" class="material-browser-mode-note">小红书内嵌浏览 · Alt+A 截图</span>
       </div>
       <div class="material-browser-nav">
         <button id="browserBack" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" aria-label="后退" title="后退">
@@ -339,11 +335,8 @@
       </div>
       <div class="material-browser-tools">
 
-        <button id="browserModeToggle" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="切换浏览器模式" aria-label="切换浏览器模式">
-          <i class="fa-solid fa-globe" id="browserModeIcon"></i>
-        </button>
-        <button id="takeScreenshot" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="截图并保存" aria-label="截图并保存">
-          <i class="fa-solid fa-camera"></i>
+        <button id="openDouyinBtn" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="打开抖音" aria-label="在外部浏览器打开抖音">
+          <i class="fa-brands fa-tiktok" aria-hidden="true"></i>
         </button>
         <button id="openDownloadDir" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="打开下载目录" aria-label="打开下载目录">
           <i class="fa-solid fa-folder-open"></i>
@@ -361,16 +354,7 @@
     </div>
     
     <div class="flex-1 overflow-hidden">
-      <div id="douyinExternalNotice" class="hidden h-full w-full items-center justify-center bg-bgPrimary">
-        <div class="max-w-md px-8 text-center">
-          <div class="mb-4 text-4xl text-accent"><i class="fa-brands fa-tiktok" aria-hidden="true"></i></div>
-          <h3 class="mb-3 text-lg font-semibold text-textPrimary">抖音已在系统浏览器打开</h3>
-          <p class="mb-5 text-sm leading-6 text-textSecondary">在抖音中找到素材后，按全局截图快捷键框选保存。Pic 不读取或保存抖音链接。</p>
-          <p class="mb-5 rounded-lg border border-borderColor bg-bgSecondary px-4 py-3 text-sm text-textPrimary">Ctrl + Alt + Shift + S</p>
-          <button id="openDouyinExternalBtn" class="px-4 py-2 bg-accent text-white rounded hover:bg-accent/80" type="button">重新打开抖音</button>
-        </div>
-      </div>
-      <webview id="materialWebview" src="about:blank"
+      <webview id="materialWebview" src="https://www.xiaohongshu.com"
         class="w-full h-full"
         webpreferences="webviewTag=true;plugins=false;nodeIntegration=false;contextIsolation=true;javascript=yes;webSecurity=yes;spellcheck=false"></webview>
     </div>

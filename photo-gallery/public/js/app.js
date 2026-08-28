@@ -850,7 +850,11 @@ function bindCaptureEvents() {
       if (project) project.photo_count = Number(project.photo_count || 0) + 1;
       renderProjectSidebar();
       updateStatusBar();
-      showToast('截图已保存到当前项目样片库', 'success');
+      if (data?.clipboardCopied === false) {
+        showToast('截图已保存到当前项目样片库，但复制到剪贴板失败', 'warning');
+      } else {
+        showToast('截图已导入当前项目样片库并复制到剪贴板', 'success');
+      }
     })();
   });
 
@@ -862,11 +866,14 @@ function bindCaptureEvents() {
 async function initializeApp() {
   bindCaptureEvents();
   initContextMenu();
-  if (browserSource !== 'xiaohongshu' && browserSource !== 'douyin') browserSource = 'xiaohongshu';
-  updateBrowserSourceUI();
+  // Keep legacy persisted browser state compatible, but the material browser
+  // now always embeds Xiaohongshu. Douyin is opened in the system browser.
+  browserSource = 'xiaohongshu';
+  browserMode = 'xiaohongshu';
+  localStorage.setItem('browserSource', browserSource);
+  localStorage.setItem('browserMode', browserMode);
   updateBrowserModeUI();
   initializeWebview();
-  setBrowserSource(browserSource, false);
   await loadVersionInfo();
   await loadProjects();
   await loadCameraLensFilters();

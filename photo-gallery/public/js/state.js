@@ -2,8 +2,10 @@
 // Keep the legacy bindings below while the application is split incrementally.
 let selectedPhotos = new Set();
 let currentPanel = 'gallery';
-let browserMode = localStorage.getItem('browserMode') || 'xiaohongshu';
-let browserSource = localStorage.getItem('browserSource') || 'xiaohongshu';
+// The embedded material browser is permanently Xiaohongshu. Keep these
+// legacy bindings for compatibility with older renderer modules and data.
+let browserMode = 'xiaohongshu';
+let browserSource = 'xiaohongshu';
 let browserSourceUrls = (() => {
   try {
     const parsed = JSON.parse(localStorage.getItem('browserSourceUrls') || '{}');

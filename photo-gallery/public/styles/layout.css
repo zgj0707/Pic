@@ -200,18 +200,6 @@
 .material-browser-context { display: flex; min-width: 170px; flex-direction: column; gap: 2px; }
 .material-browser-title { color: var(--text-warm); font-size: 13px; font-weight: 600; }
 .material-browser-project { color: var(--accent); font-size: 10px; }
-.material-browser-sources { display: flex; align-items: center; gap: 4px; margin-top: 5px; }
-.material-browser-source {
-  border: 1px solid var(--border-subtle);
-  border-radius: 999px;
-  padding: 2px 8px;
-  color: var(--text-muted);
-  background: transparent;
-  font-size: 10px;
-  cursor: pointer;
-}
-.material-browser-source:hover { color: var(--text-warm); border-color: var(--accent); }
-.material-browser-source.active { color: var(--bg-deep); border-color: var(--accent); background: var(--accent); }
 .material-browser-mode-note { color: var(--text-secondary); font-size: 10px; white-space: nowrap; }
 .material-browser-nav,
 .material-browser-address,

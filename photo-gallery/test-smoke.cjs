@@ -102,7 +102,7 @@ async function main() {
     'exif:getExifData', 'exif:writeRating', 'exif:writeTags', 'exif:batchWriteTags', 'exif:writeExifData', 'exif:getAllUsedTags',
     'photos:openInExplorer',
     'material-browser:open-external', 'material-browser:get-download-dir', 'material-browser:set-download-dir',
-    'material-browser:open-download-dir', 'material-browser:clear-download-cache', 'material-browser:save-screenshot',
+    'material-browser:open-download-dir', 'material-browser:clear-download-cache',
     'material-browser:import-to-library',
     'project-references:getAll', 'project-references:add', 'project-references:remove', 'project-references:export',
     'app:quit', 'dialog:openDirectory', 'dialog:openFile', 'path:join', 'path:appData',

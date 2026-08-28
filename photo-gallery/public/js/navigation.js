@@ -30,29 +30,53 @@ function navigateToWorkspace(workspace) {
   }
 }
 
+function getSavedXiaohongshuUrl() {
+  const savedUrl = browserSourceUrls?.xiaohongshu;
+  return isAllowedMaterialSourceUrl('xiaohongshu', savedUrl) ? savedUrl : XHS_URL;
+}
+
+function ensureEmbeddedWebviewLoaded() {
+  const webview = document.getElementById('materialWebview');
+  if (!webview || typeof webview.loadURL !== 'function') return;
+
+  const currentUrl = webview.getURL?.() || '';
+  if (isAllowedMaterialSourceUrl('xiaohongshu', currentUrl)) return;
+
+  try {
+    if (typeof webview.setUserAgent === 'function') webview.setUserAgent(XHS_USER_AGENT);
+    webview.loadURL(getSavedXiaohongshuUrl());
+  } catch (error) {
+    console.error('[material-browser] Failed to load Xiaohongshu:', error);
+  }
+}
+
 function initializeWebview() {
   const webview = document.getElementById('materialWebview');
   if (!webview) return;
 
+  webview.addEventListener('did-attach', () => {
+    if (typeof webview.setUserAgent === 'function') webview.setUserAgent(XHS_USER_AGENT);
+    ensureEmbeddedWebviewLoaded();
+  });
   webview.addEventListener('did-finish-load', () => {
-    if (browserSource === 'xiaohongshu' && typeof webview.setUserAgent === 'function') {
+    if (typeof webview.setUserAgent === 'function') {
       webview.setUserAgent(XHS_USER_AGENT);
     }
-    if (typeof updateBrowserSourceUI === 'function') updateBrowserSourceUI();
     if (typeof updateBrowserModeUI === 'function') updateBrowserModeUI();
   });
   webview.addEventListener('did-navigate', () => {
-    if (browserSource === 'douyin') return;
     const urlInput = document.getElementById('browserUrl');
     if (urlInput) urlInput.value = webview.getURL();
-    if (typeof rememberBrowserSourceUrl === 'function') rememberBrowserSourceUrl(browserSource, webview.getURL());
+    if (typeof rememberBrowserSourceUrl === 'function') rememberBrowserSourceUrl('xiaohongshu', webview.getURL());
   });
   webview.addEventListener('did-navigate-in-page', () => {
-    if (browserSource === 'douyin') return;
     const urlInput = document.getElementById('browserUrl');
     if (urlInput) urlInput.value = webview.getURL();
-    if (typeof rememberBrowserSourceUrl === 'function') rememberBrowserSourceUrl(browserSource, webview.getURL());
+    if (typeof rememberBrowserSourceUrl === 'function') rememberBrowserSourceUrl('xiaohongshu', webview.getURL());
   });
+
+  if (typeof webview.setUserAgent === 'function') webview.setUserAgent(XHS_USER_AGENT);
+  ensureEmbeddedWebviewLoaded();
 
   window.electronAPI?.materialBrowser?.onDownloadComplete?.(async data => {
     if (currentProjectId === null) {
@@ -78,9 +102,9 @@ function openMaterialBrowserPanel() {
   const projectContext = document.getElementById('browserProjectContext');
   if (projectContext) projectContext.textContent = currentProjectName ? '保存到：' + currentProjectName : '当前项目';
   if (panel) panel.classList.add('open');
+  ensureEmbeddedWebviewLoaded();
   if (typeof updateBrowserModeUI === 'function') updateBrowserModeUI();
   if (typeof renderBrowserCollection === 'function') renderBrowserCollection();
-  if (browserSource === 'douyin') void openDouyinExternal();
   currentPanel = 'browser';
   updateStatusBar();
   PicEvents.emit('workspace:changed', 'browser');
@@ -88,7 +112,7 @@ function openMaterialBrowserPanel() {
 function closeMaterialBrowserPanel() {
   const panel = document.getElementById('materialBrowserPanel');
   if (panel) panel.classList.remove('open');
-  if (browserSource === 'xiaohongshu') clearEmbeddedWebview();
+  clearEmbeddedWebview();
   updateStatusBar();
 }
 
@@ -208,10 +232,6 @@ function switchToRecycleBin() {
 }
 
 function navigateBrowserToUrl() {
-  if (browserSource === 'douyin') {
-    void openDouyinExternal(true);
-    return;
-  }
   const rawUrl = document.getElementById('browserUrl')?.value.trim();
   const webview = document.getElementById('materialWebview');
   if (!rawUrl || !webview) return;
@@ -261,12 +281,7 @@ function bindNavigationEvents() {
   document.getElementById('browserUrl')?.addEventListener('keydown', event => {
     if (event.key === 'Enter') navigateBrowserToUrl();
   });
-  document.getElementById('browserSourceXhs')?.addEventListener('click', () => setBrowserSource('xiaohongshu'));
-  document.getElementById('browserSourceDouyin')?.addEventListener('click', () => setBrowserSource('douyin'));
-  document.getElementById('openDouyinExternalBtn')?.addEventListener('click', () => { void openDouyinExternal(true); });
-  document.getElementById('browserModeToggle')?.addEventListener('click', () => {
-    setBrowserSource(browserSource === 'douyin' ? 'xiaohongshu' : 'douyin');
-  });
+  document.getElementById('openDouyinBtn')?.addEventListener('click', () => { void openDouyinExternal(); });
 }
 
 bindNavigationEvents();
