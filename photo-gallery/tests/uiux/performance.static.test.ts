@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 
 const publicRoot = join(process.cwd(), 'public')
 const gridSource = readFileSync(join(publicRoot, 'js', 'grid.js'), 'utf8')
-const selectionTraySource = readFileSync(join(publicRoot, 'js', 'selectionTray.js'), 'utf8')
 const batchSource = readFileSync(join(publicRoot, 'js', 'batch.js'), 'utf8')
+const navigationSource = readFileSync(join(publicRoot, 'js', 'navigation.js'), 'utf8')
 const appSource = readFileSync(join(publicRoot, 'js', 'app.js'), 'utf8')
 const htmlSource = readFileSync(join(publicRoot, 'index.html'), 'utf8')
+const layoutSource = readFileSync(join(publicRoot, 'styles', 'layout.css'), 'utf8')
+const componentsSource = readFileSync(join(publicRoot, 'styles', 'components.css'), 'utf8')
+const materialBrowserSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'materialBrowser.ts'), 'utf8')
+const enhancementsSource = readFileSync(join(publicRoot, 'js', 'enhancements.js'), 'utf8')
+const projectIpcSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'project.ts'), 'utf8')
+const projectsSource = readFileSync(join(publicRoot, 'js', 'projects.js'), 'utf8')
 
 describe('UI/UX refactor guardrails', () => {
   it('keeps paged data loading and virtual grid rendering for large projects', () => {
@@ -18,30 +24,106 @@ describe('UI/UX refactor guardrails', () => {
     expect(gridSource).toContain('isVirtualScrollEnabled = true')
   })
 
-  it('updates selection-tray indicators without rebuilding the photo grid', () => {
-    expect(selectionTraySource).toContain('refreshGridSelectionTrayIndicators')
-    expect(selectionTraySource).not.toContain('photoGrid.innerHTML')
-    expect(selectionTraySource).not.toContain('renderPhotoGrid(')
+  it('keeps outline-only selection and adds select-all for the current result', () => {
+    expect(gridSource).not.toContain('selection-indicator')
+    expect(gridSource).not.toContain('selection-tray-indicator')
+    expect(componentsSource).not.toContain('.selection-indicator')
+    expect(componentsSource).toContain('.photo-grid .photo-item.selected')
+    expect(gridSource).toContain('function toggleSelectAllPhotos')
+    expect(gridSource).toContain('function updateSelectAllButton')
+    expect(htmlSource).toContain('id="selectAllBtn"')
+    expect(appSource).toContain('toggleSelectAllPhotos')
   })
 
-  it('keeps desktop folder export as the single visible result action', () => {
+  it('removes the inspiration-board workflow from the renderer', () => {
+    expect(htmlSource).not.toContain('灵感板')
+    expect(htmlSource).not.toContain('boardModeBtn')
+    expect(htmlSource).not.toContain('boardWorkspace')
+    expect(htmlSource).not.toContain('selectionTray')
+    expect(htmlSource).not.toContain('compareWorkspace')
+    expect(navigationSource).not.toContain('openBoardWorkspace')
+    expect(enhancementsSource).not.toContain('addSelectedPhotosToBoard')
+    expect(layoutSource).not.toContain('selection-tray')
+    expect(layoutSource).not.toContain('compare-')
+    expect(layoutSource).not.toMatch(/\bboard-/)
+    expect(existsSync(join(publicRoot, 'js', 'selectionTray.js'))).toBe(false)
+    expect(existsSync(join(publicRoot, 'js', 'compare.js'))).toBe(false)
+  })
+
+  it('exports and saves only the current selected photos', () => {
     expect(htmlSource).toContain('id="copyToDesktopBtn"')
-    expect(htmlSource).toContain('<span>保存到桌面</span>')
+    expect(htmlSource).toContain('id="saveDesktopLabel"')
+    expect(htmlSource).toContain('id="exportPdfBtn"')
     expect(batchSource).toContain('copySelectedToDesktop')
+    expect(batchSource).toContain('Array.from(selectedPhotos)')
     expect(batchSource).toContain('copyToDesktopFolder')
-    expect(htmlSource).not.toContain('exportPdfBtn')
+    expect(batchSource).toContain('exportSelectedToPdf')
+    expect(batchSource).toContain('exportToPdf')
+    expect(batchSource).not.toContain('selectionTrayItems')
+    expect(batchSource).not.toContain('exportingBoard')
     expect(htmlSource).not.toContain('deliveryModeBtn')
     expect(htmlSource).not.toContain('shotListWorkspace')
     expect(htmlSource).not.toContain('deliveryWorkspace')
     expect(htmlSource).not.toContain('planningExport.js')
   })
 
-  it('exposes comparison, keyboard and reduced-motion hooks for the core workflow', () => {
-    expect(htmlSource).toContain('id="selectionCompareBtn"')
-    expect(selectionTraySource).toContain('updateSelectionTrayMeta')
+  it('opens material browsing as a project-scoped full workspace and freezes source metadata', () => {
+    expect(layoutSource).toContain('width: 100vw')
+    expect(layoutSource).not.toContain('width: 520px')
+    expect(navigationSource).toContain('ensureCurrentProjectForImport')
+    expect(htmlSource).toContain('id="browserProjectContext"')
+    expect(materialBrowserSource).toContain('const sourceUrl = item.getURL()')
+  })
+
+  it('keeps keyboard and reduced-motion hooks for the core workflow', () => {
+    expect(htmlSource).not.toContain('selectionCompareBtn')
+    expect(htmlSource).not.toContain('boardCompareBtn')
     expect(htmlSource).toContain('aria-label="关闭样片详情"')
     const tokens = readFileSync(join(publicRoot, 'styles', 'tokens.css'), 'utf8')
     expect(tokens).toContain(':focus-visible')
     expect(tokens).toContain('prefers-reduced-motion: reduce')
+  })
+
+  it('keeps quick-culling previews at the requested 3:2 ratio', () => {
+    expect(layoutSource).toMatch(/\.culling-card-image\s*\{[^}]*aspect-ratio:\s*3\s*\/\s*2/s)
+    expect(layoutSource).toMatch(/\.culling-immersive-stage\s*\{[^}]*aspect-ratio:\s*3\s*\/\s*2/s)
+  })
+
+  it('connects selection actions, project brief editing and browser collection', () => {
+    expect(htmlSource).toContain('id="selectionActionBar"')
+    expect(htmlSource).toContain('id="projectBriefEditor"')
+    expect(htmlSource).toContain('id="briefCoverChoices"')
+    expect(htmlSource).toContain('id="briefUseSelectedCoverBtn"')
+    expect(htmlSource).toContain('保存简报与封面')
+    expect(layoutSource).toContain('-webkit-app-region: no-drag')
+    expect(enhancementsSource).toContain('function renderBriefCoverPicker')
+    expect(enhancementsSource).toContain("briefEditor?.addEventListener('keydown'")
+    expect(htmlSource).toContain('id="browserCollectionDock"')
+    expect(htmlSource).not.toContain('boardBatchToolbar')
+    expect(htmlSource).toContain('id="globalUndoBtn"')
+    expect(enhancementsSource).toContain('function updateSelectionActionBar')
+    expect(enhancementsSource).toContain('function recordBrowserCollection')
+    expect(enhancementsSource).not.toContain('scheduleBoardMetaSave')
+    expect(enhancementsSource).toContain('function pushAppUndo')
+    expect(projectIpcSource).toContain("'projects:updateBrief'")
+  })
+
+  it('keeps every document id unique after consolidating the header controls', () => {
+    const ids = Array.from(htmlSource.matchAll(/\sid="([^"]+)"/g), match => match[1])
+    expect(ids.length).toBe(new Set(ids).size)
+    expect(htmlSource).toContain('id="headerOverflowMenu"')
+    expect(htmlSource).toContain('id="viewToggleLabel"')
+  })
+
+  it('provides a keyboard-accessible project context menu for copy and safe delete', () => {
+    expect(htmlSource).toContain('id="projectContextMenu"')
+    expect(htmlSource).toContain('id="projectDuplicateBtn"')
+    expect(htmlSource).toContain('id="projectDeleteBtn"')
+    expect(projectsSource).toContain("item.addEventListener('contextmenu'")
+    expect(projectsSource).toContain("event.shiftKey && event.key === 'F10'")
+    expect(projectsSource).toContain('function duplicateContextProject')
+    expect(projectsSource).toContain('function deleteContextProject')
+    expect(projectIpcSource).toContain("'projects:duplicate'")
+    expect(projectIpcSource).toContain("'projects:delete'")
   })
 })

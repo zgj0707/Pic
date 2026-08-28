@@ -1,17 +1,16 @@
 import { ipcMain } from 'electron'
 import { dbAdapter } from '../services/database'
 import { wrapHandler } from '../utils/ipcHandler'
-import type { Project } from '../types'
-import { moveProjectSelections } from '../services/projectSelections'
-import { moveProjectShots } from '../services/projectShots'
-import { moveProjectExports, removeProjectExports } from '../services/planningExports'
+import type { Project, ProjectBriefInput } from '../types'
+import { deleteProjectAndMoveContents, duplicateProject } from '../services/projectManagement'
 
 export function registerProjectIpc(): void {
   ipcMain.handle('projects:getAll', wrapHandler('projects:getAll', () => {
     const projects = dbAdapter.query(`
-      SELECT p.*, COUNT(ph.id) as photo_count
+      SELECT p.*, cp.thumbnail_path AS cover_thumbnail_path, cp.filepath AS cover_filepath, COUNT(ph.id) as photo_count
       FROM projects p
       LEFT JOIN photos ph ON ph.project_id = p.id AND ph.deleted_at IS NULL
+      LEFT JOIN photos cp ON cp.id = p.cover_photo_id AND cp.deleted_at IS NULL
       GROUP BY p.id
       ORDER BY p.updated_at DESC
     `) as Project[]
@@ -48,20 +47,31 @@ export function registerProjectIpc(): void {
     return { success: true }
   }))
 
-  ipcMain.handle('projects:delete', wrapHandler('projects:delete', (_event, id: number) => {
-    // 删除项目时，将项目下的照片移动到默认项目而不是一起删除
-    const defaultProject = dbAdapter.get('SELECT id FROM projects WHERE id != ? ORDER BY id ASC LIMIT 1', [id])
-    if (defaultProject) {
-      moveProjectSelections(id, Number(defaultProject.id))
-      moveProjectShots(id, Number(defaultProject.id))
-      moveProjectExports(id, Number(defaultProject.id))
-      dbAdapter.run('UPDATE photos SET project_id = ? WHERE project_id = ?', [defaultProject.id, id])
-    } else {
-      dbAdapter.run('DELETE FROM project_selections WHERE project_id = ?', [id])
-      dbAdapter.run('DELETE FROM project_shots WHERE project_id = ?', [id])
-      removeProjectExports(id)
+  ipcMain.handle('projects:updateBrief', wrapHandler('projects:updateBrief', (_event, id: number, input: ProjectBriefInput) => {
+    const name = typeof input?.name === 'string' ? input.name.trim() : ''
+    if (!name) return { success: false, error: '项目名称不能为空' }
+    const text = (value?: string | null): string | null => typeof value === 'string' && value.trim() ? value.trim() : null
+    const rawCoverPhotoId = input.coverPhotoId
+    const coverPhotoId = rawCoverPhotoId === null || rawCoverPhotoId === undefined
+      ? null
+      : (Number.isInteger(Number(rawCoverPhotoId)) && Number(rawCoverPhotoId) > 0 ? Number(rawCoverPhotoId) : null)
+    if (coverPhotoId !== null) {
+      const cover = dbAdapter.get('SELECT id FROM photos WHERE id = ? AND project_id = ? AND deleted_at IS NULL', [coverPhotoId, id])
+      if (!cover) return { success: false, error: '封面样片不属于当前项目或已被删除' }
     }
-    dbAdapter.run('DELETE FROM projects WHERE id = ?', [id])
+    const now = Math.floor(Date.now() / 1000)
+    dbAdapter.run(
+      'UPDATE projects SET name = ?, description = ?, client_name = ?, shoot_date = ?, location = ?, owner = ?, deliverable_goal = ?, cover_photo_id = ?, updated_at = ? WHERE id = ?',
+      [name, text(input.description), text(input.clientName), text(input.shootDate), text(input.location), text(input.owner), text(input.deliverableGoal), coverPhotoId, now, id]
+    )
     return { success: true }
+  }))
+
+  ipcMain.handle('projects:duplicate', wrapHandler('projects:duplicate', (_event, id: number) => {
+    return duplicateProject(id)
+  }))
+
+  ipcMain.handle('projects:delete', wrapHandler('projects:delete', (_event, id: number) => {
+    return deleteProjectAndMoveContents(id)
   }))
 }

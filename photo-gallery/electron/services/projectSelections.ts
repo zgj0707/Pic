@@ -132,7 +132,7 @@ export function removeSelectionsForPhotos(photoIds: number[]): void {
 
 export function moveProjectSelections(fromProjectId: number, toProjectId: number): void {
   const selections = dbAdapter.query(
-    'SELECT photo_id, position FROM project_selections WHERE project_id = ? ORDER BY position, id',
+    'SELECT id, photo_id, position FROM project_selections WHERE project_id = ? ORDER BY position, id',
     [fromProjectId]
   )
   for (const selection of selections) {

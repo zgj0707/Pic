@@ -1,5 +1,18 @@
 // Workspace and auxiliary-page navigation.
 // Legacy function names remain available for existing callers during the split.
+function setActiveWorkflowStage(stage) {
+  const stages = {
+    gallery: document.getElementById('galleryModeBtn'),
+    culling: document.getElementById('cullingModeBtn'),
+  }
+  Object.entries(stages).forEach(([key, button]) => {
+    const active = key === stage
+    button?.classList.toggle('active', active)
+    if (active) button?.setAttribute('aria-current', 'step')
+    else button?.removeAttribute('aria-current')
+  })
+}
+
 function navigateToWorkspace(workspace) {
   switch (workspace) {
     case 'gallery':
@@ -22,11 +35,23 @@ function initializeWebview() {
   if (!webview) return;
 
   webview.addEventListener('did-finish-load', () => {
-    webview.setUserAgent(browserMode === 'xiaohongshu' ? XHS_USER_AGENT : NORMAL_USER_AGENT);
+    if (browserSource === 'xiaohongshu' && typeof webview.setUserAgent === 'function') {
+      webview.setUserAgent(XHS_USER_AGENT);
+    }
+    if (typeof updateBrowserSourceUI === 'function') updateBrowserSourceUI();
+    if (typeof updateBrowserModeUI === 'function') updateBrowserModeUI();
   });
   webview.addEventListener('did-navigate', () => {
+    if (browserSource === 'douyin') return;
     const urlInput = document.getElementById('browserUrl');
     if (urlInput) urlInput.value = webview.getURL();
+    if (typeof rememberBrowserSourceUrl === 'function') rememberBrowserSourceUrl(browserSource, webview.getURL());
+  });
+  webview.addEventListener('did-navigate-in-page', () => {
+    if (browserSource === 'douyin') return;
+    const urlInput = document.getElementById('browserUrl');
+    if (urlInput) urlInput.value = webview.getURL();
+    if (typeof rememberBrowserSourceUrl === 'function') rememberBrowserSourceUrl(browserSource, webview.getURL());
   });
 
   window.electronAPI?.materialBrowser?.onDownloadComplete?.(async data => {
@@ -34,8 +59,12 @@ function initializeWebview() {
       showToast('样片已下载，请先创建或选择项目后再导入', 'warning');
       return;
     }
-    const result = await window.electronAPI.materialBrowser.importToLibrary(data.filePath, webview.getURL(), [], currentProjectId);
+    const sourceUrl = data.sourceUrl || webview.getURL();
+    const result = await window.electronAPI.materialBrowser.importToLibrary(data.filePath, sourceUrl, [], currentProjectId);
     if (result.success) {
+      if (typeof recordBrowserCollection === 'function') {
+        recordBrowserCollection(result, { fileName: data.fileName, filePath: data.filePath, sourceUrl });
+      }
       await loadPhotos(true);
       showToast('网页样片已加入当前项目', 'success');
     } else {
@@ -43,18 +72,23 @@ function initializeWebview() {
     }
   });
 }
-
 function openMaterialBrowserPanel() {
+  if (typeof ensureCurrentProjectForImport === 'function' && !ensureCurrentProjectForImport()) return;
   const panel = document.getElementById('materialBrowserPanel');
+  const projectContext = document.getElementById('browserProjectContext');
+  if (projectContext) projectContext.textContent = currentProjectName ? '保存到：' + currentProjectName : '当前项目';
   if (panel) panel.classList.add('open');
+  if (typeof updateBrowserModeUI === 'function') updateBrowserModeUI();
+  if (typeof renderBrowserCollection === 'function') renderBrowserCollection();
+  if (browserSource === 'douyin') void openDouyinExternal();
   currentPanel = 'browser';
   updateStatusBar();
   PicEvents.emit('workspace:changed', 'browser');
 }
-
 function closeMaterialBrowserPanel() {
   const panel = document.getElementById('materialBrowserPanel');
   if (panel) panel.classList.remove('open');
+  if (browserSource === 'xiaohongshu') clearEmbeddedWebview();
   updateStatusBar();
 }
 
@@ -62,14 +96,7 @@ function returnToGallery() {
   closeMaterialBrowserPanel();
   const settingsModal = document.getElementById('settingsModal');
   if (settingsModal) settingsModal.classList.add('hidden');
-
-  if (isRecycleBinView) {
-    switchToGallery();
-  } else {
-    currentPanel = 'gallery';
-    updateStatusBar();
-    PicEvents.emit('workspace:changed', 'gallery');
-  }
+  switchToGallery();
 }
 
 function resetToolbarForGallery() {
@@ -123,14 +150,13 @@ function switchToGallery() {
   const settingsModal = document.getElementById('settingsModal');
   if (settingsModal) settingsModal.classList.add('hidden');
   isRecycleBinView = false;
+  if (typeof cullingMode !== 'undefined') cullingMode = false;
   currentPanel = 'gallery';
-  selectedPhotos.clear();
-  const selectedCountEl = document.getElementById('selectedCount');
-  if (selectedCountEl) selectedCountEl.textContent = '已选择 0 张样片';
-  const deleteBtn = document.getElementById('deleteBtn');
-  const copyToDesktopBtn = document.getElementById('copyToDesktopBtn');
-  if (deleteBtn) deleteBtn.disabled = true;
-  if (copyToDesktopBtn) copyToDesktopBtn.disabled = true;
+
+  document.getElementById('galleryPanel')?.classList.remove('hidden');
+  document.getElementById('cullingWorkspace')?.classList.add('hidden');
+  document.querySelector('.filter-bar')?.classList.remove('hidden');
+  setActiveWorkflowStage('gallery');
 
   const searchWrap = document.getElementById('searchInput')?.parentElement;
   const ratingWrap = document.getElementById('ratingFilter')?.parentElement;
@@ -140,6 +166,7 @@ function switchToGallery() {
   resetToolbarForGallery();
   setEmptyStateForGallery();
   updateStatusBar();
+  updateSelectedCount();
   updateContextPanel();
   PicEvents.emit('workspace:changed', 'gallery');
   if (window.electronAPI) loadPhotos(true);
@@ -181,6 +208,10 @@ function switchToRecycleBin() {
 }
 
 function navigateBrowserToUrl() {
+  if (browserSource === 'douyin') {
+    void openDouyinExternal(true);
+    return;
+  }
   const rawUrl = document.getElementById('browserUrl')?.value.trim();
   const webview = document.getElementById('materialWebview');
   if (!rawUrl || !webview) return;
@@ -196,6 +227,7 @@ function navigateBrowserToUrl() {
 }
 
 function bindNavigationEvents() {
+  document.getElementById('galleryModeBtn')?.addEventListener('click', switchToGallery);
   document.getElementById('statusBrowserBtn')?.addEventListener('click', () => {
     const panel = document.getElementById('materialBrowserPanel');
     if (panel?.classList.contains('open')) closeMaterialBrowserPanel();
@@ -224,6 +256,16 @@ function bindNavigationEvents() {
   });
   document.getElementById('browserRefresh')?.addEventListener('click', () => {
     document.getElementById('materialWebview')?.reload();
+  });
+  document.getElementById('browserGo')?.addEventListener('click', navigateBrowserToUrl);
+  document.getElementById('browserUrl')?.addEventListener('keydown', event => {
+    if (event.key === 'Enter') navigateBrowserToUrl();
+  });
+  document.getElementById('browserSourceXhs')?.addEventListener('click', () => setBrowserSource('xiaohongshu'));
+  document.getElementById('browserSourceDouyin')?.addEventListener('click', () => setBrowserSource('douyin'));
+  document.getElementById('openDouyinExternalBtn')?.addEventListener('click', () => { void openDouyinExternal(true); });
+  document.getElementById('browserModeToggle')?.addEventListener('click', () => {
+    setBrowserSource(browserSource === 'douyin' ? 'xiaohongshu' : 'douyin');
   });
 }
 

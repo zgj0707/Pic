@@ -31,6 +31,19 @@ export interface Photo {
   tags?: string[]
 }
 
+export interface ProjectMaterialReference {
+  id: number
+  project_id: number
+  source_type: 'xiaohongshu' | 'douyin'
+  source_item_id: string
+  media_type: 'image' | 'gallery' | 'video' | 'link'
+  title: string
+  author: string | null
+  original_url: string
+  metadata_json: string | null
+  created_at: number
+}
+
 export type ReviewState = 'unreviewed' | 'pick' | 'reject'
 
 export interface ProjectSelection {
@@ -72,9 +85,28 @@ export interface Project {
   id: number
   name: string
   description: string | null
+  client_name?: string | null
+  shoot_date?: string | null
+  location?: string | null
+  owner?: string | null
+  deliverable_goal?: string | null
+  cover_photo_id?: number | null
+  cover_thumbnail_path?: string | null
+  cover_filepath?: string | null
   created_at: number
   updated_at: number
   photo_count?: number
+}
+
+export interface ProjectBriefInput {
+  name: string
+  description?: string | null
+  clientName?: string | null
+  shootDate?: string | null
+  location?: string | null
+  owner?: string | null
+  deliverableGoal?: string | null
+  coverPhotoId?: number | null
 }
 
 export interface Tag {

@@ -354,10 +354,6 @@ function updateStatusBar() {
   const backBtn = document.getElementById('statusBackToGallery');
   const project = projects.find(candidate => candidate.id === currentProjectId);
   const projectName = project?.name || currentProjectName || '未选择项目';
-  const projectDescription = project?.description || (project ? '未添加项目描述' : '创建或选择一个项目开始整理样片');
-  const projectDate = project?.created_at
-    ? `创建于 ${new Date(Number(project.created_at) * 1000).toLocaleDateString('zh-CN')}`
-    : '尚未设置拍摄日期';
   const projectPhotoCount = project?.photo_count ?? (isRecycleBinView ? 0 : photoTotalCount);
   const unprocessedCount = isRecycleBinView ? 0 : (currentProjectId === null ? projectPhotoCount : reviewStateCounts.unreviewed);
 
@@ -367,13 +363,9 @@ function updateStatusBar() {
   }
   document.getElementById('headerProjectName')?.replaceChildren(document.createTextNode(projectName));
   document.getElementById('currentProjectTitle')?.replaceChildren(document.createTextNode(projectName));
-  document.getElementById('currentProjectDescription')?.replaceChildren(document.createTextNode(projectDescription));
-  document.getElementById('currentProjectDate')?.replaceChildren(document.createTextNode(projectDate));
+  if (typeof renderProjectBrief === 'function') renderProjectBrief(project);
   document.getElementById('projectPhotoCount')?.replaceChildren(document.createTextNode(String(projectPhotoCount)));
   document.getElementById('projectUnprocessedCount')?.replaceChildren(document.createTextNode(String(unprocessedCount)));
-  const selectionCount = typeof selectionTrayItems !== 'undefined' ? selectionTrayItems.length : 0;
-  document.getElementById('projectSelectionCount')?.replaceChildren(document.createTextNode(String(selectionCount)));
-  document.getElementById('selectionTrayCount')?.replaceChildren(document.createTextNode(String(selectionCount)));
 
   if (viewEl) viewEl.textContent = currentViewMode === 'compact' ? '紧凑视图' : '瀑布流';
   if (countEl) {
@@ -555,7 +547,7 @@ document.getElementById('clearFilterBtn').addEventListener('click', () => {
   selectedPhotos.clear();
   document.getElementById('selectedCount').textContent = '已选择 0 张样片';
   document.getElementById('deleteBtn').disabled = true;
-  document.getElementById('copyToDesktopBtn').disabled = true;
+  if (typeof updateDesktopSaveButton === 'function') updateDesktopSaveButton();
   metadataPanel.classList.remove('open');
   batchTags = [];
   removeTags = [];
@@ -644,6 +636,8 @@ document.getElementById('permanentDeleteBtn').addEventListener('click', permanen
 
 // 复制选中图片到桌面文件夹
 document.getElementById('copyToDesktopBtn').addEventListener('click', copySelectedToDesktop);
+document.getElementById('exportPdfBtn').addEventListener('click', exportSelectedToPdf);
+document.getElementById('selectAllBtn')?.addEventListener('click', () => { void toggleSelectAllPhotos(); });
 
 document.getElementById('addBatchTagBtn').addEventListener('click', () => {
   const input = document.getElementById('batchTagInput');
@@ -844,11 +838,35 @@ document.getElementById('viewToggleBtn').addEventListener('click', () => {
   setViewMode(currentViewMode === 'masonry' ? 'compact' : 'masonry');
 });
 
+function bindCaptureEvents() {
+  const capture = window.electronAPI?.capture;
+  if (!capture) return;
+
+  capture.onSaved?.(data => {
+    void (async () => {
+      if (data?.projectId !== currentProjectId) return;
+      await loadPhotos(true);
+      const project = projects.find(candidate => candidate.id === currentProjectId);
+      if (project) project.photo_count = Number(project.photo_count || 0) + 1;
+      renderProjectSidebar();
+      updateStatusBar();
+      showToast('截图已保存到当前项目样片库', 'success');
+    })();
+  });
+
+  capture.onError?.(data => {
+    if (data?.error) showToast(data.error, 'warning');
+  });
+}
 // ─── 初始化 ───
 async function initializeApp() {
+  bindCaptureEvents();
   initContextMenu();
+  if (browserSource !== 'xiaohongshu' && browserSource !== 'douyin') browserSource = 'xiaohongshu';
+  updateBrowserSourceUI();
   updateBrowserModeUI();
   initializeWebview();
+  setBrowserSource(browserSource, false);
   await loadVersionInfo();
   await loadProjects();
   await loadCameraLensFilters();

@@ -94,7 +94,7 @@ async function main() {
   const expected = [
     'photos:getAll', 'photos:getById', 'photos:updateRating', 'photos:toggleFavorite',
     'photos:updateTags', 'photos:delete', 'photos:getTags', 'photos:generateThumbnails',
-    'pdf:saveToDesktop',
+
     'albums:getAll', 'albums:create', 'albums:rename', 'albums:delete', 'albums:addPhotos', 'albums:removePhotos',
     'import:fromDirectory', 'import:fromFiles', 'import:getProgress',
     'rename:batch', 'rename:preview', 'rename:selectOutputDir',
@@ -104,11 +104,12 @@ async function main() {
     'material-browser:open-external', 'material-browser:get-download-dir', 'material-browser:set-download-dir',
     'material-browser:open-download-dir', 'material-browser:clear-download-cache', 'material-browser:save-screenshot',
     'material-browser:import-to-library',
+    'project-references:getAll', 'project-references:add', 'project-references:remove', 'project-references:export',
     'app:quit', 'dialog:openDirectory', 'dialog:openFile', 'path:join', 'path:appData',
     'shell:showItemInFolder', 'shell:openPath', 'app:getVersionInfo', 'app:getChangelog',
     'cache:getStats', 'cache:clearAll', 'cache:cleanOld', 'cache:enforceLimit',
     'window:minimize', 'window:maximize', 'window:close', 'window:isMaximized',
-    'photos:copyToDesktopFolder', 'photos:copyImageToClipboard'
+    'photos:copyToDesktopFolder', 'photos:exportToPdf', 'photos:copyImageToClipboard'
   ]
   let missing = 0
   for (const ch of expected) {

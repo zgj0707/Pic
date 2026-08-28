@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
-  Photo, PhotoQueryOptions, PhotoFilter, ReviewState, Tag, ExifData, Project, ProjectSelection, ProjectShot, ProjectExport,
-  ImportResult, ImportProgress,
+  Photo, PhotoQueryOptions, PhotoFilter, ReviewState, Tag, ExifData, Project, ProjectBriefInput, ProjectSelection, ProjectShot, ProjectExport,
+  ImportResult, ImportProgress, ProjectMaterialReference,
   CacheStats, CacheCleanResult, IpcResponse, ChangelogEntry
 } from './types'
 
@@ -35,6 +35,8 @@ export interface ElectronAPI {
     getThumbnail: (id: number, size?: 'grid' | 'preview') => Promise<{ success: boolean; data?: { path: string }; error?: string }>
     copyToDesktopFolder: (filePaths: string[], folderName: string) =>
       Promise<{ success: boolean; folderPath?: string; copied?: number; failed?: number; error?: string }>
+    exportToPdf: (filePaths: string[], fileBaseName: string) =>
+      Promise<{ success: boolean; filePath?: string; exported?: number; failed?: number; error?: string }>
     copyImageToClipboard: (filePath: string) => Promise<{ success: boolean; error?: string }>
   }
   selections: {
@@ -86,6 +88,18 @@ export interface ElectronAPI {
       Promise<{ success: boolean; results: { filePath: string; success: boolean; error?: string }[] }>
     writeExifData: (filePath: string, data: Partial<ExifData>) => Promise<{ success: boolean; error?: string }>
   }
+  capture: {
+    captureScreen: (displayId: string, width: number, height: number) => Promise<{ success: boolean; data?: string; error?: string }>
+    getConfig: () => Promise<{ success: boolean; data?: { displayId: string; physicalWidth: number; physicalHeight: number }; error?: string }>
+    overlayReady: () => Promise<{ success: boolean; error?: string }>
+    cancel: () => Promise<{ success: boolean; error?: string }>
+    reportError: (error: string) => Promise<{ success: boolean; error?: string }>
+    saveToLibrary: (payload: { imageData: Uint8Array }) => Promise<{ success: boolean; data?: { photoId: number; projectId: number; filePath: string; width: number; height: number }; error?: string }>
+    trigger: () => Promise<{ success: boolean; error?: string }>
+    setTargetProject: (projectId: number | null) => Promise<{ success: boolean; error?: string }>
+    onSaved: (callback: (data: { projectId: number; photoId: number; photo?: Photo }) => void) => () => void
+    onError: (callback: (data: { error: string }) => void) => () => void
+  },
   materialBrowser: {
     openExternal: (url: string) => Promise<{ success: boolean }>
     getDownloadDir: () => Promise<string>
@@ -100,12 +114,29 @@ export interface ElectronAPI {
     onDownloadComplete: (callback: (data: { id: string; fileName: string; filePath: string }) => void) => void
     onDownloadFailed: (callback: (data: { id: string; fileName: string; state: string }) => void) => void
   }
+  projectReferences: {
+    getAll: (projectId: number) => Promise<ProjectMaterialReference[]>
+    add: (input: {
+      projectId: number
+      source: 'xiaohongshu' | 'douyin'
+      sourceItemId?: string | null
+      mediaType?: 'image' | 'gallery' | 'video' | 'link'
+      title?: string | null
+      author?: string | null
+      originalUrl: string
+      metadata?: Record<string, unknown> | null
+    }) => Promise<{ reference?: ProjectMaterialReference; alreadyExists?: boolean; success?: boolean; error?: string }>
+    remove: (projectId: number, referenceId: number) => Promise<{ success: boolean; error?: string }>
+    export: (projectId: number, folderName: string) => Promise<{ success: boolean; filePath?: string; exported: number; failed: number; error?: string }>
+  }
   projects: {
     getAll: () => Promise<Project[]>
     getById: (id: number) => Promise<Project | null>
     create: (name: string, description?: string) => Promise<{ success: boolean; id?: number; error?: string }>
     update: (id: number, name: string, description?: string) => Promise<{ success: boolean; error?: string }>
-    delete: (id: number) => Promise<{ success: boolean; error?: string }>
+    updateBrief: (id: number, input: ProjectBriefInput) => Promise<{ success: boolean; error?: string }>
+    duplicate: (id: number) => Promise<{ success: boolean; id?: number; name?: string; error?: string }>
+    delete: (id: number) => Promise<{ success: boolean; targetProjectId?: number; targetProjectName?: string; movedPhotos?: number; error?: string }>
   }
   app: {
     getVersionInfo: () => Promise<{ name: string; version: string; electronVersion: string; chromeVersion: string; nodeVersion: string }>
@@ -150,6 +181,7 @@ const api: ElectronAPI = {
     generateThumbnails: () => ipcRenderer.invoke('photos:generateThumbnails'),
     getThumbnail: (id: number, size?: 'grid' | 'preview') => ipcRenderer.invoke('photos:getThumbnail', id, size),
     copyToDesktopFolder: (filePaths: string[], folderName: string) => ipcRenderer.invoke('photos:copyToDesktopFolder', filePaths, folderName),
+    exportToPdf: (filePaths: string[], fileBaseName: string) => ipcRenderer.invoke('photos:exportToPdf', filePaths, fileBaseName),
     copyImageToClipboard: (filePath: string) => ipcRenderer.invoke('photos:copyImageToClipboard', filePath)
   },
   selections: {
@@ -207,6 +239,27 @@ const api: ElectronAPI = {
     writeExifData: (filePath: string, data: Partial<ExifData>) =>
       ipcRenderer.invoke('exif:writeExifData', filePath, data)
   },
+  capture: {
+    captureScreen: (displayId: string, width: number, height: number) =>
+      ipcRenderer.invoke('capture:get-screen', displayId, width, height),
+    getConfig: () => ipcRenderer.invoke('capture:get-config'),
+    overlayReady: () => ipcRenderer.invoke('capture:overlay-ready'),
+    cancel: () => ipcRenderer.invoke('capture:cancel'),
+    reportError: (error: string) => ipcRenderer.invoke('capture:report-error', error),
+    saveToLibrary: (payload: { imageData: Uint8Array }) => ipcRenderer.invoke('capture:save-to-library', payload),
+    trigger: () => ipcRenderer.invoke('capture:trigger'),
+    setTargetProject: (projectId: number | null) => ipcRenderer.invoke('capture:set-target-project', projectId),
+    onSaved: (callback) => {
+      const wrapped = (_event: unknown, data: { projectId: number; photoId: number; photo?: Photo }) => callback(data)
+      ipcRenderer.on('capture:saved', wrapped)
+      return () => ipcRenderer.removeListener('capture:saved', wrapped)
+    },
+    onError: (callback) => {
+      const wrapped = (_event: unknown, data: { error: string }) => callback(data)
+      ipcRenderer.on('capture:error', wrapped)
+      return () => ipcRenderer.removeListener('capture:error', wrapped)
+    }
+  },
   materialBrowser: {
     openExternal: (url: string) => ipcRenderer.invoke('material-browser:open-external', url),
     getDownloadDir: () => ipcRenderer.invoke('material-browser:get-download-dir'),
@@ -221,11 +274,19 @@ const api: ElectronAPI = {
     onDownloadComplete: (callback) => ipcRenderer.on('material-browser:download-complete', (_event, data) => callback(data)),
     onDownloadFailed: (callback) => ipcRenderer.on('material-browser:download-failed', (_event, data) => callback(data))
   },
+  projectReferences: {
+    getAll: (projectId: number) => ipcRenderer.invoke('project-references:getAll', projectId),
+    add: (input) => ipcRenderer.invoke('project-references:add', input),
+    remove: (projectId, referenceId) => ipcRenderer.invoke('project-references:remove', projectId, referenceId),
+    export: (projectId, folderName) => ipcRenderer.invoke('project-references:export', projectId, folderName)
+  },
   projects: {
     getAll: () => ipcRenderer.invoke('projects:getAll'),
     getById: (id: number) => ipcRenderer.invoke('projects:getById', id),
     create: (name: string, description?: string) => ipcRenderer.invoke('projects:create', name, description),
     update: (id: number, name: string, description?: string) => ipcRenderer.invoke('projects:update', id, name, description),
+    updateBrief: (id: number, input: ProjectBriefInput) => ipcRenderer.invoke('projects:updateBrief', id, input),
+    duplicate: (id: number) => ipcRenderer.invoke('projects:duplicate', id),
     delete: (id: number) => ipcRenderer.invoke('projects:delete', id)
   },
   app: {

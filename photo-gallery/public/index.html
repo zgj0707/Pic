@@ -30,23 +30,24 @@
           <button id="importFolderBtn" class="primary-action" type="button">
             <i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>导入文件夹</span>
           </button>
-          <button id="importFilesBtn" class="secondary-action" type="button">
-            <i class="fa-solid fa-file-import" aria-hidden="true"></i><span>导入文件</span>
-          </button>
         </div>
         <div class="header-search">
           <input type="text" id="searchInput" placeholder="搜索关键词、标签、评级..." aria-label="搜索样片">
           <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
         </div>
         <div class="header-tool-actions" aria-label="样片工具">
-          <button id="deleteBtn" class="tool-button danger" type="button" title="删除选中" aria-label="删除选中" disabled><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
-          <button id="restoreBtn" class="tool-button success hidden" type="button" title="恢复选中" aria-label="恢复选中" disabled><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>
-          <button id="permanentDeleteBtn" class="tool-button danger hidden" type="button" title="彻底删除" aria-label="彻底删除" disabled><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
-          <button id="copyToDesktopBtn" class="primary-action" type="button" title="把选中的样片复制到桌面文件夹" disabled><i class="fa-solid fa-folder-plus" aria-hidden="true"></i><span>保存到桌面</span></button>
-          <button id="viewToggleBtn" class="tool-button" type="button" title="切换到紧凑视图" aria-label="切换样片视图"><i class="fa-solid fa-th-large" id="viewToggleIcon" aria-hidden="true"></i></button>
-          <button id="metadataPanelBtn" class="tool-button" type="button" title="样片详情和批量操作" aria-label="打开样片详情和批量操作"><i class="fa-solid fa-list-check" aria-hidden="true"></i></button>
-          <button id="aboutBtn" class="tool-button" type="button" title="关于" aria-label="关于 Pic"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
-          <button id="settingsBtn" class="tool-button" type="button" title="设置" aria-label="设置"><i class="fa-solid fa-gear" aria-hidden="true"></i></button>
+          <button id="copyToDesktopBtn" class="primary-action" type="button" title="把当前选中的样片复制到桌面文件夹" disabled><i class="fa-solid fa-folder-plus" aria-hidden="true"></i><span id="saveDesktopLabel">保存到桌面</span></button>
+          <button id="exportPdfBtn" class="primary-action" type="button" title="按 A4 竖版格式将当前选中的样片导出为 PDF" disabled><i class="fa-solid fa-file-pdf" aria-hidden="true"></i><span id="exportPdfLabel">导出 PDF</span></button>
+          <div class="header-overflow">
+            <button id="headerMoreBtn" class="tool-button" type="button" title="更多工具" aria-label="更多工具" aria-expanded="false"><i class="fa-solid fa-ellipsis"></i></button>
+            <div id="headerOverflowMenu" class="header-overflow-menu hidden" role="menu">
+              <button id="importFilesBtn" type="button" role="menuitem"><i class="fa-solid fa-file-import" aria-hidden="true"></i><span>导入文件</span></button>
+              <button id="viewToggleBtn" type="button" role="menuitem"><i class="fa-solid fa-th-large" id="viewToggleIcon" aria-hidden="true"></i><span id="viewToggleLabel">切换视图</span></button>
+              <button id="metadataPanelBtn" type="button" role="menuitem"><i class="fa-solid fa-list-check" aria-hidden="true"></i><span>样片详情与批量操作</span></button>
+              <button id="aboutBtn" type="button" role="menuitem"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>关于与更新公告</span></button>
+              <button id="settingsBtn" type="button" role="menuitem"><i class="fa-solid fa-gear" aria-hidden="true"></i><span>设置</span></button>
+            </div>
+          </div>
         </div>
       </div>
     </header>
@@ -73,24 +74,65 @@
 
       <main class="workspace-main" aria-label="项目工作区">
         <section class="project-titlebar" aria-labelledby="currentProjectTitle">
-          <div class="project-heading">
-            <span class="section-eyebrow">拍摄简报</span>
-            <h1 id="currentProjectTitle">未选择项目</h1>
-            <p id="currentProjectDescription">创建或选择一个项目开始整理参考样片</p>
-            <p id="currentProjectDate" class="project-date">尚未设置拍摄日期</p>
+          <div class="project-brief-main">
+            <button id="projectCoverButton" class="project-cover-button" type="button" title="选择一张样片后可设为项目封面" aria-label="项目封面">
+              <i class="fa-regular fa-image" aria-hidden="true"></i>
+              <span>项目封面</span>
+            </button>
+            <div class="project-heading">
+              <div class="project-heading-title">
+                <div>
+                  <span class="section-eyebrow">拍摄简报</span>
+                  <h1 id="currentProjectTitle">未选择项目</h1>
+                </div>
+                <button id="projectBriefEditBtn" class="brief-edit-button" type="button" disabled><i class="fa-solid fa-pen" aria-hidden="true"></i><span>编辑简报</span></button>
+              </div>
+              <p id="currentProjectDescription">创建或选择一个项目开始整理参考样片</p>
+              <div id="currentProjectBriefMeta" class="project-brief-meta">
+                <span id="currentProjectClient"><i class="fa-regular fa-building" aria-hidden="true"></i>未填写客户</span>
+                <span id="currentProjectDate"><i class="fa-regular fa-calendar" aria-hidden="true"></i>尚未设置拍摄日期</span>
+                <span id="currentProjectLocation"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>未填写场地</span>
+                <span id="currentProjectOwner"><i class="fa-regular fa-user" aria-hidden="true"></i>未填写负责人</span>
+              </div>
+              <p id="currentProjectGoal" class="project-goal">尚未填写交付目标</p>
+            </div>
           </div>
           <div class="project-summary" aria-label="项目统计">
             <div class="project-stat"><span>参考样片</span><strong id="projectPhotoCount">0</strong></div>
             <div class="project-stat"><span>未处理</span><strong id="projectUnprocessedCount">0</strong></div>
-            <div class="project-stat"><span>灵感板</span><strong id="projectSelectionCount">0</strong></div>
           </div>
+          <form id="projectBriefEditor" class="project-brief-editor hidden">
+            <label>项目名称<input id="briefNameInput" type="text" maxlength="100" required></label>
+            <label>客户 / 品牌<input id="briefClientInput" type="text" maxlength="100"></label>
+            <label>拍摄日期<input id="briefShootDateInput" type="date"></label>
+            <label>场地<input id="briefLocationInput" type="text" maxlength="120"></label>
+            <label>负责人<input id="briefOwnerInput" type="text" maxlength="100"></label>
+            <label class="brief-wide">项目说明<textarea id="briefDescriptionInput" rows="2" maxlength="500"></textarea></label>
+            <label class="brief-wide">交付目标<textarea id="briefGoalInput" rows="2" maxlength="500" placeholder="例如：品牌主视觉 3 张、社交媒体竖图 6 张"></textarea></label>
+            <div class="brief-cover-editor brief-wide">
+              <div class="brief-cover-heading">
+                <div><strong>项目封面</strong><span id="briefCoverStatus">尚未设置封面</span></div>
+                <div class="brief-cover-actions">
+                  <button id="briefUseSelectedCoverBtn" class="secondary-action" type="button"><i class="fa-solid fa-arrow-pointer" aria-hidden="true"></i><span>使用图库当前选中</span></button>
+                  <button id="briefClearCoverBtn" class="secondary-action" type="button"><i class="fa-regular fa-image" aria-hidden="true"></i><span>清除封面</span></button>
+                </div>
+              </div>
+              <div id="briefCoverChoices" class="brief-cover-choices" role="listbox" aria-label="选择项目封面">
+                <span class="brief-cover-empty">当前项目还没有可用样片</span>
+              </div>
+            </div>
+            <div class="project-brief-editor-actions brief-wide">
+              <span class="brief-editor-spacer"></span>
+              <button id="briefCancelBtn" class="secondary-action" type="button">取消</button>
+              <button id="briefSaveBtn" class="primary-action" type="submit"><i class="fa-solid fa-check" aria-hidden="true"></i><span>保存简报与封面</span></button>
+            </div>
+          </form>
         </section>
 
         <nav class="workflow-stagebar" aria-label="工作流程">
-          <div class="workflow-stage active" aria-current="step"><span class="stage-index">01</span><span>收集样片</span></div>
+          <button id="galleryModeBtn" class="workflow-stage stage-action active" type="button" aria-current="step"><span class="stage-index">01</span><span>收集样片</span></button>
           <button id="cullingModeBtn" class="workflow-stage stage-action" type="button"><span class="stage-index">02</span><span>快速筛选</span></button>
-          <div class="workflow-stage"><span class="stage-index">03</span><span>灵感板</span></div>
-          <span class="workflow-stage-note">选择样片后保存到桌面</span>
+          <span class="workflow-stage-note">选择样片后保存到桌面或导出 PDF</span>
         </nav>
 
         <div class="filter-bar custom-scrollbar" aria-label="样片筛选">
@@ -109,6 +151,7 @@
           </select>
           <select id="tagFilter" aria-label="标签筛选"><option value="">全部标签</option></select>
           <button id="clearFilterBtn" class="filter-reset" type="button"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>重置</span></button>
+          <button id="selectAllBtn" class="filter-reset" type="button" title="选择当前筛选结果" disabled><i class="fa-solid fa-check-double" aria-hidden="true"></i><span>全选</span></button>
           <span id="photoCount" class="photo-count-label"></span>
         </div>
 
@@ -127,6 +170,17 @@
             <div id="photoGrid" class="photo-grid"></div>
           </div>
         </section>
+
+        <div id="selectionActionBar" class="selection-actionbar hidden" role="toolbar" aria-label="选中样片操作">
+          <strong id="selectionActionCount">已选 0 张</strong>
+          <span class="selection-action-hint">金色描边表示已选样片</span>
+          <button id="selectionActionCoverBtn" class="secondary-action" type="button"><i class="fa-regular fa-image" aria-hidden="true"></i><span>设为封面</span></button>
+          <button id="selectionActionTagsBtn" class="secondary-action" type="button"><i class="fa-solid fa-tags" aria-hidden="true"></i><span>评级与标签</span></button>
+          <button id="deleteBtn" class="selection-action-danger" type="button" disabled><i class="fa-solid fa-trash" aria-hidden="true"></i><span>移入回收站</span></button>
+          <button id="restoreBtn" class="secondary-action hidden" type="button" disabled><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>恢复</span></button>
+          <button id="permanentDeleteBtn" class="selection-action-danger hidden" type="button" disabled><i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>彻底删除</span></button>
+          <button id="selectionActionCancelBtn" class="selection-action-close" type="button" aria-label="取消选择"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
 
         <section id="cullingWorkspace" class="culling-workspace hidden" aria-label="样片初筛工作区">
           <header class="culling-header">
@@ -147,7 +201,7 @@
               <button id="cullingImmersiveViewBtn" class="filter-chip" type="button"><i class="fa-solid fa-expand" aria-hidden="true"></i><span>沉浸式</span></button>
             </div>
             <div class="culling-shortcuts" aria-label="初筛快捷键">
-              <span>← → 浏览</span><span>P 保留</span><span>X 拒绝</span><span>U 未处理</span><span>1–5 评级</span><span>Space 放大/适配</span><span>C 加入灵感板</span>
+              <span>← → 浏览</span><span>P 保留</span><span>X 拒绝</span><span>U 未处理</span><span>1–5 评级</span><span>Space 放大/适配</span><span>C 选择</span>
             </div>
           </div>
           <div id="cullingGrid" class="culling-grid custom-scrollbar" tabindex="0" aria-label="初筛样片网格"></div>
@@ -169,13 +223,6 @@
           </div>
         </section>
 
-        <section id="compareWorkspace" class="compare-workspace hidden" aria-label="灵感板参考样片并排对比">
-          <header class="compare-header">
-            <div><span class="section-eyebrow">灵感板</span><h2>并排对比</h2><p id="compareSummary" class="compare-summary">选择 2–4 张参考样片进行比较</p></div>
-            <div class="compare-header-actions"><label class="compare-zoom-control" for="compareZoomRange">同步缩放 <input id="compareZoomRange" type="range" min="1" max="2.5" step="0.1" value="1"><output id="compareZoomValue">100%</output></label><button id="compareExitBtn" class="secondary-action" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>返回图库</span></button></div>
-          </header>
-          <div id="compareGrid" class="compare-grid"></div>
-        </section>
 
         <footer class="status-bar">
           <div class="status-context">
@@ -184,7 +231,7 @@
             <span id="statusCount">0 张样片</span>
             <button id="statusBackToGallery" class="hidden" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>回到样片库</span></button>
           </div>
-          <div class="status-shortcuts"><span><i class="fa-regular fa-keyboard" aria-hidden="true"></i> 快捷键：Enter 打开，Esc 返回</span></div>
+          <div class="status-shortcuts"><button id="globalUndoBtn" class="status-undo-button" type="button" disabled><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span id="globalUndoLabel">没有可撤销操作</span></button><span><i class="fa-regular fa-keyboard" aria-hidden="true"></i> 快捷键：Enter 打开，Esc 返回，Ctrl+Z 撤销</span></div>
         </footer>
       </main>
       <!-- 右侧上下文面板 -->
@@ -258,24 +305,21 @@
           </div>
         </div>
       </div>
-      <aside id="selectionTray" class="selection-tray" aria-label="灵感板">
-        <div class="selection-tray-header">
-          <div><span class="section-eyebrow">拍摄参考</span><h2>灵感板</h2></div>
-          <div class="selection-tray-header-actions"><span id="selectionTrayCount" class="selection-tray-count">0</span><button id="selectionCompareBtn" class="selection-compare-btn" type="button" disabled><i class="fa-solid fa-columns" aria-hidden="true"></i><span>对比</span></button></div>
-        </div>
-        <div id="selectionTrayEmpty" class="selection-tray-empty">
-          <div class="selection-tray-icon"><i class="fa-solid fa-basket-shopping" aria-hidden="true"></i></div>
-          <p>暂无灵感板样片</p>
-          <span>可拖动调整参考顺序；选择 2–4 张样片后可并排比较。</span>
-        </div>
-        <div id="selectionTrayItems" class="selection-tray-items hidden"></div>
-      </aside>
     </div>
   </div>
-  <!-- 素材浏览器滑出面板 -->
+  <!-- 全屏素材浏览器 -->
   <div id="materialBrowserPanel" class="material-browser-panel">
-    <div class="h-10 bg-bgPrimary flex items-center px-4 border-b border-borderColor shrink-0">
-      <div class="flex items-center space-x-2 mr-4">
+    <div class="material-browser-header">
+      <div class="material-browser-context">
+        <span class="material-browser-title">素材浏览器</span>
+        <span id="browserProjectContext" class="material-browser-project">未选择项目</span>
+        <div class="material-browser-sources" role="tablist" aria-label="素材来源">
+          <button id="browserSourceXhs" class="material-browser-source active" type="button" role="tab" aria-selected="true">小红书</button>
+          <button id="browserSourceDouyin" class="material-browser-source" type="button" role="tab" aria-selected="false">抖音</button>
+        </div>
+        <span id="browserModeNotice" class="material-browser-mode-note">当前为网页浏览模式</span>
+      </div>
+      <div class="material-browser-nav">
         <button id="browserBack" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" aria-label="后退" title="后退">
           <i class="fa-solid fa-arrow-left"></i>
         </button>
@@ -286,14 +330,15 @@
           <i class="fa-solid fa-rotate-right"></i>
         </button>
       </div>
-      <div class="flex-1 flex items-center space-x-2">
+      <div class="material-browser-address">
         <input id="browserUrl" type="text" value="https://www.xiaohongshu.com" 
           class="flex-1 h-8 bg-bgSecondary border border-borderColor rounded px-3 text-sm text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent">
         <button id="browserGo" class="px-3 py-1.5 bg-accent text-white text-sm rounded hover:bg-accent/80" aria-label="打开地址">
           <i class="fa-solid fa-magnifying-glass"></i>
         </button>
       </div>
-      <div class="flex items-center space-x-2 ml-4">
+      <div class="material-browser-tools">
+
         <button id="browserModeToggle" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="切换浏览器模式" aria-label="切换浏览器模式">
           <i class="fa-solid fa-globe" id="browserModeIcon"></i>
         </button>
@@ -306,7 +351,7 @@
         <button id="clearDownloadCache" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="清空下载缓存" aria-label="清空下载缓存">
           <i class="fa-solid fa-trash"></i>
         </button>
-                <button id="backToGalleryFromBrowser" class="p-1.5 hover:bg-bgSecondary rounded text-accent" title="回到样片库" aria-label="回到样片库">
+        <button id="backToGalleryFromBrowser" class="p-1.5 hover:bg-bgSecondary rounded text-accent" title="回到样片库" aria-label="回到样片库">
           <i class="fa-solid fa-images"></i>
         </button>
         <button id="closeMaterialBrowserBtn" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="关闭" aria-label="关闭素材浏览器">
@@ -316,12 +361,30 @@
     </div>
     
     <div class="flex-1 overflow-hidden">
-      <webview id="materialWebview" src="https://www.xiaohongshu.com"
+      <div id="douyinExternalNotice" class="hidden h-full w-full items-center justify-center bg-bgPrimary">
+        <div class="max-w-md px-8 text-center">
+          <div class="mb-4 text-4xl text-accent"><i class="fa-brands fa-tiktok" aria-hidden="true"></i></div>
+          <h3 class="mb-3 text-lg font-semibold text-textPrimary">抖音已在系统浏览器打开</h3>
+          <p class="mb-5 text-sm leading-6 text-textSecondary">在抖音中找到素材后，按全局截图快捷键框选保存。Pic 不读取或保存抖音链接。</p>
+          <p class="mb-5 rounded-lg border border-borderColor bg-bgSecondary px-4 py-3 text-sm text-textPrimary">Ctrl + Alt + Shift + S</p>
+          <button id="openDouyinExternalBtn" class="px-4 py-2 bg-accent text-white rounded hover:bg-accent/80" type="button">重新打开抖音</button>
+        </div>
+      </div>
+      <webview id="materialWebview" src="about:blank"
         class="w-full h-full"
-        webpreferences="webviewTag=true;plugins=false;nodeIntegration=false;contextIsolation=true;javascript=yes;webSecurity=yes;spellcheck=false"
-        allowpopups></webview>
+        webpreferences="webviewTag=true;plugins=false;nodeIntegration=false;contextIsolation=true;javascript=yes;webSecurity=yes;spellcheck=false"></webview>
     </div>
     
+    <div id="browserCollectionDock" class="browser-collection-dock">
+      <div class="browser-collection-summary">
+        <span class="browser-collection-icon"><i class="fa-solid fa-inbox" aria-hidden="true"></i></span>
+        <div><strong>本次收集</strong><span id="browserCollectionText">还没有保存样片</span></div>
+      </div>
+      <div id="browserCollectionItems" class="browser-collection-items"></div>
+      <div class="browser-collection-actions">
+        <button id="browserOpenCollectedBtn" class="secondary-action" type="button" disabled><i class="fa-solid fa-images" aria-hidden="true"></i><span>查看刚加入的样片</span></button>
+      </div>
+    </div>
     <div id="downloadProgressBar" class="hidden h-2 bg-bgSecondary border-t border-borderColor">
       <div id="downloadProgressInner" class="h-full bg-accent transition-all" style="width: 0%"></div>
     </div>
@@ -482,6 +545,16 @@
       <i class="fa-regular fa-copy mr-2"></i>复制图片到剪贴板
     </div>
   </div>
+
+  <div id="projectContextMenu" class="context-menu project-context-menu hidden" role="menu" aria-label="项目操作">
+    <div class="project-context-title" id="projectContextTitle">项目操作</div>
+    <button id="projectDuplicateBtn" class="context-menu-item" type="button" role="menuitem">
+      <i class="fa-regular fa-copy" aria-hidden="true"></i><span>复制项目</span>
+    </button>
+    <button id="projectDeleteBtn" class="context-menu-item context-menu-danger" type="button" role="menuitem">
+      <i class="fa-regular fa-trash-can" aria-hidden="true"></i><span>删除项目</span>
+    </button>
+  </div>
   
   <div id="tagInputModal" class="modal-overlay hidden">
     <div class="modal-content">
@@ -531,9 +604,8 @@
   <script src="js/batch.js"></script>
   <script src="js/import.js"></script>
   <script src="js/ui.js"></script>
-  <script src="js/selectionTray.js"></script>
-  <script src="js/compare.js"></script>
   <script src="js/culling.js"></script>
+  <script src="js/enhancements.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

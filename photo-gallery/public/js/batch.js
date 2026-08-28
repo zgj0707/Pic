@@ -20,6 +20,9 @@ async function deleteSelectedPhotos() {
     updateSelectedCount();
     hideProgress();
     if (result.success) {
+      if (typeof pushAppUndo === 'function' && typeof restoreDeletedPhotoIds === 'function') {
+        pushAppUndo(`将 ${result.moved || ids.length} 张样片移入回收站`, () => restoreDeletedPhotoIds(ids));
+      }
       showToast(`已将 ${result.moved || 0} 张样片移入回收站`, 'success');
     } else {
       showToast(result.error || `有 ${result.failed || 0} 张样片移入回收站失败`, 'error');
@@ -98,6 +101,10 @@ function applyPhotoFilters() {
 
 async function applyBatchRating() {
   if (selectedPhotos.size === 0 || batchRatingValue === 0) return;
+  const previousRatings = Array.from(selectedPhotos).map(id => {
+    const photo = photos.find(item => item.id === id);
+    return photo ? { id, rating: photo.rating || 0, filepath: photo.filepath } : null;
+  }).filter(Boolean);
 
   showProgress('批量评分', `正在设置 ${batchRatingValue} 星评级...`, '');
 
@@ -114,6 +121,9 @@ async function applyBatchRating() {
     hideProgress();
     if (window.electronAPI) await loadPhotos(true);
     else renderPhotoGrid();
+    if (previousRatings.length && typeof pushAppUndo === 'function') {
+      pushAppUndo('批量评分', () => restorePhotoRatings(previousRatings));
+    }
     showToast(`已为 ${selectedPhotos.size} 张样片设置 ${batchRatingValue} 星评级`, 'success');
   } catch (e) {
     hideProgress();
@@ -123,6 +133,10 @@ async function applyBatchRating() {
 
 async function clearBatchRating() {
   if (selectedPhotos.size === 0) return;
+  const previousRatings = Array.from(selectedPhotos).map(id => {
+    const photo = photos.find(item => item.id === id);
+    return photo ? { id, rating: photo.rating || 0, filepath: photo.filepath } : null;
+  }).filter(Boolean);
 
   showProgress('清空评分', '正在清空评分...', '');
 
@@ -145,6 +159,9 @@ async function clearBatchRating() {
     hideProgress();
     if (window.electronAPI) await loadPhotos(true);
     else renderPhotoGrid();
+    if (previousRatings.length && typeof pushAppUndo === 'function') {
+      pushAppUndo('清空评分', () => restorePhotoRatings(previousRatings));
+    }
     showToast(`已清空 ${selectedPhotos.size} 张样片的评分`, 'success');
   } catch (e) {
     hideProgress();
@@ -153,15 +170,18 @@ async function clearBatchRating() {
 }
 
 async function copySelectedToDesktop() {
-  if (selectedPhotos.size === 0) {
-    showToast('请先选择要保存的样片', 'warning');
+  const selectedPhotoObjs = Array.from(selectedPhotos).map(id => photos.find(photo => photo.id === id)).filter(photo => photo && !photo.deleted_at);
+  const remoteReferences = currentProjectId !== null && window.electronAPI?.projectReferences?.getAll
+    ? await window.electronAPI.projectReferences.getAll(currentProjectId)
+    : [];
+
+  if (selectedPhotoObjs.length === 0 && remoteReferences.length === 0) {
+    showToast("请先选择要保存的样片", "warning");
     return;
   }
-  const selectedPhotoObjs = Array.from(selectedPhotos).map(id => photos.find(p => p.id === id)).filter(Boolean);
-  const filePaths = selectedPhotoObjs.map(p => p.filepath).filter(Boolean);
-
-  if (filePaths.length === 0) {
-    showToast('选中的样片没有可复制的原图', 'error');
+  const filePaths = selectedPhotoObjs.map(photo => photo.filepath).filter(Boolean);
+  if (filePaths.length === 0 && remoteReferences.length === 0) {
+    showToast("选中的样片没有可复制的原图", "error");
     return;
   }
 
@@ -177,23 +197,78 @@ async function copySelectedToDesktop() {
 
   if (window.electronAPI?.photos?.copyToDesktopFolder) {
     try {
-      const result = await window.electronAPI.photos.copyToDesktopFolder(filePaths, folderName);
-      if ((result.copied || 0) > 0) {
-        const suffix = result.failed > 0 ? '，' + result.failed + ' 张失败' : '';
-        showToast('已保存 ' + result.copied + ' 张样片到桌面文件夹「' + folderName + '」' + suffix, result.failed > 0 ? 'warning' : 'success');
+      const result = filePaths.length > 0
+        ? await window.electronAPI.photos.copyToDesktopFolder(filePaths, folderName)
+        : { copied: 0, failed: 0, success: true };
+      const referenceResult = remoteReferences.length > 0 && window.electronAPI.projectReferences?.export
+        ? await window.electronAPI.projectReferences.export(currentProjectId, folderName)
+        : { exported: 0, failed: 0, success: true };
+      const copied = result.copied || 0;
+      const failed = (result.failed || 0) + (referenceResult.failed || 0);
+      const pieces = [];
+      if (copied > 0) pieces.push(copied + ' 张图片');
+      if ((referenceResult.exported || 0) > 0) pieces.push(referenceResult.exported + ' 条参考链接');
+      if (pieces.length > 0) {
+        const suffix = failed > 0 ? '，' + failed + ' 项失败' : '';
+        showToast('已将' + pieces.join('和') + '保存到桌面文件夹「' + folderName + '」' + suffix, failed > 0 ? 'warning' : 'success');
       } else {
-        showToast('保存失败: ' + (result.error || '没有可复制的原图'), 'error');
+        showToast('保存失败: ' + (result.error || referenceResult.error || '没有可保存的内容'), 'error');
       }
-    } catch (e) {
-      showToast('保存失败: ' + e, 'error');
+    } catch (error) {
+      showToast('保存失败: ' + error, 'error');
     }
   } else {
     showToast('桌面保存功能不可用', 'error');
   }
 }
 
+async function exportSelectedToPdf() {
+  const selectedPhotoObjs = Array.from(selectedPhotos).map(id => photos.find(photo => photo.id === id)).filter(photo => photo && !photo.deleted_at);
+
+  if (selectedPhotoObjs.length === 0) {
+    showToast("请先选择要导出的样片", "warning");
+    return;
+  }
+  const filePaths = selectedPhotoObjs.map(photo => photo.filepath).filter(Boolean);
+  if (filePaths.length === 0) {
+    showToast("选中的样片没有可导出的原图", "error");
+    return;
+  }
+
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const dateStr = String(yyyy) + mm + dd;
+  const projectLabel = typeof currentProjectName === 'string' && currentProjectName.trim()
+    ? currentProjectName.trim()
+    : 'Pic-样片';
+  const fileBaseName = projectLabel + '-' + dateStr;
+
+  if (window.electronAPI?.photos?.exportToPdf) {
+    try {
+      const result = await window.electronAPI.photos.exportToPdf(filePaths, fileBaseName);
+      if ((result.exported || 0) > 0) {
+        const suffix = result.failed > 0 ? '，' + result.failed + ' 张失败' : '';
+        const sourceLabel = "已选样片";
+        const fileLabel = result.filePath ? result.filePath.split(/[\\/]/).pop() : fileBaseName + '.pdf';
+        showToast('已将' + sourceLabel + '中的 ' + result.exported + ' 张样片导出为 PDF「' + fileLabel + '」' + suffix, result.failed > 0 ? 'warning' : 'success');
+      } else {
+        showToast('PDF 导出失败: ' + (result.error || '没有可导出的原图'), 'error');
+      }
+    } catch (error) {
+      showToast('PDF 导出失败: ' + error, 'error');
+    }
+  } else {
+    showToast('PDF 导出功能不可用', 'error');
+  }
+}
 async function applyBatchTags() {
   if (selectedPhotos.size === 0 || batchTags.length === 0) return;
+  const previousTags = Array.from(selectedPhotos).map(id => {
+    const photo = photos.find(item => item.id === id);
+    return photo ? { id, tags: [...(photo.tags || [])], filepath: photo.filepath } : null;
+  }).filter(Boolean);
 
   const tagsToAdd = batchTags.length;
   showProgress('批量添加标签', `正在为 ${selectedPhotos.size} 张样片添加 ${tagsToAdd} 个标签...`, '');
@@ -215,6 +290,9 @@ async function applyBatchTags() {
     hideProgress();
     renderPhotoGrid();
     await updateTagFilter();
+    if (previousTags.length && typeof pushAppUndo === 'function') {
+      pushAppUndo('批量添加标签', () => restorePhotoTags(previousTags));
+    }
     showToast(`已为 ${selectedPhotos.size} 张样片添加 ${tagsToAdd} 个标签`, 'success');
     await loadPhotos();
   } catch (e) {
@@ -225,6 +303,10 @@ async function applyBatchTags() {
 
 async function applyRemoveTags() {
   if (selectedPhotos.size === 0 || removeTags.length === 0) return;
+  const previousTags = Array.from(selectedPhotos).map(id => {
+    const photo = photos.find(item => item.id === id);
+    return photo ? { id, tags: [...(photo.tags || [])], filepath: photo.filepath } : null;
+  }).filter(Boolean);
 
   const tagsToRemove = removeTags.length;
   showProgress('批量移除标签', `正在从 ${selectedPhotos.size} 张样片移除 ${tagsToRemove} 个标签...`, '');
@@ -245,6 +327,9 @@ async function applyRemoveTags() {
     document.getElementById('removeTags').innerHTML = '';
     hideProgress();
     await loadPhotos();
+    if (previousTags.length && typeof pushAppUndo === 'function') {
+      pushAppUndo('批量移除标签', () => restorePhotoTags(previousTags));
+    }
     showToast(`已从 ${selectedPhotos.size} 张样片移除 ${tagsToRemove} 个标签`, 'success');
   } catch (e) {
     hideProgress();

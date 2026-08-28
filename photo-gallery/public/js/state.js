@@ -3,6 +3,15 @@
 let selectedPhotos = new Set();
 let currentPanel = 'gallery';
 let browserMode = localStorage.getItem('browserMode') || 'xiaohongshu';
+let browserSource = localStorage.getItem('browserSource') || 'xiaohongshu';
+let browserSourceUrls = (() => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem('browserSourceUrls') || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+})();
 let currentViewMode = localStorage.getItem('photoViewMode') || 'masonry';
 let isRecycleBinView = false;
 let projects = [];
@@ -45,8 +54,7 @@ Object.defineProperties(PicState, {
     enumerable: true,
     value: {
       get mode() { return currentViewMode; },
-      get detailsOpen() { return document.getElementById('metadataPanel')?.classList.contains('open') || false; },
-      get selectionTrayOpen() { return false; }
+      get detailsOpen() { return document.getElementById('metadataPanel')?.classList.contains('open') || false; }
     }
   },
   filters: {

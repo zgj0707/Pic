@@ -67,6 +67,22 @@ CREATE TABLE IF NOT EXISTS project_selections (
   UNIQUE (project_id, photo_id)
 );
 CREATE INDEX IF NOT EXISTS idx_project_selections_project_position ON project_selections(project_id, position);
+-- Remote references remain separate from local photos.
+CREATE TABLE IF NOT EXISTS project_material_references (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL,
+  source_type TEXT NOT NULL,
+  source_item_id TEXT NOT NULL,
+  media_type TEXT NOT NULL DEFAULT 'link',
+  title TEXT NOT NULL DEFAULT '未命名参考',
+  author TEXT,
+  original_url TEXT NOT NULL,
+  metadata_json TEXT,
+  created_at INTEGER DEFAULT (strftime('%s', 'now')),
+  UNIQUE (project_id, source_type, source_item_id)
+);
+CREATE INDEX IF NOT EXISTS idx_project_material_references_project_created
+  ON project_material_references(project_id, created_at);
 CREATE TABLE IF NOT EXISTS project_shots (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   project_id INTEGER NOT NULL,
@@ -132,6 +148,12 @@ CREATE TABLE IF NOT EXISTS projects (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   description TEXT,
+  client_name TEXT,
+  shoot_date TEXT,
+  location TEXT,
+  owner TEXT,
+  deliverable_goal TEXT,
+  cover_photo_id INTEGER,
   created_at INTEGER DEFAULT (strftime('%s', 'now')),
   updated_at INTEGER DEFAULT (strftime('%s', 'now'))
 );
@@ -351,6 +373,25 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
   for (const column of ['created_at', 'updated_at']) {
     try {
       db.exec(`ALTER TABLE projects ADD COLUMN ${column} INTEGER`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (!message.includes('duplicate column name')) {
+        console.error(`[database] projects.${column} migration failed:`, error)
+      }
+    }
+  }
+
+  const projectBriefColumns = [
+    ['client_name', 'TEXT'],
+    ['shoot_date', 'TEXT'],
+    ['location', 'TEXT'],
+    ['owner', 'TEXT'],
+    ['deliverable_goal', 'TEXT'],
+    ['cover_photo_id', 'INTEGER']
+  ]
+  for (const [column, type] of projectBriefColumns) {
+    try {
+      db.exec(`ALTER TABLE projects ADD COLUMN ${column} ${type}`)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       if (!message.includes('duplicate column name')) {

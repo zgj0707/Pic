@@ -44,6 +44,9 @@ describe('legacy project database migration', () => {
       .map(column => column.name)
     expect(columnNames).toContain('created_at')
     expect(columnNames).toContain('updated_at')
+    expect(columnNames).toEqual(expect.arrayContaining([
+      'client_name', 'shoot_date', 'location', 'owner', 'deliverable_goal', 'cover_photo_id'
+    ]))
 
     const existing = dbAdapter.get('SELECT created_at, updated_at FROM projects WHERE name = ?', ['旧项目'])
     expect(existing?.created_at).toBe(1700000000)
@@ -155,5 +158,10 @@ describe('legacy project database migration', () => {
     expect(shotColumns).toContain('chapter')
     expect(dbAdapter.get('SELECT chapter, note FROM project_selections WHERE id = 1')).toMatchObject({ chapter: '未分组', note: null })
     expect(dbAdapter.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_shots'")).toHaveLength(1)
+    expect(dbAdapter.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_material_references'")).toHaveLength(1)
+
+    closeDatabase()
+    await initializeDatabase(tempDir)
+    expect(dbAdapter.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_material_references'")).toHaveLength(1)
   })
 })

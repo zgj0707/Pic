@@ -3,7 +3,7 @@
 
 function createPhotoItem(photo, index, layout = null) {
   const item = document.createElement('div');
-  item.className = `photo-item ${selectedPhotos.has(photo.id) ? 'selected' : ''}${typeof selectionTrayIds !== 'undefined' && selectionTrayIds.includes(photo.id) ? ' in-selection-tray' : ''}`;
+  item.className = 'photo-item' + (selectedPhotos.has(photo.id) ? ' selected' : '');
   item.dataset.id = photo.id;
   item.dataset.index = index;
 
@@ -37,10 +37,6 @@ function createPhotoItem(photo, index, layout = null) {
     <div class="photo-content">
       <img data-src="${escapeHtml(imgSrc)}" alt="${escapeHtml(photo.filename)}" loading="lazy">
     </div>
-    <div class="selection-indicator">
-      <i class="fa-solid ${selectedPhotos.has(photo.id) ? 'fa-check' : 'fa-plus'}"></i>
-    </div>
-    <button class="selection-tray-indicator" type="button" aria-label="${typeof selectionTrayIds !== 'undefined' && selectionTrayIds.includes(photo.id) ? '移出灵感板' : '加入灵感板'}"><i class="fa-solid fa-bookmark"></i></button>
     <div class="rating-overlay">${ratingHtml}</div>
     <div class="tags-overlay">${tagsHtml}</div>
   `;
@@ -81,14 +77,6 @@ function createPhotoItem(photo, index, layout = null) {
     }).catch(() => {});
   }
 
-  item.querySelector('.selection-tray-indicator')?.addEventListener('click', (e) => {
-    e.stopPropagation()
-    if (typeof toggleSelectionTray === 'function') {
-      void toggleSelectionTray(photo).then(success => {
-        if (success) item.classList.toggle('in-selection-tray', selectionTrayIds.includes(photo.id))
-      })
-    }
-  })
   item.addEventListener('click', (e) => handlePhotoClick(e, photo, index));
   item.addEventListener('dblclick', (e) => { e.preventDefault(); openLightbox(photo, index); });
   item.addEventListener('contextmenu', (e) => {
@@ -293,22 +281,13 @@ window.addEventListener('resize', () => {
 function restoreSelectedState() {
   selectedPhotos.forEach(id => {
     const item = document.querySelector(`[data-id="${id}"]`);
-    if (item) {
-      item.classList.add('selected');
-      const indicator = item.querySelector('.selection-indicator i');
-      if (indicator) indicator.className = 'fa-solid fa-check';
-    }
+    if (item) item.classList.add("selected");
   });
 }
 
 function handlePhotoClick(e, photo, index) {
   const item = e.currentTarget;
 
-  if (e.target.closest('.selection-indicator')) {
-    e.stopPropagation();
-    togglePhotoSelection(photo.id, item);
-    return;
-  }
 
   if (e.shiftKey && lastClickedIndex >= 0) {
     const start = Math.min(lastClickedIndex, index);
@@ -318,9 +297,7 @@ function handlePhotoClick(e, photo, index) {
       const photoItem = document.querySelector(`[data-id="${photoId}"]`);
       if (photoItem) {
         selectedPhotos.add(photoId);
-        photoItem.classList.add('selected');
-        const indicator = photoItem.querySelector('.selection-indicator i');
-        if (indicator) indicator.className = 'fa-solid fa-check';
+        photoItem.classList.add("selected");
       }
     }
     updateSelectedCount();
@@ -335,17 +312,74 @@ function togglePhotoSelection(photoId, item) {
   if (selectedPhotos.has(photoId)) {
     selectedPhotos.delete(photoId);
     item.classList.remove('selected');
-    const indicator = item.querySelector('.selection-indicator i');
-    if (indicator) indicator.className = 'fa-solid fa-plus';
   } else {
     selectedPhotos.add(photoId);
     item.classList.add('selected');
-    const indicator = item.querySelector('.selection-indicator i');
-    if (indicator) indicator.className = 'fa-solid fa-check';
   }
   updateSelectedCount();
 }
 
+function updateDesktopSaveButton() {
+  const count = typeof selectedPhotos !== 'undefined' ? selectedPhotos.size : 0;
+  const referenceCount = typeof browserCollectedReferences !== 'undefined' ? browserCollectedReferences.length : 0;
+  const copyButton = document.getElementById('copyToDesktopBtn');
+  const copyLabel = document.getElementById('saveDesktopLabel');
+  const pdfButton = document.getElementById('exportPdfBtn');
+  const pdfLabel = document.getElementById('exportPdfLabel');
+  if (copyButton) copyButton.disabled = count === 0 && referenceCount === 0;
+  if (pdfButton) pdfButton.disabled = count === 0;
+  if (copyLabel) {
+    copyLabel.textContent = count > 0 && referenceCount > 0
+      ? '保存已选与参考'
+      : count > 0
+        ? '保存已选'
+        : referenceCount > 0
+          ? '保存参考'
+          : '保存到桌面';
+  }
+  if (pdfLabel) pdfLabel.textContent = count > 0 ? '导出已选 PDF' : '导出 PDF';
+}
+
+function updateSelectAllButton() {
+  const button = document.getElementById('selectAllBtn');
+  if (!button) return;
+  const candidates = Array.isArray(filteredPhotos) ? filteredPhotos.filter(photo => photo && photo.id != null) : [];
+  const selectedCount = candidates.filter(photo => selectedPhotos.has(photo.id)).length;
+  const allSelected = candidates.length > 0 && selectedCount === candidates.length;
+  button.disabled = candidates.length === 0;
+  button.setAttribute('aria-pressed', String(allSelected));
+  button.title = allSelected ? '取消选择当前筛选结果' : '选择当前筛选结果';
+  const label = button.querySelector('span');
+  if (label) label.textContent = allSelected ? '取消全选' : '全选';
+}
+
+async function toggleSelectAllPhotos() {
+  const button = document.getElementById('selectAllBtn');
+  if (button) button.disabled = true;
+  try {
+    if (window.electronAPI && photoLoadedCount < photoTotalCount) {
+      while (photoLoadedCount < photoTotalCount) {
+        const before = photoLoadedCount;
+        await loadMorePhotos();
+        if (photoLoadedCount <= before) break;
+      }
+    }
+    const ids = (Array.isArray(filteredPhotos) ? filteredPhotos : []).filter(photo => photo && photo.id != null).map(photo => photo.id);
+    if (ids.length === 0) return;
+    const allSelected = ids.every(id => selectedPhotos.has(id));
+    ids.forEach(id => {
+      if (allSelected) selectedPhotos.delete(id);
+      else selectedPhotos.add(id);
+    });
+    document.querySelectorAll('.photo-item[data-id]').forEach(item => {
+      const id = Number(item.dataset.id);
+      if (ids.includes(id)) item.classList.toggle('selected', !allSelected);
+    });
+    updateSelectedCount();
+  } finally {
+    updateSelectAllButton();
+  }
+}
 function updatePhotoCount() {
   const hasMore = window.electronAPI && photoTotalCount > 0 && photoLoadedCount < photoTotalCount;
   if (isRecycleBinView) {
@@ -375,12 +409,13 @@ function updateSelectedCount() {
     if (permanentDeleteBtn) permanentDeleteBtn.disabled = count === 0;
   } else {
     const deleteBtn = document.getElementById('deleteBtn');
-    const copyToDesktopBtn = document.getElementById('copyToDesktopBtn');
     if (deleteBtn) deleteBtn.disabled = count === 0;
-    if (copyToDesktopBtn) copyToDesktopBtn.disabled = count === 0;
   }
+  updateDesktopSaveButton();
+  updateSelectAllButton();
   updateApplyButtons();
   updateContextPanel();
+  if (typeof updateSelectionActionBar === 'function') updateSelectionActionBar();
 }
 
 function updateApplyButtons() {

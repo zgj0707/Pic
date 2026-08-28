@@ -46,9 +46,12 @@ import { registerProjectIpc } from '../ipc/project'
 import { registerSelectionIpc } from '../ipc/selection'
 import { registerProjectShotsIpc } from '../ipc/projectShots'
 import { copyPhotosToDesktopFolder } from '../services/desktopExport'
+import { registerPdfExportIpc } from '../ipc/pdfExport'
 import { registerPlanningExportsIpc } from '../ipc/planningExports'
 import { registerDeliveryIpc } from '../ipc/delivery'
 import { registerMaterialBrowserIpc, setupDownloadHandler } from '../ipc/materialBrowser'
+import { registerProjectReferencesIpc } from '../ipc/projectReferences'
+import { registerScreenCapture, disposeScreenCapture } from '../services/screenCapture'
 
 // ─── Services (cache manager, thumbnail, exif sync) ───
 import { getCacheStats, clearThumbnailCache, cleanOldThumbnails, formatBytes } from '../services/cacheManager'
@@ -57,11 +60,11 @@ import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
 import type { ChangelogEntry } from '../types'
 
 export const name = 'pic-content'
-export const version = '3.4.1'
+export const version = '4.2.0'
 
 // Content module capabilities (what the shell can rely on).
 export const capabilities = {
-  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'projects', 'selection', 'projectShots', 'planningExports', 'delivery'],
+  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'capture', 'projectReferences', 'projects', 'selection', 'projectShots', 'planningExports', 'delivery', 'pdfExport'],
   services: ['cache', 'changelog', 'window'],
   db: true
 }
@@ -84,6 +87,7 @@ export interface ContentContext {
   resourcesPath: string
   isPackaged: boolean
   portableDir: string | null
+  preloadPath: string
 }
 
 /**
@@ -130,7 +134,9 @@ export function registerIpc(c: ContentContext): void {
   registerProjectShotsIpc()
   registerPlanningExportsIpc()
   registerDeliveryIpc()
+  registerPdfExportIpc(c)
   registerMaterialBrowserIpc(c.getMainWindow())
+  registerProjectReferencesIpc(c.app.getPath('desktop'))
 
   // ── Generic app/dialog/window/path/shell/cache handlers (moved from main.ts) ──
   registerGenericHandlers(c)
@@ -144,6 +150,10 @@ export function onWindowCreated(c: ContentContext): void {
   const win = c.getMainWindow()
   if (win) {
     setupDownloadHandler(win)
+    registerScreenCapture({
+      getMainWindow: c.getMainWindow,
+      preloadPath: c.preloadPath
+    }, getRendererPath(c))
   }
 }
 
@@ -181,6 +191,7 @@ export function getRendererFallback(): string {
  * Persist DB before quit.
  */
 export async function onQuit(): Promise<void> {
+  try { disposeScreenCapture() } catch (e) { console.error('[content] capture dispose fail:', e) }
   try { saveDatabase() } catch (e) { console.error('[content] save fail:', e) }
   try { await closeExifTool() } catch (e) { console.error('[content] exiftool close fail:', e) }
   try { closeDatabase() } catch (e) { console.error('[content] close fail:', e) }

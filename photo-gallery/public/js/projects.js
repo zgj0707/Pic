@@ -30,11 +30,28 @@ function renderProjectSidebar() {
     const item = document.createElement('div');
     item.className = `project-item ${project.id === currentProjectId ? 'active' : ''}`;
     item.dataset.projectId = project.id;
+    item.tabIndex = 0;
+    item.setAttribute('aria-label', `${project.name}，${project.photo_count || 0} 张照片，右键打开项目菜单`);
+    item.title = '右键：复制或删除项目';
     item.innerHTML = `
       <span class="project-name">${escapeHtml(project.name)}</span>
-      <span class="photo-count">${project.photo_count || 0}</span>
+      <span class="project-item-meta">
+        <span class="photo-count">${project.photo_count || 0}</span>
+        <i class="fa-solid fa-ellipsis project-item-menu-hint" aria-hidden="true"></i>
+      </span>
     `;
-    item.addEventListener('click', () => selectProject(project.id));
+    item.addEventListener('click', () => {
+      hideProjectContextMenu();
+      void selectProject(project.id);
+    });
+    item.addEventListener('contextmenu', event => openProjectContextMenu(event, project));
+    item.addEventListener('keydown', event => {
+      if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
+        event.preventDefault();
+        const rect = item.getBoundingClientRect();
+        openProjectContextMenu(event, project, rect.right - 8, rect.top + 12);
+      }
+    });
     list.appendChild(item);
   });
 }
@@ -48,6 +65,7 @@ async function selectProject(projectId) {
   currentProjectId = projectId;
   currentProjectName = project.name;
   PicState.currentProjectId = projectId;
+  void window.electronAPI?.capture?.setTargetProject?.(projectId);
   localStorage.setItem('currentProjectId', String(projectId));
 
   isRecycleBinView = false;
@@ -132,6 +150,78 @@ function createNewProject() {
   openProjectInputModal();
 }
 
+let projectContextTargetId = null;
+
+function hideProjectContextMenu() {
+  const menu = document.getElementById('projectContextMenu');
+  menu?.classList.add('hidden');
+  projectContextTargetId = null;
+}
+
+function openProjectContextMenu(event, project, anchorX = event.clientX, anchorY = event.clientY) {
+  event.preventDefault();
+  event.stopPropagation();
+  const menu = document.getElementById('projectContextMenu');
+  if (!menu || !project) return;
+  projectContextTargetId = project.id;
+  document.getElementById('projectContextTitle')?.replaceChildren(document.createTextNode(project.name));
+  menu.classList.remove('hidden');
+  menu.style.left = '0px';
+  menu.style.top = '0px';
+  const rect = menu.getBoundingClientRect();
+  const padding = 8;
+  const left = Math.max(padding, Math.min(anchorX, window.innerWidth - rect.width - padding));
+  const top = Math.max(padding, Math.min(anchorY, window.innerHeight - rect.height - padding));
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+  document.getElementById('projectDuplicateBtn')?.focus();
+}
+
+async function duplicateContextProject() {
+  const projectId = projectContextTargetId;
+  const project = projects.find(candidate => candidate.id === projectId);
+  hideProjectContextMenu();
+  if (!project || !window.electronAPI?.projects?.duplicate) return;
+  try {
+    const result = await window.electronAPI.projects.duplicate(projectId);
+    if (!result?.success || result.id == null) throw new Error(result?.error || '复制项目失败');
+    await loadProjects(result.id);
+    showToast(`已创建「${result.name || project.name + ' 副本'}」，拍摄简报已复制，照片原文件未重复占用空间`, 'success');
+  } catch (error) {
+    showToast(`复制项目失败：${error instanceof Error ? error.message : String(error)}`, 'error');
+  }
+}
+
+async function deleteContextProject() {
+  const projectId = projectContextTargetId;
+  const project = projects.find(candidate => candidate.id === projectId);
+  hideProjectContextMenu();
+  if (!project || !window.electronAPI?.projects?.delete) return;
+  const photoCount = Number(project.photo_count || 0);
+  const detail = photoCount > 0
+    ? `项目内 ${photoCount} 张照片及相关记录将转移到其他项目，原图文件不会被删除。`
+    : '这个项目没有照片。';
+  const confirmed = confirm(`确定删除项目「${project.name}」吗？\n\n${detail}\n项目本身和拍摄简报将被删除，此操作不可撤销。`);
+  if (!confirmed) return;
+
+  try {
+    const result = await window.electronAPI.projects.delete(projectId);
+    if (!result?.success) throw new Error(result?.error || '删除项目失败');
+    currentProjectId = null;
+    currentProjectName = '';
+    void window.electronAPI?.capture?.setTargetProject?.(null);
+    localStorage.removeItem('currentProjectId');
+    await loadProjects(result.targetProjectId ?? null);
+    const moved = Number(result.movedPhotos || 0);
+    const suffix = moved > 0
+      ? `，${moved} 张照片已转移到「${result.targetProjectName || '其他项目'}」`
+      : '';
+    showToast(`已删除项目「${project.name}」${suffix}`, 'success');
+  } catch (error) {
+    showToast(`删除项目失败：${error instanceof Error ? error.message : String(error)}`, 'error');
+  }
+}
+
 function bindProjectEvents() {
   document.getElementById('createProjectBtn')?.addEventListener('click', createNewProject);
   document.getElementById('emptyCreateProjectBtn')?.addEventListener('click', createNewProject);
@@ -144,6 +234,23 @@ function bindProjectEvents() {
   document.getElementById('projectInputModal')?.addEventListener('click', event => {
     if (event.target.id === 'projectInputModal') closeProjectInputModal();
   });
+  document.getElementById('projectDuplicateBtn')?.addEventListener('click', () => { void duplicateContextProject(); });
+  document.getElementById('projectDeleteBtn')?.addEventListener('click', () => { void deleteContextProject(); });
+  document.getElementById('projectContextMenu')?.addEventListener('click', event => event.stopPropagation());
+  document.getElementById('projectList')?.addEventListener('scroll', hideProjectContextMenu);
+  document.addEventListener('click', event => {
+    if (!(event.target instanceof Element) || !event.target.closest('#projectContextMenu')) hideProjectContextMenu();
+  });
+  document.addEventListener('contextmenu', event => {
+    if (!(event.target instanceof Element) || !event.target.closest('.project-item')) hideProjectContextMenu();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !document.getElementById('projectContextMenu')?.classList.contains('hidden')) {
+      event.preventDefault();
+      hideProjectContextMenu();
+    }
+  });
+  window.addEventListener('blur', hideProjectContextMenu);
 }
 
 bindProjectEvents();

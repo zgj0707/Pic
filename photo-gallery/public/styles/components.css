@@ -135,42 +135,8 @@
       display: block;
     }
 
-/* === Selection Indicator === */
-    .photo-item .selection-indicator {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 22px;
-      height: 22px;
-      background: rgba(0, 0, 0, 0.6);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-      opacity: 0;
-      transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
-      border: 2px solid rgba(255,255,255,0.2);
-      transform: scale(0.85);
-    }
-    
-    .photo-item:hover .selection-indicator {
-      opacity: 1;
-      transform: scale(1);
-    }
-    
-    .photo-item.selected .selection-indicator {
-      opacity: 1;
-      transform: scale(1);
-      background: var(--accent);
-      border-color: #fff;
-      box-shadow: 0 0 12px rgba(201, 149, 90, 0.4);
-    }
-    
-    .photo-item .selection-indicator i {
-      color: #fff;
-      font-size: 11px;
-    }
+/* Selected photos use the card outline only; the bookmark remains the sole top-right control. */
+
     
     .photo-item .rating-overlay {
       position: absolute;
@@ -263,6 +229,26 @@
       background: var(--accent); 
       color: #fff; 
     }
+    .project-context-menu { min-width: 196px; }
+    .project-context-title {
+      max-width: 240px;
+      overflow: hidden;
+      padding: 7px 12px 8px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      color: var(--text-muted);
+      font-size: 11px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .project-context-menu .context-menu-item {
+      width: 100%;
+      gap: 9px;
+      border: 0;
+      text-align: left;
+    }
+    .project-context-menu .context-menu-item i { width: 16px; text-align: center; }
+    .project-context-menu .context-menu-danger { color: #e18a86; }
+    .project-context-menu .context-menu-danger:hover { color: #fff; background: #a94442; }
 
 /* === Modal === */
     .modal-overlay { 

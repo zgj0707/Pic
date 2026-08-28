@@ -159,7 +159,8 @@ async function enterCullingMode() {
   document.getElementById('galleryPanel')?.classList.add('hidden')
   document.querySelector('.filter-bar')?.classList.add('hidden')
   document.getElementById('cullingWorkspace')?.classList.remove('hidden')
-  document.getElementById('cullingModeBtn')?.classList.add('active')
+  if (typeof setActiveWorkflowStage === 'function') setActiveWorkflowStage('culling')
+  currentPanel = 'culling'
   const statusView = document.getElementById('statusView')
   if (statusView) statusView.textContent = '样片初筛'
   await loadCullingPhotos()
@@ -169,13 +170,7 @@ async function enterCullingMode() {
 async function exitCullingMode() {
   if (!cullingMode) return
   cullingMode = false
-  document.getElementById('cullingWorkspace')?.classList.add('hidden')
-  document.getElementById('galleryPanel')?.classList.remove('hidden')
-  document.querySelector('.filter-bar')?.classList.remove('hidden')
-  document.getElementById('cullingModeBtn')?.classList.remove('active')
-  const statusView = document.getElementById('statusView')
-  if (statusView) statusView.textContent = currentViewMode === 'compact' ? '紧凑视图' : '瀑布流'
-  if (typeof loadPhotos === 'function' && window.electronAPI) await loadPhotos(true)
+  if (typeof switchToGallery === 'function') switchToGallery()
 }
 
 async function persistCullingState(photo, nextState) {
@@ -238,10 +233,6 @@ async function undoCullingAction() {
 function toggleCullingSelection() {
   const photo = currentCullingPhoto()
   if (!photo) return
-  if (typeof toggleSelectionTray === 'function') {
-    void toggleSelectionTray(photo)
-    return
-  }
   if (selectedPhotos.has(photo.id)) selectedPhotos.delete(photo.id)
   else selectedPhotos.add(photo.id)
   updateSelectedCount()

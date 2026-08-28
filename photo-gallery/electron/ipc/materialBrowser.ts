@@ -172,6 +172,8 @@ export function setupDownloadHandler(mainWindow: BrowserWindow) {
 
   webContents.session.on('will-download', (event, item, _webContents) => {
     const fileName = item.getFilename()
+    // Freeze the source at download start; the webview may navigate before completion.
+    const sourceUrl = item.getURL() || _webContents?.getURL() || ''
 
     // Check if the download is an image file
     if (!isSupportedFile(fileName) && !/\.(gif)$/i.test(fileName)) {
@@ -190,6 +192,7 @@ export function setupDownloadHandler(mainWindow: BrowserWindow) {
       id: downloadId,
       fileName,
       filePath,
+      sourceUrl,
       totalBytes: item.getTotalBytes()
     })
 
@@ -214,7 +217,8 @@ export function setupDownloadHandler(mainWindow: BrowserWindow) {
         mainWindow?.webContents.send('material-browser:download-complete', {
           id: downloadId,
           fileName,
-          filePath: finalPath
+          filePath: finalPath,
+          sourceUrl
         })
       } else {
         mainWindow?.webContents.send('material-browser:download-failed', {

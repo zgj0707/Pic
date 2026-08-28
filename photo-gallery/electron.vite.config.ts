@@ -6,7 +6,7 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     build: {
       outDir: 'dist-app/main',
-      emptyOutDir: false,
+      emptyOutDir: true,
       lib: {
         entry: 'electron/main.ts'
       }
@@ -16,7 +16,7 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     build: {
       outDir: 'dist-app/preload',
-      emptyOutDir: false,
+      emptyOutDir: true,
       lib: {
         entry: 'electron/preload.ts'
       }
@@ -27,7 +27,7 @@ export default defineConfig({
     publicDir: 'public',
     build: {
       outDir: 'dist-app/renderer',
-      emptyOutDir: false,
+      emptyOutDir: true,
       rollupOptions: {
         input: 'public/index.html'
       }

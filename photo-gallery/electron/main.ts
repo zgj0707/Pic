@@ -156,7 +156,10 @@ function buildContext(): any {
     appDataPath: app.getPath('appData'),
     resourcesPath: app.isPackaged ? process.resourcesPath : '',
     isPackaged: app.isPackaged,
-    portableDir: process.env.PORTABLE_EXECUTABLE_DIR || null
+    portableDir: process.env.PORTABLE_EXECUTABLE_DIR || null,
+    // Content-owned auxiliary windows (for example the screenshot overlay)
+    // use the same hardened preload as the main window.
+    preloadPath: join(__dirname, '../preload/preload.js')
   }
 }
 
