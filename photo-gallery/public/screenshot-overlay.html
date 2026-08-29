@@ -4,30 +4,179 @@
   <meta charset="utf-8">
   <title>Pic 截图</title>
   <style>
-    :root { color-scheme: dark; }
+    :root {
+      color-scheme: dark;
+      --accent: #f3c969;
+      --panel: rgba(25, 25, 25, .96);
+      --panel-border: rgba(255, 255, 255, .14);
+      --muted: rgba(255, 255, 255, .72);
+    }
     * { box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; }
-    body { cursor: crosshair; user-select: none; font-family: "Microsoft YaHei", sans-serif; }
-    #screenCanvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
-    #shade { position: fixed; inset: 0; background: rgba(0, 0, 0, .28); pointer-events: none; }
-    #selection {
-      position: fixed; display: none; border: 2px solid #f3c969;
-      background: rgba(243, 201, 105, .12); box-shadow: 0 0 0 9999px rgba(0, 0, 0, .28);
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: transparent;
+      font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+    }
+    body { cursor: crosshair; user-select: none; }
+    button, input, select { font: inherit; }
+    button { border: 0; }
+    #screenCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
       pointer-events: none;
     }
+    #shade {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      background: rgba(0, 0, 0, .3);
+      pointer-events: none;
+    }
+    #selection {
+      position: fixed;
+      display: none;
+      z-index: 2;
+      border: 2px solid var(--accent);
+      background: rgba(243, 201, 105, .08);
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, .3);
+      pointer-events: none;
+    }
+    #editorSurface {
+      position: fixed;
+      display: none;
+      z-index: 4;
+      overflow: hidden;
+      background: #111;
+      box-shadow: 0 0 0 2px var(--accent), 0 8px 32px rgba(0, 0, 0, .4);
+    }
+    #editorCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+      touch-action: none;
+    }
     #hint {
-      position: fixed; left: 50%; top: 24px; transform: translateX(-50%);
-      padding: 8px 14px; border-radius: 8px; color: #fff; background: rgba(20, 20, 20, .78);
-      font-size: 14px; letter-spacing: .2px; pointer-events: none;
+      position: fixed;
+      left: 50%;
+      top: 24px;
+      transform: translateX(-50%);
+      z-index: 20;
+      padding: 8px 14px;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 8px;
+      color: #fff;
+      background: rgba(20, 20, 20, .82);
+      font-size: 14px;
+      letter-spacing: .1px;
+      pointer-events: none;
+      white-space: nowrap;
     }
     #size {
-      position: fixed; display: none; padding: 4px 7px; border-radius: 4px;
-      color: #1c1c1c; background: #f3c969; font-size: 12px; pointer-events: none;
+      position: fixed;
+      display: none;
+      z-index: 20;
+      padding: 4px 7px;
+      border-radius: 4px;
+      color: #1c1c1c;
+      background: var(--accent);
+      font-size: 12px;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    #toolbar {
+      position: fixed;
+      display: none;
+      z-index: 30;
+      align-items: center;
+      gap: 3px;
+      min-height: 42px;
+      padding: 4px 6px;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      color: #fff;
+      background: var(--panel);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, .42);
+      pointer-events: auto;
+      white-space: nowrap;
+    }
+    #toolbar button {
+      min-width: 32px;
+      height: 32px;
+      padding: 0 7px;
+      border-radius: 5px;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      font-size: 17px;
+      line-height: 32px;
+    }
+    #toolbar button:hover,
+    #toolbar button.active {
+      color: #1d1d1d;
+      background: var(--accent);
+    }
+    #toolbar button.primary {
+      min-width: 66px;
+      color: #1d1d1d;
+      background: var(--accent);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    #toolbar button.primary:hover { background: #f8d98b; }
+    #toolbar button:disabled { opacity: .45; cursor: wait; }
+    .toolbar-divider {
+      width: 1px;
+      height: 24px;
+      margin: 0 3px;
+      background: var(--panel-border);
+    }
+    #toolbar label {
+      display: inline-flex;
+      align-items: center;
+      height: 32px;
+      color: var(--muted);
+    }
+    #strokeColor {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
+    }
+    #strokeWidth {
+      width: 58px;
+      height: 28px;
+      padding: 0 3px;
+      border: 1px solid var(--panel-border);
+      border-radius: 4px;
+      color: #fff;
+      background: rgba(255, 255, 255, .08);
+      cursor: pointer;
+      font-size: 12px;
     }
     #error {
-      position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
-      padding: 14px 18px; border-radius: 8px; color: #fff; background: rgba(120, 25, 25, .92);
-      font-size: 14px; pointer-events: none;
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 50;
+      max-width: min(560px, calc(100vw - 40px));
+      padding: 14px 18px;
+      border-radius: 8px;
+      color: #fff;
+      background: rgba(120, 25, 25, .94);
+      font-size: 14px;
+      line-height: 1.5;
+      pointer-events: none;
     }
   </style>
 </head>
@@ -36,7 +185,31 @@
   <div id="shade"></div>
   <div id="selection"></div>
   <div id="size"></div>
-  <div id="hint">拖动选择截图区域，松开鼠标自动导入素材库并复制到剪贴板 · Esc 取消</div>
+  <div id="editorSurface"><canvas id="editorCanvas"></canvas></div>
+  <div id="hint">拖动选择截图区域 · 松开后可编辑 · Esc 取消</div>
+  <div id="toolbar" role="toolbar" aria-label="截图编辑工具">
+    <button type="button" data-tool="pointer" title="选择" aria-label="选择">↖</button>
+    <button type="button" data-tool="pen" title="画笔" aria-label="画笔">✎</button>
+    <button type="button" data-tool="line" title="直线" aria-label="直线">╱</button>
+    <button type="button" data-tool="arrow" title="箭头" aria-label="箭头">➜</button>
+    <button type="button" data-tool="rect" title="矩形" aria-label="矩形">□</button>
+    <button type="button" data-tool="ellipse" title="圆形" aria-label="圆形">○</button>
+    <button type="button" data-tool="text" title="文字" aria-label="文字">T</button>
+    <button type="button" data-tool="mosaic" title="马赛克" aria-label="马赛克">▦</button>
+    <span class="toolbar-divider"></span>
+    <label title="标注颜色"><input id="strokeColor" type="color" value="#f3c969" aria-label="标注颜色"></label>
+    <select id="strokeWidth" title="线条粗细" aria-label="线条粗细">
+      <option value="2">细</option>
+      <option value="4" selected>中</option>
+      <option value="8">粗</option>
+    </select>
+    <span class="toolbar-divider"></span>
+    <button type="button" id="undoButton" title="撤销 (Ctrl+Z)" aria-label="撤销">↶</button>
+    <button type="button" id="redoButton" title="重做 (Ctrl+Y)" aria-label="重做">↷</button>
+    <button type="button" id="copyButton" title="复制到剪贴板" aria-label="复制到剪贴板">复制</button>
+    <button type="button" id="cancelButton" title="取消 (Esc)" aria-label="取消">取消</button>
+    <button type="button" id="completeButton" class="primary" title="完成并导入素材库" aria-label="完成并导入素材库">完成</button>
+  </div>
   <div id="error" hidden></div>
   <script>
     (() => {
@@ -52,6 +225,24 @@
       let image = null;
       let start = null;
       let saving = false;
+      let mode = 'selecting';
+      let originalCanvas = null;
+      let editorRect = null;
+      let activeDraft = null;
+      let annotations = [];
+      let redoStack = [];
+      let activeTool = 'pointer';
+      const editorSurface = document.getElementById('editorSurface');
+      const editorCanvas = document.getElementById('editorCanvas');
+      const toolbar = document.getElementById('toolbar');
+      const strokeColor = document.getElementById('strokeColor');
+      const strokeWidth = document.getElementById('strokeWidth');
+      const undoButton = document.getElementById('undoButton');
+      const redoButton = document.getElementById('redoButton');
+      const copyButton = document.getElementById('copyButton');
+      const cancelButton = document.getElementById('cancelButton');
+      const completeButton = document.getElementById('completeButton');
+      const editorContext = editorCanvas.getContext('2d');
 
       function fail(message) {
         errorBox.textContent = message;
@@ -107,6 +298,7 @@
         const y = Math.min(start.y, point.y);
         const width = Math.abs(point.x - start.x);
         const height = Math.abs(point.y - start.y);
+        editorRect = { left: x, top: y, width, height };
         selection.style.display = 'block';
         selection.style.left = x + 'px';
         selection.style.top = y + 'px';
@@ -118,79 +310,363 @@
         size.style.top = Math.min(window.innerHeight - 28, Math.max(4, y + height + 6)) + 'px';
       }
 
-      async function saveSelection(point) {
-        if (!image || saving) return;
-        const rect = canvas.getBoundingClientRect();
-        const left = Math.min(start.x, point.x);
-        const top = Math.min(start.y, point.y);
-        const width = Math.abs(point.x - start.x);
-        const height = Math.abs(point.y - start.y);
-        if (width < 12 || height < 12) {
-          selection.style.display = 'none';
-          size.style.display = 'none';
-          hint.textContent = '截图区域太小，请重新框选 · Esc 取消';
-          return;
-        }
-
-        const scaleX = image.naturalWidth / rect.width;
-        const scaleY = image.naturalHeight / rect.height;
-        const sx = Math.max(0, Math.floor(left * scaleX));
-        const sy = Math.max(0, Math.floor(top * scaleY));
-        const sw = Math.min(image.naturalWidth - sx, Math.max(1, Math.floor(width * scaleX)));
-        const sh = Math.min(image.naturalHeight - sy, Math.max(1, Math.floor(height * scaleY)));
-        const crop = document.createElement('canvas');
-        crop.width = sw;
-        crop.height = sh;
-        crop.getContext('2d').drawImage(image, sx, sy, sw, sh, 0, 0, sw, sh);
-
-        saving = true;
-        hint.textContent = '正在导入素材库并复制到剪贴板…';
-        document.body.style.cursor = 'wait';
-        crop.toBlob(async blob => {
-          if (!blob) {
-            fail('无法生成截图图片');
-            return;
-          }
-          try {
-            const bytes = new Uint8Array(await blob.arrayBuffer());
-            const result = await api.saveToLibrary({ imageData: bytes });
-            if (!result?.success) {
-              saving = false;
-              document.body.style.cursor = 'crosshair';
-              hint.textContent = result?.error || '保存失败，请重试';
-            }
-          } catch (error) {
-            saving = false;
-            document.body.style.cursor = 'crosshair';
-            hint.textContent = error instanceof Error ? error.message : String(error);
-          }
-        }, 'image/png');
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
       }
 
+      function editorPoint(event) {
+        const rect = editorCanvas.getBoundingClientRect();
+        const scaleX = editorCanvas.width / Math.max(1, rect.width);
+        const scaleY = editorCanvas.height / Math.max(1, rect.height);
+        return {
+          x: clamp((event.clientX - rect.left) * scaleX, 0, editorCanvas.width),
+          y: clamp((event.clientY - rect.top) * scaleY, 0, editorCanvas.height)
+        };
+      }
+
+      function normalizeRect(first, last) {
+        return {
+          x: Math.min(first.x, last.x),
+          y: Math.min(first.y, last.y),
+          width: Math.abs(last.x - first.x),
+          height: Math.abs(last.y - first.y)
+        };
+      }
+
+      function drawArrow(context, first, last, width) {
+        context.beginPath();
+        context.moveTo(first.x, first.y);
+        context.lineTo(last.x, last.y);
+        context.stroke();
+        const angle = Math.atan2(last.y - first.y, last.x - first.x);
+        const head = Math.max(10, width * 3.5);
+        context.beginPath();
+        context.moveTo(last.x, last.y);
+        context.lineTo(last.x - head * Math.cos(angle - Math.PI / 6), last.y - head * Math.sin(angle - Math.PI / 6));
+        context.moveTo(last.x, last.y);
+        context.lineTo(last.x - head * Math.cos(angle + Math.PI / 6), last.y - head * Math.sin(angle + Math.PI / 6));
+        context.stroke();
+      }
+
+      function drawMosaic(context, annotation) {
+        const x = clamp(Math.floor(annotation.x), 0, originalCanvas.width);
+        const y = clamp(Math.floor(annotation.y), 0, originalCanvas.height);
+        const width = clamp(Math.floor(annotation.width), 1, originalCanvas.width - x);
+        const height = clamp(Math.floor(annotation.height), 1, originalCanvas.height - y);
+        if (width < 1 || height < 1) return;
+        const mosaicCanvas = document.createElement('canvas');
+        const mosaicContext = mosaicCanvas.getContext('2d');
+        const block = Math.max(4, Math.round(Math.min(width, height) / 16));
+        mosaicCanvas.width = Math.max(1, Math.ceil(width / block));
+        mosaicCanvas.height = Math.max(1, Math.ceil(height / block));
+        mosaicContext.drawImage(originalCanvas, x, y, width, height, 0, 0, mosaicCanvas.width, mosaicCanvas.height);
+        context.save();
+        context.imageSmoothingEnabled = false;
+        context.drawImage(mosaicCanvas, 0, 0, mosaicCanvas.width, mosaicCanvas.height, x, y, width, height);
+        context.restore();
+      }
+
+      function drawAnnotation(annotation) {
+        const width = annotation.width || Number(strokeWidth.value);
+        editorContext.save();
+        editorContext.strokeStyle = annotation.color || strokeColor.value;
+        editorContext.fillStyle = annotation.color || strokeColor.value;
+        editorContext.lineWidth = width;
+        editorContext.lineCap = 'round';
+        editorContext.lineJoin = 'round';
+        if (annotation.type === 'mosaic') {
+          drawMosaic(editorContext, annotation);
+        } else if (annotation.type === 'pen') {
+          if (annotation.points.length > 1) {
+            editorContext.beginPath();
+            editorContext.moveTo(annotation.points[0].x, annotation.points[0].y);
+            for (const point of annotation.points.slice(1)) editorContext.lineTo(point.x, point.y);
+            editorContext.stroke();
+          }
+        } else if (annotation.type === 'line') {
+          editorContext.beginPath();
+          editorContext.moveTo(annotation.start.x, annotation.start.y);
+          editorContext.lineTo(annotation.end.x, annotation.end.y);
+          editorContext.stroke();
+        } else if (annotation.type === 'arrow') {
+          drawArrow(editorContext, annotation.start, annotation.end, width);
+        } else if (annotation.type === 'rect') {
+          editorContext.strokeRect(annotation.x, annotation.y, annotation.width, annotation.height);
+        } else if (annotation.type === 'ellipse') {
+          editorContext.beginPath();
+          editorContext.ellipse(
+            annotation.x + annotation.width / 2,
+            annotation.y + annotation.height / 2,
+            Math.abs(annotation.width / 2),
+            Math.abs(annotation.height / 2),
+            0,
+            0,
+            Math.PI * 2
+          );
+          editorContext.stroke();
+        } else if (annotation.type === 'text') {
+          editorContext.font = annotation.font;
+          editorContext.textBaseline = 'top';
+          editorContext.fillText(annotation.text, annotation.x, annotation.y);
+        }
+        editorContext.restore();
+      }
+
+      function drawEditor(draft) {
+        if (!originalCanvas) return;
+        editorContext.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
+        editorContext.drawImage(originalCanvas, 0, 0);
+        for (const annotation of annotations) drawAnnotation(annotation);
+        if (draft) drawAnnotation(draft);
+      }
+
+      function positionToolbar() {
+        if (!editorRect || toolbar.style.display === 'none') return;
+        const toolbarRect = toolbar.getBoundingClientRect();
+        let left = editorRect.left;
+        let top = editorRect.top - toolbarRect.height - 10;
+        if (top < 8) top = editorRect.top + editorRect.height + 10;
+        left = clamp(left, 8, Math.max(8, window.innerWidth - toolbarRect.width - 8));
+        top = clamp(top, 8, Math.max(8, window.innerHeight - toolbarRect.height - 8));
+        toolbar.style.left = left + 'px';
+        toolbar.style.top = top + 'px';
+      }
+
+      function updateHistoryButtons() {
+        undoButton.disabled = annotations.length === 0;
+        redoButton.disabled = redoStack.length === 0;
+      }
+
+      function enterEditing() {
+        if (!editorRect || !image) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = image.naturalWidth / Math.max(1, rect.width);
+        const scaleY = image.naturalHeight / Math.max(1, rect.height);
+        const sx = clamp(Math.floor(editorRect.left * scaleX), 0, image.naturalWidth - 1);
+        const sy = clamp(Math.floor(editorRect.top * scaleY), 0, image.naturalHeight - 1);
+        const sw = clamp(Math.floor(editorRect.width * scaleX), 1, image.naturalWidth - sx);
+        const sh = clamp(Math.floor(editorRect.height * scaleY), 1, image.naturalHeight - sy);
+        originalCanvas = document.createElement('canvas');
+        originalCanvas.width = sw;
+        originalCanvas.height = sh;
+        originalCanvas.getContext('2d').drawImage(image, sx, sy, sw, sh, 0, 0, sw, sh);
+        editorCanvas.width = sw;
+        editorCanvas.height = sh;
+        editorSurface.style.left = editorRect.left + 'px';
+        editorSurface.style.top = editorRect.top + 'px';
+        editorSurface.style.width = editorRect.width + 'px';
+        editorSurface.style.height = editorRect.height + 'px';
+        editorSurface.style.display = 'block';
+        toolbar.style.display = 'flex';
+        size.style.display = 'none';
+        hint.textContent = '选择工具进行标注，点击完成导入素材库并复制到剪贴板 · Esc 取消';
+        mode = 'editing';
+        document.body.style.cursor = 'default';
+        updateHistoryButtons();
+        drawEditor();
+        requestAnimationFrame(positionToolbar);
+      }
+
+      function createDraft(point) {
+        const base = { color: strokeColor.value, width: Number(strokeWidth.value) };
+        if (activeTool === 'pen') return { ...base, type: 'pen', points: [point] };
+        if (activeTool === 'line') return { ...base, type: 'line', start: point, end: point };
+        if (activeTool === 'arrow') return { ...base, type: 'arrow', start: point, end: point };
+        if (activeTool === 'rect') return { ...base, type: 'rect', x: point.x, y: point.y, width: 0, height: 0 };
+        if (activeTool === 'ellipse') return { ...base, type: 'ellipse', x: point.x, y: point.y, width: 0, height: 0 };
+        if (activeTool === 'mosaic') return { ...base, type: 'mosaic', x: point.x, y: point.y, width: 0, height: 0 };
+        return null;
+      }
+
+      function updateDraft(draft, point) {
+        if (draft.type === 'pen') {
+          draft.points.push(point);
+        } else if (draft.type === 'line' || draft.type === 'arrow') {
+          draft.end = point;
+        } else {
+          Object.assign(draft, normalizeRect(draft.start || { x: draft.x, y: draft.y }, point));
+        }
+      }
+
+      function isUsefulAnnotation(annotation) {
+        if (annotation.type === 'pen') return annotation.points.length > 1;
+        if (annotation.type === 'line' || annotation.type === 'arrow') {
+          return Math.hypot(annotation.end.x - annotation.start.x, annotation.end.y - annotation.start.y) > 2;
+        }
+        return annotation.type === 'text' ? Boolean(annotation.text.trim()) :
+          annotation.width > 2 && annotation.height > 2;
+      }
+
+      function commitDraft() {
+        if (!activeDraft || !isUsefulAnnotation(activeDraft)) {
+          activeDraft = null;
+          drawEditor();
+          return;
+        }
+        annotations.push(activeDraft);
+        redoStack = [];
+        activeDraft = null;
+        updateHistoryButtons();
+        drawEditor();
+      }
+
+      function addText(point) {
+        const text = window.prompt('输入标注文字');
+        if (!text || !text.trim()) return;
+        annotations.push({
+          type: 'text',
+          text: text.trim(),
+          x: point.x,
+          y: point.y,
+          color: strokeColor.value,
+          width: Number(strokeWidth.value),
+          font: 'bold ' + Math.max(16, Number(strokeWidth.value) * 5) + 'px "Microsoft YaHei", sans-serif'
+        });
+        redoStack = [];
+        updateHistoryButtons();
+        drawEditor();
+      }
+
+      function setBusy(value, message) {
+        saving = value;
+        for (const control of toolbar.querySelectorAll('button, select, input')) control.disabled = value;
+        if (message) hint.textContent = message;
+      }
+
+      function canvasToBytes() {
+        return new Promise(resolve => {
+          editorCanvas.toBlob(async blob => {
+            resolve(blob ? new Uint8Array(await blob.arrayBuffer()) : null);
+          }, 'image/png');
+        });
+      }
+
+      async function copyToClipboard() {
+        if (saving || !api?.copyToClipboard) return;
+        setBusy(true, '正在复制到剪贴板…');
+        try {
+          const bytes = await canvasToBytes();
+          if (!bytes) throw new Error('无法生成截图图片');
+          const result = await api.copyToClipboard({ imageData: bytes });
+          setBusy(false, result?.success ? '已复制到剪贴板，可直接粘贴' : (result?.error || '复制失败，请重试'));
+        } catch (error) {
+          setBusy(false, error instanceof Error ? error.message : String(error));
+        }
+      }
+
+      async function completeCapture() {
+        if (saving || !api?.saveToLibrary) return;
+        setBusy(true, '正在导入素材库并复制到剪贴板…');
+        try {
+          const bytes = await canvasToBytes();
+          if (!bytes) throw new Error('无法生成截图图片');
+          const result = await api.saveToLibrary({ imageData: bytes });
+          if (!result?.success) setBusy(false, result?.error || '保存失败，请重试');
+        } catch (error) {
+          setBusy(false, error instanceof Error ? error.message : String(error));
+        }
+      }
+
+      function cancelCapture() {
+        if (!saving && api?.cancel) void api.cancel();
+      }
+
+      function undo() {
+        if (saving || annotations.length === 0) return;
+        redoStack.push(annotations.pop());
+        updateHistoryButtons();
+        drawEditor();
+      }
+
+      function redo() {
+        if (saving || redoStack.length === 0) return;
+        annotations.push(redoStack.pop());
+        updateHistoryButtons();
+        drawEditor();
+      }
+
+      for (const button of toolbar.querySelectorAll('[data-tool]')) {
+        button.addEventListener('click', () => {
+          activeTool = button.dataset.tool || 'pointer';
+          for (const item of toolbar.querySelectorAll('[data-tool]')) item.classList.toggle('active', item === button);
+          editorCanvas.style.cursor = activeTool === 'pointer' ? 'default' : 'crosshair';
+        });
+      }
+      toolbar.querySelector('[data-tool="pointer"]').classList.add('active');
+      undoButton.addEventListener('click', undo);
+      redoButton.addEventListener('click', redo);
+      copyButton.addEventListener('click', copyToClipboard);
+      cancelButton.addEventListener('click', cancelCapture);
+      completeButton.addEventListener('click', completeCapture);
+
       document.addEventListener('pointerdown', event => {
-        if (saving || event.button !== 0) return;
+        if (mode !== 'selecting' || saving || event.button !== 0) return;
         start = pointerPosition(event);
-        selection.setPointerCapture?.(event.pointerId);
         updateSelection(start);
       });
       document.addEventListener('pointermove', event => {
-        if (start && !saving) updateSelection(pointerPosition(event));
+        if (mode === 'selecting' && start && !saving) updateSelection(pointerPosition(event));
       });
       document.addEventListener('pointerup', event => {
-        if (!start || saving || event.button !== 0) return;
+        if (mode !== 'selecting' || !start || saving || event.button !== 0) return;
         const point = pointerPosition(event);
         updateSelection(point);
-        void saveSelection(point);
+        if (editorRect.width < 12 || editorRect.height < 12) {
+          hint.textContent = '截图区域太小，请重新框选 · Esc 取消';
+          return;
+        }
         start = null;
+        enterEditing();
       });
       document.addEventListener('pointercancel', () => { start = null; });
+      editorCanvas.addEventListener('pointerdown', event => {
+        if (mode !== 'editing' || saving || event.button !== 0) return;
+        const point = editorPoint(event);
+        if (activeTool === 'text') {
+          addText(point);
+          return;
+        }
+        activeDraft = createDraft(point);
+        if (activeDraft) editorCanvas.setPointerCapture?.(event.pointerId);
+      });
+      editorCanvas.addEventListener('pointermove', event => {
+        if (!activeDraft || saving) return;
+        updateDraft(activeDraft, editorPoint(event));
+        drawEditor(activeDraft);
+      });
+      editorCanvas.addEventListener('pointerup', event => {
+        if (!activeDraft || saving || event.button !== 0) return;
+        updateDraft(activeDraft, editorPoint(event));
+        commitDraft();
+      });
+      editorCanvas.addEventListener('pointercancel', () => {
+        activeDraft = null;
+        drawEditor();
+      });
       document.addEventListener('keydown', event => {
         if (event.key === 'Escape') {
           event.preventDefault();
-          if (api?.cancel) void api.cancel();
+          cancelCapture();
+          return;
+        }
+        if (mode !== 'editing' || saving) return;
+        if (event.ctrlKey && event.key.toLowerCase() === 'z') {
+          event.preventDefault();
+          undo();
+        } else if (event.ctrlKey && event.key.toLowerCase() === 'y') {
+          event.preventDefault();
+          redo();
+        } else if (event.key === 'Enter' && !event.ctrlKey && !event.altKey) {
+          event.preventDefault();
+          completeCapture();
         }
       });
-      window.addEventListener('blur', () => { start = null; });
+      window.addEventListener('resize', positionToolbar);
+      window.addEventListener('blur', () => {
+        start = null;
+        activeDraft = null;
+        if (mode === 'editing') drawEditor();
+      });
 
       void init();
     })();

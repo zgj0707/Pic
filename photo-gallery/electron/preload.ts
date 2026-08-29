@@ -95,8 +95,10 @@ export interface ElectronAPI {
     cancel: () => Promise<{ success: boolean; error?: string }>
     reportError: (error: string) => Promise<{ success: boolean; error?: string }>
     saveToLibrary: (payload: { imageData: Uint8Array }) => Promise<{ success: boolean; data?: { photoId: number; projectId: number; filePath: string; width: number; height: number; clipboardCopied: boolean; clipboardError?: string }; error?: string }>
+    copyToClipboard: (payload: { imageData: Uint8Array }) => Promise<{ success: boolean; error?: string }>
     trigger: () => Promise<{ success: boolean; error?: string }>
     setTargetProject: (projectId: number | null) => Promise<{ success: boolean; error?: string }>
+    getHotkeyStatus: () => Promise<{ success: boolean; data?: { hotkey: string; registered: boolean; conflict: boolean }; error?: string }>
     onSaved: (callback: (data: { projectId: number; photoId: number; photo?: Photo; clipboardCopied: boolean; clipboardError?: string }) => void) => () => void
     onError: (callback: (data: { error: string }) => void) => () => void
   },
@@ -246,8 +248,10 @@ const api: ElectronAPI = {
     cancel: () => ipcRenderer.invoke('capture:cancel'),
     reportError: (error: string) => ipcRenderer.invoke('capture:report-error', error),
     saveToLibrary: (payload: { imageData: Uint8Array }) => ipcRenderer.invoke('capture:save-to-library', payload),
+    copyToClipboard: (payload: { imageData: Uint8Array }) => ipcRenderer.invoke('capture:copy-to-clipboard', payload),
     trigger: () => ipcRenderer.invoke('capture:trigger'),
     setTargetProject: (projectId: number | null) => ipcRenderer.invoke('capture:set-target-project', projectId),
+    getHotkeyStatus: () => ipcRenderer.invoke('capture:get-hotkey-status'),
     onSaved: (callback) => {
       const wrapped = (_event: unknown, data: { projectId: number; photoId: number; photo?: Photo; clipboardCopied: boolean; clipboardError?: string }) => callback(data)
       ipcRenderer.on('capture:saved', wrapped)
