@@ -130,10 +130,15 @@ export function removeSelectionsForPhotos(photoIds: number[]): void {
   dbAdapter.run(`DELETE FROM project_selections WHERE photo_id IN (${placeholders})`, photoIds)
 }
 
-export function moveProjectSelections(fromProjectId: number, toProjectId: number): void {
+function moveProjectSelectionRows(fromProjectId: number, toProjectId: number, photoIds?: number[]): void {
+  const params: unknown[] = [fromProjectId]
+  const photoClause = photoIds && photoIds.length > 0
+    ? ` AND photo_id IN (${photoIds.map(() => '?').join(', ')})`
+    : ''
+  if (photoIds && photoIds.length > 0) params.push(...photoIds)
   const selections = dbAdapter.query(
-    'SELECT id, photo_id, position FROM project_selections WHERE project_id = ? ORDER BY position, id',
-    [fromProjectId]
+    `SELECT id, photo_id, position FROM project_selections WHERE project_id = ?${photoClause} ORDER BY position, id`,
+    params
   )
   for (const selection of selections) {
     const duplicate = dbAdapter.get(
@@ -149,4 +154,12 @@ export function moveProjectSelections(fromProjectId: number, toProjectId: number
       )
     }
   }
+}
+
+export function moveProjectSelectionsForPhotos(fromProjectId: number, toProjectId: number, photoIds: number[]): void {
+  moveProjectSelectionRows(fromProjectId, toProjectId, photoIds)
+}
+
+export function moveProjectSelections(fromProjectId: number, toProjectId: number): void {
+  moveProjectSelectionRows(fromProjectId, toProjectId)
 }

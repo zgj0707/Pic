@@ -38,8 +38,13 @@ function resetZoom() {
   zoomScale = 1;
   imageOffset = { x: 0, y: 0 };
   rotateAngle = 0;
-  lightboxImage.style.transform = 'scale(1) translate(0, 0) rotate(0deg)';
+  applyLightboxTransform();
+  lightboxImage.style.cursor = 'default';
   document.getElementById('zoomLevel').textContent = '100%';
+}
+
+function applyLightboxTransform() {
+  lightboxImage.style.transform = `scale(${zoomScale}) translate(${imageOffset.x / zoomScale}px, ${imageOffset.y / zoomScale}px) rotate(${rotateAngle}deg)`;
 }
 
 function rotateImage(direction) {
@@ -48,7 +53,7 @@ function rotateImage(direction) {
   } else {
     rotateAngle += 90;
   }
-  lightboxImage.style.transform = `scale(${zoomScale}) translate(${imageOffset.x}px, ${imageOffset.y}px) rotate(${rotateAngle}deg)`;
+  applyLightboxTransform();
 }
 
 function updateLightboxRating(rating) {

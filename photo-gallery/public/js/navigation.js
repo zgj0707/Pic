@@ -3,7 +3,6 @@
 function setActiveWorkflowStage(stage) {
   const stages = {
     gallery: document.getElementById('galleryModeBtn'),
-    culling: document.getElementById('cullingModeBtn'),
   }
   Object.entries(stages).forEach(([key, button]) => {
     const active = key === stage
@@ -174,11 +173,9 @@ function switchToGallery() {
   const settingsModal = document.getElementById('settingsModal');
   if (settingsModal) settingsModal.classList.add('hidden');
   isRecycleBinView = false;
-  if (typeof cullingMode !== 'undefined') cullingMode = false;
   currentPanel = 'gallery';
 
   document.getElementById('galleryPanel')?.classList.remove('hidden');
-  document.getElementById('cullingWorkspace')?.classList.add('hidden');
   document.querySelector('.filter-bar')?.classList.remove('hidden');
   setActiveWorkflowStage('gallery');
 

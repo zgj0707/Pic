@@ -11,12 +11,16 @@ const uiSource = readFileSync(join(publicRoot, 'js', 'ui.js'), 'utf8')
 const htmlSource = readFileSync(join(publicRoot, 'index.html'), 'utf8')
 const layoutSource = readFileSync(join(publicRoot, 'styles', 'layout.css'), 'utf8')
 const componentsSource = readFileSync(join(publicRoot, 'styles', 'components.css'), 'utf8')
+const lightboxSource = readFileSync(join(publicRoot, 'js', 'lightbox.js'), 'utf8')
+const dragdropSource = readFileSync(join(publicRoot, 'js', 'dragdrop.js'), 'utf8')
 const materialBrowserSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'materialBrowser.ts'), 'utf8')
+const importIpcSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'import.ts'), 'utf8')
 const screenCaptureSource = readFileSync(join(process.cwd(), 'electron', 'services', 'screenCapture.ts'), 'utf8')
 const preloadSource = readFileSync(join(process.cwd(), 'electron', 'preload.ts'), 'utf8')
 const screenshotOverlaySource = readFileSync(join(publicRoot, 'screenshot-overlay.html'), 'utf8')
 const enhancementsSource = readFileSync(join(publicRoot, 'js', 'enhancements.js'), 'utf8')
 const projectIpcSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'project.ts'), 'utf8')
+const projectManagementSource = readFileSync(join(process.cwd(), 'electron', 'services', 'projectManagement.ts'), 'utf8')
 const projectsSource = readFileSync(join(publicRoot, 'js', 'projects.js'), 'utf8')
 
 describe('UI/UX refactor guardrails', () => {
@@ -133,9 +137,35 @@ describe('UI/UX refactor guardrails', () => {
     expect(tokens).toContain('prefers-reduced-motion: reduce')
   })
 
-  it('keeps quick-culling previews at the requested 3:2 ratio', () => {
-    expect(layoutSource).toMatch(/\.culling-card-image\s*\{[^}]*aspect-ratio:\s*3\s*\/\s*2/s)
-    expect(layoutSource).toMatch(/\.culling-immersive-stage\s*\{[^}]*aspect-ratio:\s*3\s*\/\s*2/s)
+  it('removes the quick-culling workflow and its renderer path', () => {
+    expect(htmlSource).not.toContain('快速筛选')
+    expect(htmlSource).not.toContain('cullingModeBtn')
+    expect(htmlSource).not.toContain('cullingWorkspace')
+    expect(navigationSource).not.toContain('cullingMode')
+    expect(appSource).not.toContain('refreshReviewStateCounts')
+    expect(layoutSource).not.toContain('culling-workspace')
+    expect(existsSync(join(publicRoot, 'js', 'culling.js'))).toBe(false)
+  })
+
+  it('supports desktop import and moving library photos between projects', () => {
+    expect(htmlSource).toContain('js/dragdrop.js')
+    expect(dragdropSource).toContain("application/x-pic-photo-ids")
+    expect(dragdropSource).toContain('fromDroppedPaths')
+    expect(dragdropSource).toContain('projects.movePhotos')
+    expect(gridSource).toContain('item.draggable = true')
+    expect(gridSource).toContain('img.draggable = false')
+    expect(importIpcSource).toContain("'import:fromDroppedPaths'")
+    expect(preloadSource).toContain('getPathForFile')
+    expect(projectIpcSource).toContain("'projects:movePhotos'")
+    expect(projectManagementSource).toContain('moveProjectSelectionsForPhotos')
+  })
+
+  it('keeps lightbox panning and blocks native image dragging', () => {
+    expect(htmlSource).toContain('id="lightboxImage" src="" alt="" draggable="false"')
+    expect(componentsSource).toContain('-webkit-user-drag: none')
+    expect(appSource).toContain("lightboxImage.addEventListener('pointerdown'")
+    expect(appSource).not.toContain("lightboxImage.addEventListener('mousedown'")
+    expect(lightboxSource).toContain('function applyLightboxTransform')
   })
 
   it('connects selection actions, project brief editing and browser collection', () => {

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type {
   Photo, PhotoQueryOptions, PhotoFilter, ReviewState, Tag, ExifData, Project, ProjectBriefInput, ProjectSelection, ProjectShot, ProjectExport,
   ImportResult, ImportProgress, ProjectMaterialReference,
@@ -65,12 +65,14 @@ export interface ElectronAPI {
   import: {
     fromDirectory: (dirPath: string, projectId?: number | null) => Promise<ImportResult>
     fromFiles: (filePaths: string[], projectId?: number | null) => Promise<ImportResult>
+    fromDroppedPaths: (paths: string[], projectId?: number | null) => Promise<ImportResult>
     getProgress: () => Promise<ImportProgress>
     onProgress: (callback: (progress: ImportProgress) => void) => () => void
   }
   path: {
     join: (...paths: string[]) => Promise<string>
     appData: () => Promise<string>
+    getPathForFile: (file: File) => string
   }
   tags: {
     getAll: () => Promise<Tag[]>
@@ -138,6 +140,8 @@ export interface ElectronAPI {
     updateBrief: (id: number, input: ProjectBriefInput) => Promise<{ success: boolean; error?: string }>
     duplicate: (id: number) => Promise<{ success: boolean; id?: number; name?: string; error?: string }>
     delete: (id: number) => Promise<{ success: boolean; targetProjectId?: number; targetProjectName?: string; movedPhotos?: number; error?: string }>
+    movePhotos: (sourceProjectId: number, targetProjectId: number, photoIds: number[]) =>
+      Promise<{ success: boolean; sourceProjectId?: number; targetProjectId?: number; movedPhotoIds?: number[]; skippedPhotoIds?: number[]; movedPhotos?: number; skippedPhotos?: number; error?: string }>
   }
   app: {
     getVersionInfo: () => Promise<{ name: string; version: string; electronVersion: string; chromeVersion: string; nodeVersion: string }>
@@ -213,6 +217,8 @@ const api: ElectronAPI = {
       ipcRenderer.invoke('import:fromDirectory', dirPath, projectId),
     fromFiles: (filePaths: string[], projectId?: number | null) =>
       ipcRenderer.invoke('import:fromFiles', filePaths, projectId),
+    fromDroppedPaths: (paths: string[], projectId?: number | null) =>
+      ipcRenderer.invoke('import:fromDroppedPaths', paths, projectId),
     getProgress: () => ipcRenderer.invoke('import:getProgress'),
     onProgress: (callback) => {
       const wrapped = (_event: unknown, data: ImportProgress) => callback(data)
@@ -222,7 +228,8 @@ const api: ElectronAPI = {
   },
   path: {
     join: (...paths: string[]) => ipcRenderer.invoke('path:join', ...paths),
-    appData: () => ipcRenderer.invoke('path:appData')
+    appData: () => ipcRenderer.invoke('path:appData'),
+    getPathForFile: (file: File) => webUtils.getPathForFile(file)
   },
   tags: {
     getAll: () => ipcRenderer.invoke('tags:getAll'),
@@ -289,7 +296,9 @@ const api: ElectronAPI = {
     update: (id: number, name: string, description?: string) => ipcRenderer.invoke('projects:update', id, name, description),
     updateBrief: (id: number, input: ProjectBriefInput) => ipcRenderer.invoke('projects:updateBrief', id, input),
     duplicate: (id: number) => ipcRenderer.invoke('projects:duplicate', id),
-    delete: (id: number) => ipcRenderer.invoke('projects:delete', id)
+    delete: (id: number) => ipcRenderer.invoke('projects:delete', id),
+    movePhotos: (sourceProjectId: number, targetProjectId: number, photoIds: number[]) =>
+      ipcRenderer.invoke('projects:movePhotos', sourceProjectId, targetProjectId, photoIds)
   },
   app: {
     getVersionInfo: () => ipcRenderer.invoke('app:getVersionInfo'),

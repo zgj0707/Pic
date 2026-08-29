@@ -4,6 +4,7 @@
 function createPhotoItem(photo, index, layout = null) {
   const item = document.createElement('div');
   item.className = 'photo-item' + (selectedPhotos.has(photo.id) ? ' selected' : '');
+  item.draggable = true;
   item.dataset.id = photo.id;
   item.dataset.index = index;
 
@@ -42,6 +43,7 @@ function createPhotoItem(photo, index, layout = null) {
   `;
 
   const img = item.querySelector('img');
+  img.draggable = false;
   img.onload = () => {
     img.classList.add('loaded');
     const skeleton = item.querySelector('.skeleton');
@@ -66,6 +68,29 @@ function createPhotoItem(photo, index, layout = null) {
   };
 
   img.src = imgSrc;
+
+  item.addEventListener('dragstart', event => {
+    const dragIds = selectedPhotos.has(photo.id)
+      ? Array.from(selectedPhotos)
+      : [photo.id];
+    const payload = {
+      sourceProjectId: currentProjectId,
+      photoIds: dragIds
+    };
+    if (currentProjectId === null || !event.dataTransfer) {
+      event.preventDefault();
+      return;
+    }
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData(window.PIC_PHOTO_DRAG_TYPE || 'application/x-pic-photo-ids', JSON.stringify(payload));
+    event.dataTransfer.setData('text/plain', 'Pic 样片 ' + dragIds.length + ' 张');
+    window.picPhotoDragActive = true;
+    item.classList.add('is-dragging');
+  });
+  item.addEventListener('dragend', () => {
+    window.picPhotoDragActive = false;
+    item.classList.remove('is-dragging');
+  });
 
   // 没有缩略图时，按需从后端生成并替换为更小的缩略图
   if (!photo.thumbnail_path && photo.filepath && window.electronAPI?.photos?.getThumbnail) {

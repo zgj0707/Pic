@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { closeDatabase, dbAdapter, initializeDatabase } from '../../electron/services/database'
-import { deleteProjectAndMoveContents, duplicateProject } from '../../electron/services/projectManagement'
+import { deleteProjectAndMoveContents, duplicateProject, movePhotosToProject } from '../../electron/services/projectManagement'
 import { addProjectMaterialReference } from '../../electron/services/projectReferences'
 
 describe('project copy and delete management', () => {
@@ -118,5 +118,87 @@ describe('project copy and delete management', () => {
     expect(result.targetProjectId).not.toBe(sourceId)
     expect(dbAdapter.get('SELECT project_id FROM photos WHERE id = ?', [photoId])?.project_id).toBe(result.targetProjectId)
     expect(dbAdapter.query('SELECT id FROM projects')).toHaveLength(1)
+  })
+
+  it('moves selected photos across projects and preserves related project records', async () => {
+    tempDir = mkdtempSync(join(tmpdir(), 'pic-project-photo-move-'))
+    await initializeDatabase(tempDir)
+    const sourceId = dbAdapter.insert('projects', {
+      name: '来源项目',
+      created_at: 1700000000,
+      updated_at: 1700000000
+    })!
+    const targetId = dbAdapter.insert('projects', {
+      name: '目标项目',
+      created_at: 1700000000,
+      updated_at: 1700000000
+    })!
+    const movedPhotoId = dbAdapter.insert('photos', {
+      filename: 'move.jpg',
+      filepath: 'C:/fixtures/move.jpg',
+      project_id: sourceId,
+      imported_at: 1700000000
+    })!
+    const untouchedPhotoId = dbAdapter.insert('photos', {
+      filename: 'stay.jpg',
+      filepath: 'C:/fixtures/stay.jpg',
+      project_id: sourceId,
+      imported_at: 1700000000
+    })!
+    const duplicatePhotoId = dbAdapter.insert('photos', {
+      filename: 'duplicate.jpg',
+      filepath: 'C:/fixtures/duplicate.jpg',
+      project_id: targetId,
+      imported_at: 1700000000
+    })!
+    dbAdapter.run('UPDATE projects SET cover_photo_id = ? WHERE id = ?', [movedPhotoId, sourceId])
+    dbAdapter.insert('project_selections', {
+      project_id: sourceId,
+      photo_id: movedPhotoId,
+      position: 2,
+      chapter: '构图',
+      note: '保留留白',
+      created_at: 1700000000
+    })
+    dbAdapter.insert('project_shots', {
+      project_id: sourceId,
+      photo_id: movedPhotoId,
+      position: 1,
+      chapter: '构图',
+      title: '留白主视觉',
+      status: 'ready',
+      created_at: 1700000000,
+      updated_at: 1700000000
+    })
+    dbAdapter.insert('project_selections', {
+      project_id: targetId,
+      photo_id: duplicatePhotoId,
+      position: 0,
+      created_at: 1700000000
+    })
+
+    const result = movePhotosToProject(sourceId, targetId, [movedPhotoId, untouchedPhotoId, duplicatePhotoId])
+
+    expect(result).toMatchObject({
+      success: true,
+      movedPhotoIds: [movedPhotoId, untouchedPhotoId],
+      skippedPhotoIds: [duplicatePhotoId],
+      movedPhotos: 2,
+      skippedPhotos: 1
+    })
+    expect(dbAdapter.get('SELECT project_id FROM photos WHERE id = ?', [movedPhotoId])?.project_id).toBe(targetId)
+    expect(dbAdapter.get('SELECT project_id FROM photos WHERE id = ?', [untouchedPhotoId])?.project_id).toBe(targetId)
+    expect(dbAdapter.get('SELECT project_id FROM project_selections WHERE photo_id = ?', [movedPhotoId])?.project_id).toBe(targetId)
+    expect(dbAdapter.get('SELECT project_id, chapter, note FROM project_selections WHERE photo_id = ?', [movedPhotoId])).toMatchObject({
+      project_id: targetId,
+      chapter: '构图',
+      note: '保留留白'
+    })
+    expect(dbAdapter.get('SELECT project_id, title, status FROM project_shots WHERE photo_id = ?', [movedPhotoId])).toMatchObject({
+      project_id: targetId,
+      title: '留白主视觉',
+      status: 'ready'
+    })
+    expect(dbAdapter.get('SELECT cover_photo_id FROM projects WHERE id = ?', [sourceId])?.cover_photo_id).toBeNull()
   })
 })

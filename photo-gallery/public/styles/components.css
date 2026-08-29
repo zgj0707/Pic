@@ -176,8 +176,13 @@
       position: fixed; inset: 0; background: rgba(0,0,0,0.96); z-index: 1000;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
-    .lightbox-viewer img { max-width: 95vw; max-height: 90vh; object-fit: contain; cursor: grab; }
+    .lightbox-viewer img { max-width: 95vw; max-height: 90vh; object-fit: contain; cursor: grab; user-select: none; -webkit-user-drag: none; touch-action: none; }
     .lightbox-viewer img:active { cursor: grabbing; }
+
+    .photo-grid .photo-item { cursor: grab; }
+    .photo-grid .photo-item.is-dragging { cursor: grabbing; opacity: .55; }
+    .photo-grid-container.drag-over { outline: 2px dashed var(--accent); outline-offset: -8px; background: rgba(198, 157, 83, .08); }
+    .project-item.drag-over { background: rgba(198, 157, 83, .16); color: var(--accent); }
 
 /* === Toast === */
     .toast-container {
@@ -387,4 +392,3 @@
     }
 
     .hidden { display: none !important; }
-
