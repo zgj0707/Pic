@@ -3,7 +3,6 @@
 
 // ─── 全局状态 ───
 const photos = [];
-let selectedPhotos = new Set();
 let currentPhotoIndex = 0;
 let filteredPhotos = [];
 let lastClickedIndex = -1;
@@ -33,22 +32,15 @@ let photoLoadedCount = 0;
 let photoCurrentPage = 0;
 let isLoadingPhotos = false;
 let photoFilterState = { search: '', rating: '', tag: '' };
+let reviewStateCounts = { unreviewed: 0, pick: 0, reject: 0 };
 
 // ─── 其他状态 ───
 let batchRatingValue = 0;
 let searchDebounceTimer;
 let rotateAngle = 0;
 let importProgressUnsubscribe = null;
-let currentPanel = 'gallery';
-let browserMode = localStorage.getItem('browserMode') || 'xiaohongshu';
-let currentViewMode = localStorage.getItem('photoViewMode') || 'masonry';
-let isRecycleBinView = false;
 
 // ─── 项目相关状态 ───
-let projects = [];
-let currentProjectId = null;
-let currentProjectName = '';
-let activeSmartFilters = new Set();
 
 // ─── DOM 缓存 ───
 const photoGrid = document.getElementById('photoGrid');
@@ -60,7 +52,7 @@ const contextMenu = document.getElementById('contextMenu');
 const metadataPanel = document.getElementById('metadataPanel');
 const metadataPanelBtn = document.getElementById('metadataPanelBtn');
 
-// ─── 照片数据加载 ───
+// ─── 样片数据加载 ───
 function buildBackendPhotoFilter() {
   const search = document.getElementById('searchInput').value.toLowerCase().trim();
   const rating = document.getElementById('ratingFilter').value;
@@ -84,6 +76,8 @@ function buildBackendPhotoFilter() {
     if (key === 'rating-1') filter.rating = 1;
     if (key === 'orientation-landscape') filter.orientation = 'landscape';
     if (key === 'orientation-portrait') filter.orientation = 'portrait';
+    if (key === 'source-web') filter.sourceType = 'web';
+    if (key === 'source-local') filter.sourceType = 'local';
     if (key.startsWith('camera-')) filter.camera = decodeURIComponent(key.slice(7));
     if (key.startsWith('lens-')) filter.lens = decodeURIComponent(key.slice(5));
     if (key === 'recent') {
@@ -92,7 +86,27 @@ function buildBackendPhotoFilter() {
     }
   });
 
+  const categoryTags = REFERENCE_CATEGORY_PRESETS
+    .filter(preset => activeSmartFilters.has(preset.key))
+    .map(preset => preset.tag);
+  if (categoryTags.length > 0) filter.tagsAll = categoryTags;
+
   return filter;
+}
+
+
+async function refreshReviewStateCounts() {
+  if (isRecycleBinView || currentProjectId === null || !window.electronAPI?.photos?.countByReviewState) {
+    reviewStateCounts = { unreviewed: 0, pick: 0, reject: 0 }
+  } else {
+    try {
+      reviewStateCounts = await window.electronAPI.photos.countByReviewState(currentProjectId)
+    } catch (error) {
+      console.warn('读取初筛统计失败:', error)
+    }
+  }
+  const unprocessed = document.getElementById('projectUnprocessedCount')
+  if (unprocessed) unprocessed.textContent = String(reviewStateCounts.unreviewed)
 }
 
 async function loadPhotos(reset = true) {
@@ -150,6 +164,7 @@ async function loadPhotos(reset = true) {
   } finally {
     isLoadingPhotos = false;
   }
+  if (reset && !isRecycleBinView) await refreshReviewStateCounts()
   if (!isRecycleBinView) {
     await updateTagFilter();
   }
@@ -159,118 +174,6 @@ async function loadMorePhotos() {
   if (isLoadingPhotos) return;
   if (photoLoadedCount >= photoTotalCount) return;
   await loadPhotos(false);
-}
-
-// ─── 项目相关函数 ───
-async function loadProjects() {
-  if (!window.electronAPI?.projects?.getAll) return;
-  try {
-    projects = await window.electronAPI.projects.getAll();
-    renderProjectSidebar();
-
-    const savedProjectId = localStorage.getItem('currentProjectId');
-    const savedId = savedProjectId ? parseInt(savedProjectId, 10) : null;
-    const targetProject = projects.find(p => p.id === savedId);
-    if (targetProject) {
-      await selectProject(targetProject.id);
-    } else if (projects.length > 0 && currentProjectId === null) {
-      await selectProject(projects[0].id);
-    }
-  } catch (e) {
-    console.error('加载项目失败:', e);
-  }
-}
-
-function renderProjectSidebar() {
-  const list = document.getElementById('projectList');
-  if (!list) return;
-  list.innerHTML = '';
-
-  projects.forEach(project => {
-    const item = document.createElement('div');
-    item.className = `project-item ${project.id === currentProjectId ? 'active' : ''}`;
-    item.dataset.projectId = project.id;
-    item.innerHTML = `
-      <span class="project-name">${escapeHtml(project.name)}</span>
-      <span class="photo-count">${project.photo_count || 0}</span>
-    `;
-    item.onclick = () => selectProject(project.id);
-    list.appendChild(item);
-  });
-}
-
-async function selectProject(projectId) {
-  if (currentProjectId === projectId && !isRecycleBinView) return;
-
-  const project = projects.find(p => p.id === projectId);
-  if (!project) return;
-
-  currentProjectId = projectId;
-  currentProjectName = project.name;
-  localStorage.setItem('currentProjectId', String(projectId));
-
-  isRecycleBinView = false;
-  currentPanel = 'gallery';
-  selectedPhotos.clear();
-  updateSelectedCount();
-  updateContextPanel();
-  renderProjectSidebar();
-  updateStatusBar();
-  updateToolbarForGallery();
-
-  // 切换项目时重置筛选并加载
-  document.getElementById('searchInput').value = '';
-  document.getElementById('ratingFilter').value = '';
-  document.getElementById('tagFilter').value = '';
-  photoFilterState = { search: '', rating: '', tag: '' };
-  activeSmartFilters.clear();
-  updateFilterChipUI();
-
-  await loadPhotos(true);
-}
-
-function openProjectInputModal() {
-  const modal = document.getElementById('projectInputModal');
-  const input = document.getElementById('projectInputField');
-  const descInput = document.getElementById('projectDescField');
-  if (!modal || !input) return;
-  input.value = '';
-  if (descInput) descInput.value = '';
-  modal.classList.remove('hidden');
-  input.focus();
-}
-
-function closeProjectInputModal() {
-  const modal = document.getElementById('projectInputModal');
-  if (modal) modal.classList.add('hidden');
-}
-
-async function confirmCreateProject() {
-  const input = document.getElementById('projectInputField');
-  const descInput = document.getElementById('projectDescField');
-  const name = input?.value.trim();
-  if (!name) {
-    showToast('请输入项目名称', 'error');
-    return;
-  }
-
-  try {
-    const result = await window.electronAPI.projects.create(name, descInput?.value.trim());
-    if (result.success) {
-      closeProjectInputModal();
-      showToast('项目创建成功', 'success');
-      await loadProjects();
-      if (result.id) await selectProject(result.id);
-    } else {
-      showToast('项目创建失败: ' + (result.error || ''), 'error');
-    }
-  } catch (e) {
-    showToast('项目创建失败: ' + e, 'error');
-  }
-}
-
-async function createNewProject() {
-  openProjectInputModal();
 }
 
 // ─── 智能筛选 chip ───
@@ -288,7 +191,9 @@ function toggleSmartFilter(key) {
     'rating-1': ['rating-5', 'unrated'],
     'unrated': ['rating-5', 'rating-1'],
     'orientation-landscape': ['orientation-portrait'],
-    'orientation-portrait': ['orientation-landscape']
+    'orientation-portrait': ['orientation-landscape'],
+    'source-web': ['source-local'],
+    'source-local': ['source-web']
   };
 
   if (activeSmartFilters.has(key)) {
@@ -325,6 +230,12 @@ async function loadCameraLensFilters() {
 
     const cameraContainer = document.getElementById('cameraFilterChips');
     const lensContainer = document.getElementById('lensFilterChips');
+    const categoryContainer = document.getElementById('referenceCategoryFilterChips');
+    if (categoryContainer) {
+      categoryContainer.innerHTML = REFERENCE_CATEGORY_PRESETS.map(preset =>
+        `<span class="filter-chip" data-filter="${preset.key}">${escapeHtml(preset.label)}</span>`
+      ).join('');
+    }
     if (cameraContainer) {
       cameraContainer.innerHTML = Array.from(cameras).slice(0, 5).map(camera =>
         `<span class="filter-chip" data-filter="camera-${encodeURIComponent(camera)}">${escapeHtml(camera)}</span>`
@@ -338,8 +249,16 @@ async function loadCameraLensFilters() {
 
     // 重新绑定事件
     document.querySelectorAll('.filter-chip').forEach(chip => {
-      chip.onclick = () => toggleSmartFilter(chip.dataset.filter);
-    });
+      chip.addEventListener('click', () => toggleSmartFilter(chip.dataset.filter))
+      chip.setAttribute('role', 'button')
+      chip.setAttribute('tabindex', '0')
+      chip.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          chip.click()
+        }
+      })
+    })
   } catch (e) {
     console.error('加载器材筛选失败:', e);
   }
@@ -360,8 +279,8 @@ function updateContextPanel() {
       renderSinglePhotoInspector(photo);
       singlePanel.classList.remove('hidden');
       batchPanel.classList.add('hidden');
-      panelTitle.textContent = '照片信息';
-      countEl.textContent = '已选择 1 张照片';
+      panelTitle.textContent = '样片信息';
+      countEl.textContent = '已选择 1 张样片';
       return;
     }
   }
@@ -369,7 +288,7 @@ function updateContextPanel() {
   singlePanel.classList.add('hidden');
   batchPanel.classList.remove('hidden');
   panelTitle.textContent = '批量操作';
-  countEl.textContent = `已选择 ${selectedPhotos.size} 张照片`;
+  countEl.textContent = `已选择 ${selectedPhotos.size} 张样片`;
 }
 
 function renderSinglePhotoInspector(photo) {
@@ -383,6 +302,13 @@ function renderSinglePhotoInspector(photo) {
   document.getElementById('inspectorFilesize').textContent = formatFileSize(photo.filesize);
   document.getElementById('inspectorImportedAt').textContent = formatDateTime(photo.imported_at);
   document.getElementById('inspectorDateTaken').textContent = formatDateTime(photo.created_at);
+  document.getElementById('inspectorSourceType').textContent = photo.source_type === 'web' ? '网页采集' : '本地 / 未知';
+  document.getElementById('inspectorSourceDomain').textContent = photo.source_domain || '未知';
+  document.getElementById('inspectorSourceUrl').textContent = photo.source_url || '无原网页';
+  document.getElementById('inspectorSourceNote').value = photo.source_note || '';
+  const sourceButton = document.getElementById('inspectorOpenSourceBtn');
+  sourceButton.classList.toggle('hidden', !photo.source_url);
+  sourceButton.dataset.url = photo.source_url || '';
 
   let camera = '-';
   let lens = '-';
@@ -402,28 +328,57 @@ function renderSinglePhotoInspector(photo) {
   document.getElementById('inspectorTags').textContent = (photo.tags || []).join(', ') || '无标签';
 }
 
+async function saveInspectorSourceNote() {
+  const photoId = Array.from(selectedPhotos)[0];
+  const photo = photos.find(candidate => candidate.id === photoId);
+  const noteInput = document.getElementById('inspectorSourceNote');
+  if (!photo || !noteInput || !window.electronAPI?.photos?.updateSourceNote) return;
+  await window.electronAPI.photos.updateSourceNote(photo.id, noteInput.value);
+  photo.source_note = noteInput.value.trim() || null;
+  showToast('来源备注已保存', 'success');
+}
+
+document.getElementById('inspectorOpenSourceBtn')?.addEventListener('click', async () => {
+  const url = document.getElementById('inspectorOpenSourceBtn')?.dataset.url;
+  if (url && window.electronAPI?.materialBrowser?.openExternal) {
+    await window.electronAPI.materialBrowser.openExternal(url);
+  }
+});
+document.getElementById('inspectorSaveSourceNoteBtn')?.addEventListener('click', saveInspectorSourceNote);
+
 // ─── 状态栏 ───
 function updateStatusBar() {
   const projectEl = document.getElementById('statusProject');
   const viewEl = document.getElementById('statusView');
   const countEl = document.getElementById('statusCount');
   const backBtn = document.getElementById('statusBackToGallery');
+  const project = projects.find(candidate => candidate.id === currentProjectId);
+  const projectName = project?.name || currentProjectName || '未选择项目';
+  const projectPhotoCount = project?.photo_count ?? (isRecycleBinView ? 0 : photoTotalCount);
+  const unprocessedCount = isRecycleBinView ? 0 : (currentProjectId === null ? projectPhotoCount : reviewStateCounts.unreviewed);
 
   if (projectEl) {
     const span = projectEl.querySelector('span');
-    if (span) span.textContent = currentProjectName || '默认项目';
+    if (span) span.textContent = projectName;
   }
+  document.getElementById('headerProjectName')?.replaceChildren(document.createTextNode(projectName));
+  document.getElementById('currentProjectTitle')?.replaceChildren(document.createTextNode(projectName));
+  if (typeof renderProjectBrief === 'function') renderProjectBrief(project);
+  document.getElementById('projectPhotoCount')?.replaceChildren(document.createTextNode(String(projectPhotoCount)));
+  document.getElementById('projectUnprocessedCount')?.replaceChildren(document.createTextNode(String(unprocessedCount)));
+
   if (viewEl) viewEl.textContent = currentViewMode === 'compact' ? '紧凑视图' : '瀑布流';
   if (countEl) {
     countEl.textContent = isRecycleBinView
       ? `${photoLoadedCount}/${photoTotalCount} 张已删除`
-      : `${photoLoadedCount}/${photoTotalCount} 张照片`;
+      : `${photoLoadedCount}/${photoTotalCount} 张样片`;
   }
   if (backBtn) {
-    backBtn.classList.toggle('hidden', !isRecycleBinView);
+    const browserOpen = document.getElementById('materialBrowserPanel')?.classList.contains('open');
+    const settingsOpen = !document.getElementById('settingsModal')?.classList.contains('hidden');
+    backBtn.classList.toggle('hidden', !(isRecycleBinView || browserOpen || settingsOpen));
   }
 }
-
 function updateToolbarForGallery() {
   const deleteBtn = document.getElementById('deleteBtn');
   const restoreBtn = document.getElementById('restoreBtn');
@@ -454,7 +409,7 @@ function updateToolbarForGallery() {
 
 // ─── 批量评级事件 ───
 document.querySelectorAll('#batchRating .star').forEach(star => {
-  star.onclick = () => {
+  star.addEventListener('click', () => {
     const rating = parseInt(star.dataset.rating);
     if (batchRatingValue === rating) batchRatingValue = 0;
     else batchRatingValue = rating;
@@ -464,38 +419,38 @@ document.querySelectorAll('#batchRating .star').forEach(star => {
       s.classList.toggle('active', isActive);
       s.querySelector('i').className = `fa-${isActive ? 'solid' : 'regular'} fa-star`;
     });
-  };
+  });
 });
 
-document.getElementById('applyBatchRatingBtn').onclick = applyBatchRating;
-document.getElementById('clearBatchRatingBtn').onclick = clearBatchRating;
+document.getElementById('applyBatchRatingBtn').addEventListener('click', applyBatchRating);
+document.getElementById('clearBatchRatingBtn').addEventListener('click', clearBatchRating);
 
 // ─── 灯箱交互 ───
-document.getElementById('zoomIn').onclick = () => {
+document.getElementById('zoomIn').addEventListener('click', () => {
   zoomScale = Math.min(5, zoomScale + 0.25);
   lightboxImage.style.transform = `scale(${zoomScale}) translate(${imageOffset.x / zoomScale}px, ${imageOffset.y / zoomScale}px)`;
   document.getElementById('zoomLevel').textContent = Math.round(zoomScale * 100) + '%';
-};
-document.getElementById('zoomOut').onclick = () => {
+});
+document.getElementById('zoomOut').addEventListener('click', () => {
   zoomScale = Math.max(0.1, zoomScale - 0.25);
   lightboxImage.style.transform = `scale(${zoomScale}) translate(${imageOffset.x / zoomScale}px, ${imageOffset.y / zoomScale}px)`;
   document.getElementById('zoomLevel').textContent = Math.round(zoomScale * 100) + '%';
-};
-document.getElementById('zoomReset').onclick = resetZoom;
+});
+document.getElementById('zoomReset').addEventListener('click', resetZoom);
 
-imageContainer.onwheel = (e) => {
+imageContainer.addEventListener('wheel', (e) => {
   e.preventDefault();
   if (e.deltaY < 0) document.getElementById('zoomIn').click();
   else document.getElementById('zoomOut').click();
-};
+});
 
-lightboxImage.onmousedown = (e) => {
+lightboxImage.addEventListener('mousedown', (e) => {
   if (zoomScale > 1) {
     isDragging = true;
     dragStart = { x: e.clientX - imageOffset.x, y: e.clientY - imageOffset.y };
     lightboxImage.style.cursor = 'grabbing';
   }
-};
+});
 document.addEventListener('mousemove', (e) => {
   if (isDragging) {
     imageOffset = { x: e.clientX - dragStart.x, y: e.clientY - dragStart.y };
@@ -507,18 +462,18 @@ document.addEventListener('mouseup', () => {
   lightboxImage.style.cursor = zoomScale > 1 ? 'grab' : 'default';
 });
 
-document.getElementById('closeLightbox').onclick = closeLightbox;
-document.getElementById('prevPhoto').onclick = () => {
+document.getElementById('closeLightbox').addEventListener('click', closeLightbox);
+document.getElementById('prevPhoto').addEventListener('click', () => {
   if (currentPhotoIndex > 0) openLightbox(filteredPhotos[--currentPhotoIndex], currentPhotoIndex);
-};
-document.getElementById('nextPhoto').onclick = () => {
+});
+document.getElementById('nextPhoto').addEventListener('click', () => {
   if (currentPhotoIndex < filteredPhotos.length - 1) openLightbox(filteredPhotos[++currentPhotoIndex], currentPhotoIndex);
-};
-document.getElementById('rotateLeft').onclick = () => rotateImage('left');
-document.getElementById('rotateRight').onclick = () => rotateImage('right');
-lightbox.onclick = (e) => {
+});
+document.getElementById('rotateLeft').addEventListener('click', () => rotateImage('left'));
+document.getElementById('rotateRight').addEventListener('click', () => rotateImage('right'));
+lightbox.addEventListener('click', (e) => {
   if (e.target === lightbox || e.target === imageContainer) closeLightbox();
-};
+});
 lightboxImage.addEventListener('contextmenu', (e) => {
   e.preventDefault();
   const currentPhoto = filteredPhotos[currentPhotoIndex];
@@ -528,9 +483,9 @@ lightboxImage.addEventListener('contextmenu', (e) => {
 });
 
 document.querySelectorAll('#lightboxRating .star').forEach(star => {
-  star.onclick = async () => {
+  star.addEventListener('click', async () => {
     if (filteredPhotos.length === 0) {
-      showToast('没有可操作的照片', 'warning');
+      showToast('没有可操作的样片', 'warning');
       return;
     }
 
@@ -541,13 +496,13 @@ document.querySelectorAll('#lightboxRating .star').forEach(star => {
     const rating = parseInt(star.dataset.rating);
     const photo = filteredPhotos[currentPhotoIndex];
     if (!photo) {
-      showToast('无法获取当前照片信息', 'error');
+      showToast('无法获取当前样片信息', 'error');
       return;
     }
 
     const fullPhoto = photos.find(p => p.id === photo.id);
     if (!fullPhoto) {
-      showToast('照片数据已失效，请刷新后重试', 'error');
+      showToast('样片数据已失效，请刷新后重试', 'error');
       await loadPhotos();
       return;
     }
@@ -563,14 +518,14 @@ document.querySelectorAll('#lightboxRating .star').forEach(star => {
     if (window.electronAPI) await loadPhotos(true);
     else renderPhotoGrid();
     showToast(newRating === 0 ? '已清除评分' : `已设置 ${newRating} 星`, 'success');
-  };
+  });
 });
 
-document.getElementById('addTagBtn').onclick = handleAddTag;
-document.getElementById('tagInputCancel').onclick = () => document.getElementById('tagInputModal').classList.add('hidden');
-document.getElementById('tagInputConfirm').onclick = confirmAddTag;
-document.getElementById('tagInputField').onkeydown = (e) => { if (e.key === 'Enter') confirmAddTag(); };
-document.getElementById('tagInputModal').onclick = (e) => { if (e.target === document.getElementById('tagInputModal')) document.getElementById('tagInputModal').classList.add('hidden'); };
+document.getElementById('addTagBtn').addEventListener('click', handleAddTag);
+document.getElementById('tagInputCancel').addEventListener('click', () => document.getElementById('tagInputModal').classList.add('hidden'));
+document.getElementById('tagInputConfirm').addEventListener('click', confirmAddTag);
+document.getElementById('tagInputField').addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmAddTag(); });
+document.getElementById('tagInputModal').addEventListener('click', (e) => { if (e.target === document.getElementById('tagInputModal')) document.getElementById('tagInputModal').classList.add('hidden'); });
 
 // ─── 筛选与搜索 ───
 document.getElementById('searchInput').addEventListener('input', () => {
@@ -580,9 +535,9 @@ document.getElementById('searchInput').addEventListener('input', () => {
 document.getElementById('searchInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') applyPhotoFilters();
 });
-document.getElementById('ratingFilter').onchange = applyPhotoFilters;
-document.getElementById('tagFilter').onchange = applyPhotoFilters;
-document.getElementById('clearFilterBtn').onclick = () => {
+document.getElementById('ratingFilter').addEventListener('change', applyPhotoFilters);
+document.getElementById('tagFilter').addEventListener('change', applyPhotoFilters);
+document.getElementById('clearFilterBtn').addEventListener('click', () => {
   document.getElementById('searchInput').value = '';
   document.getElementById('ratingFilter').value = '';
   document.getElementById('tagFilter').value = '';
@@ -590,20 +545,19 @@ document.getElementById('clearFilterBtn').onclick = () => {
   activeSmartFilters.clear();
   updateFilterChipUI();
   selectedPhotos.clear();
-  document.getElementById('selectedCount').textContent = '已选择 0 张照片';
+  document.getElementById('selectedCount').textContent = '已选择 0 张样片';
   document.getElementById('deleteBtn').disabled = true;
-  document.getElementById('exportPdfBtn').disabled = true;
-  document.getElementById('copyToDesktopBtn').disabled = true;
+  if (typeof updateDesktopSaveButton === 'function') updateDesktopSaveButton();
   metadataPanel.classList.remove('open');
   batchTags = [];
   removeTags = [];
   renderBatchTags();
   document.getElementById('removeTags').innerHTML = '';
   applyPhotoFilters();
-};
+});
 
 // ─── 批量操作面板 ───
-metadataPanelBtn.onclick = () => {
+metadataPanelBtn.addEventListener('click', () => {
   metadataPanel.classList.toggle('open');
   // 侧边栏切换后重新布局瀑布流，适配新的可用宽度
   setTimeout(() => {
@@ -612,8 +566,8 @@ metadataPanelBtn.onclick = () => {
       renderVisibleGridItems();
     }
   }, 300); // 等待动画完成
-};
-document.getElementById('closeMetadataPanel').onclick = () => {
+});
+document.getElementById('closeMetadataPanel').addEventListener('click', () => {
   metadataPanel.classList.remove('open');
   // 侧边栏关闭后重新布局瀑布流，适配新的可用宽度
   setTimeout(() => {
@@ -622,7 +576,7 @@ document.getElementById('closeMetadataPanel').onclick = () => {
       renderVisibleGridItems();
     }
   }, 300); // 等待动画完成
-};
+});
 
 // 侧边栏宽度拖拽调整功能
 let isResizing = false;
@@ -676,14 +630,16 @@ const observer = new MutationObserver(() => {
 });
 observer.observe(metadataPanel, { attributes: true, attributeFilter: ['class'] });
 
-document.getElementById('deleteBtn').onclick = deleteSelectedPhotos;
-document.getElementById('restoreBtn').onclick = restoreSelectedPhotos;
-document.getElementById('permanentDeleteBtn').onclick = permanentlyDeleteSelectedPhotos;
+document.getElementById('deleteBtn').addEventListener('click', deleteSelectedPhotos);
+document.getElementById('restoreBtn').addEventListener('click', restoreSelectedPhotos);
+document.getElementById('permanentDeleteBtn').addEventListener('click', permanentlyDeleteSelectedPhotos);
 
 // 复制选中图片到桌面文件夹
-document.getElementById('copyToDesktopBtn').onclick = copySelectedToDesktop;
+document.getElementById('copyToDesktopBtn').addEventListener('click', copySelectedToDesktop);
+document.getElementById('exportPdfBtn').addEventListener('click', exportSelectedToPdf);
+document.getElementById('selectAllBtn')?.addEventListener('click', () => { void toggleSelectAllPhotos(); });
 
-document.getElementById('addBatchTagBtn').onclick = () => {
+document.getElementById('addBatchTagBtn').addEventListener('click', () => {
   const input = document.getElementById('batchTagInput');
   const tag = input.value.trim();
   if (tag) {
@@ -691,7 +647,7 @@ document.getElementById('addBatchTagBtn').onclick = () => {
     input.value = '';
     input.focus(); // 添加标签后重新聚焦到输入框
   }
-};
+});
 
 document.getElementById('batchTagInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
@@ -726,8 +682,8 @@ document.getElementById('removeTagInput').addEventListener('keydown', (e) => {
   }
 });
 
-document.getElementById('applyBatchTagsBtn').onclick = applyBatchTags;
-document.getElementById('addRemoveTagBtn').onclick = () => {
+document.getElementById('applyBatchTagsBtn').addEventListener('click', applyBatchTags);
+document.getElementById('addRemoveTagBtn').addEventListener('click', () => {
   const input = document.getElementById('removeTagInput');
   const tag = input.value.trim();
   if (tag && !removeTags.includes(tag)) {
@@ -735,12 +691,13 @@ document.getElementById('addRemoveTagBtn').onclick = () => {
     renderRemoveTags();
     input.value = '';
   }
-};
-document.getElementById('applyRemoveTagsBtn').onclick = applyRemoveTags;
+});
+document.getElementById('applyRemoveTagsBtn').addEventListener('click', applyRemoveTags);
 
 // ─── 设置 ───
-document.getElementById('settingsBtn').onclick = async () => {
+document.getElementById('settingsBtn').addEventListener('click', async () => {
   document.getElementById('settingsModal').classList.remove('hidden');
+  updateStatusBar();
   if (window.electronAPI?.cache?.getStats) {
     window.electronAPI.cache.getStats().then(stats => {
       document.getElementById('cacheSize').textContent = stats.formattedSize;
@@ -751,11 +708,19 @@ document.getElementById('settingsBtn').onclick = async () => {
     const downloadDir = await window.electronAPI.materialBrowser.getDownloadDir();
     document.getElementById('downloadPath').value = downloadDir;
   }
-};
-document.getElementById('closeSettingsBtn').onclick = () => document.getElementById('settingsModal').classList.add('hidden');
-document.getElementById('settingsModal').onclick = (e) => { if (e.target === document.getElementById('settingsModal')) document.getElementById('settingsModal').classList.add('hidden'); };
+});
+document.getElementById('closeSettingsBtn').addEventListener('click', () => {
+  document.getElementById('settingsModal').classList.add('hidden');
+  updateStatusBar();
+});
+document.getElementById('settingsModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('settingsModal')) {
+    document.getElementById('settingsModal').classList.add('hidden');
+    updateStatusBar();
+  }
+});
 
-document.getElementById('browseDownloadPath').onclick = async () => {
+document.getElementById('browseDownloadPath').addEventListener('click', async () => {
   if (window.electronAPI?.dialog?.openDirectory) {
     const dir = await window.electronAPI.dialog.openDirectory();
     if (dir) {
@@ -766,38 +731,38 @@ document.getElementById('browseDownloadPath').onclick = async () => {
       }
     }
   }
-};
+});
 
-document.getElementById('openDownloadPathLink').onclick = async (e) => {
+document.getElementById('openDownloadPathLink').addEventListener('click', async (e) => {
   e.preventDefault();
   if (window.electronAPI?.materialBrowser?.openDownloadDir) {
     await window.electronAPI.materialBrowser.openDownloadDir();
   }
-};
+});
 
-document.getElementById('clearDownloadCacheBtn').onclick = async () => {
+document.getElementById('clearDownloadCacheBtn').addEventListener('click', async () => {
   if (!confirm('确定要清空下载缓存吗？')) return;
   if (window.electronAPI?.materialBrowser?.clearDownloadCache) {
     await window.electronAPI.materialBrowser.clearDownloadCache();
     showToast('下载缓存已清空', 'success');
   }
-};
+});
 
-document.getElementById('clearAllCacheBtn').onclick = async () => {
+document.getElementById('clearAllCacheBtn').addEventListener('click', async () => {
   if (!confirm('确定要清空全部缩略图缓存吗？')) return;
   if (window.electronAPI?.cache?.clearAll) {
     const result = await window.electronAPI.cache.clearAll();
     showToast(`已清空 ${result.deleted} 个缓存文件`, 'success');
     await loadPhotos();
   }
-};
-document.getElementById('cleanOldCacheBtn').onclick = async () => {
+});
+document.getElementById('cleanOldCacheBtn').addEventListener('click', async () => {
   if (window.electronAPI?.cache?.cleanOld) {
     const result = await window.electronAPI.cache.cleanOld();
     showToast(`已清理 ${result.deleted} 个旧缓存文件`, 'success');
     await loadPhotos();
   }
-};
+});
 
 // ─── 全局键盘事件 ───
 document.addEventListener('keydown', (e) => {
@@ -817,9 +782,11 @@ document.addEventListener('keydown', (e) => {
       closeChangelogModal();
     } else if (!document.getElementById('aboutModal').classList.contains('hidden')) {
       closeAboutModal();
-    } else if (!metadataPanel.classList.contains('open')) {
-      // do nothing
-    } else {
+    } else if (!document.getElementById('settingsModal').classList.contains('hidden')) {
+      returnToGallery();
+    } else if (document.getElementById('materialBrowserPanel').classList.contains('open')) {
+      returnToGallery();
+    } else if (metadataPanel.classList.contains('open')) {
       metadataPanel.classList.remove('open');
     }
   }
@@ -830,183 +797,81 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ─── 导入 ───
-document.getElementById('importFolderBtn').onclick = importFromFolder;
-document.getElementById('importFilesBtn').onclick = importFromFiles;
-document.getElementById('emptyImportFolderBtn2').onclick = importFromFolder;
+document.getElementById('importFolderBtn').addEventListener('click', importFromFolder);
+document.getElementById('importFilesBtn').addEventListener('click', importFromFiles);
+document.getElementById('emptyImportFolderBtn2').addEventListener('click', importFromFolder);
 
 // ─── 关于 / 更新公告 ───
-document.getElementById('aboutBtn').onclick = openAboutModal;
-document.getElementById('closeAboutBtn').onclick = closeAboutModal;
-document.getElementById('aboutModal').onclick = (e) => {
+document.getElementById('aboutBtn').addEventListener('click', openAboutModal);
+document.getElementById('closeAboutBtn').addEventListener('click', closeAboutModal);
+document.getElementById('aboutModal').addEventListener('click', (e) => {
   if (e.target === document.getElementById('aboutModal')) {
     closeAboutModal();
   }
-};
+});
 
-document.getElementById('changelogBtn').onclick = openChangelogModal;
-document.getElementById('closeChangelogBtn').onclick = closeChangelogModal;
-document.getElementById('changelogModal').onclick = (e) => {
+document.getElementById('changelogBtn').addEventListener('click', openChangelogModal);
+document.getElementById('closeChangelogBtn').addEventListener('click', closeChangelogModal);
+document.getElementById('changelogModal').addEventListener('click', (e) => {
   if (e.target === document.getElementById('changelogModal')) {
     closeChangelogModal();
   }
-};
+});
 
-// ─── 项目创建 ───
-document.getElementById('createProjectBtn').onclick = createNewProject;
 
 // ─── 智能筛选 chip 初始事件 ───
 document.querySelectorAll('.filter-chip').forEach(chip => {
-  chip.onclick = () => toggleSmartFilter(chip.dataset.filter);
+  chip.addEventListener('click', () => toggleSmartFilter(chip.dataset.filter));
+  chip.setAttribute('role', 'button')
+  chip.setAttribute('tabindex', '0')
+  chip.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      chip.click()
+    }
+  })
 });
 
-// ─── 视图切换 ───
-document.getElementById('statusBrowserBtn').onclick = () => {
-  const panel = document.getElementById('materialBrowserPanel');
-  if (panel?.classList.contains('open')) {
-    closeMaterialBrowserPanel();
-  } else {
-    openMaterialBrowserPanel();
-  }
-};
-document.getElementById('statusRecycleBtn').onclick = switchToRecycleBin;
-document.getElementById('statusSettingsBtn').onclick = () => {
-  const modal = document.getElementById('settingsModal');
-  if (modal?.classList.contains('hidden')) {
-    document.getElementById('settingsBtn').click();
-  } else {
-    document.getElementById('closeSettingsBtn')?.click();
-  }
-};
-document.getElementById('statusProject').onclick = () => {
-  if (isRecycleBinView) switchToGallery();
-};
-document.getElementById('statusBackToGallery').onclick = switchToGallery;
-document.getElementById('closeMaterialBrowserBtn').onclick = closeMaterialBrowserPanel;
-
-// ─── 新建项目弹窗 ───
-document.getElementById('projectInputCancel').onclick = closeProjectInputModal;
-document.getElementById('projectInputConfirm').onclick = confirmCreateProject;
-document.getElementById('projectInputField').onkeydown = e => {
-  if (e.key === 'Enter') confirmCreateProject();
-  if (e.key === 'Escape') closeProjectInputModal();
-};
-document.getElementById('projectInputModal').onclick = e => {
-  if (e.target.id === 'projectInputModal') closeProjectInputModal();
-};
-
-// ─── 浏览器控制 ───
-document.getElementById('browserBack').onclick = () => {
-  const webview = document.getElementById('materialWebview');
-  if (webview && webview.canGoBack) webview.goBack();
-};
-document.getElementById('browserForward').onclick = () => {
-  const webview = document.getElementById('materialWebview');
-  if (webview && webview.canGoForward) webview.goForward();
-};
-document.getElementById('browserRefresh').onclick = () => {
-  const webview = document.getElementById('materialWebview');
-  if (webview) webview.reload();
-};
-document.getElementById('browserGo').onclick = () => {
-  const rawUrl = document.getElementById('browserUrl').value.trim();
-  const webview = document.getElementById('materialWebview');
-  if (!rawUrl || !webview) return;
-  // 仅允许 http/https，阻止 file://、javascript: 等危险协议
-  let url = rawUrl;
-  if (!/^https?:\/\//i.test(url)) {
-    url = 'https://' + url;
-  }
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return;
-    webview.loadURL(parsed.toString());
-  } catch {
-    // invalid URL — ignore
-  }
-};
-document.getElementById('browserUrl').onkeydown = (e) => {
-  if (e.key === 'Enter') document.getElementById('browserGo').click();
-};
-
-document.getElementById('browserModeToggle').onclick = () => {
-  setBrowserMode(browserMode === 'xiaohongshu' ? 'normal' : 'xiaohongshu');
-};
-
-document.getElementById('takeScreenshot').onclick = takeBrowserScreenshot;
-
-// 下载目录功能
-document.getElementById('openDownloadDir').onclick = openBrowserDownloadDir;
-document.getElementById('clearDownloadCache').onclick = clearBrowserDownloadCache;
-
-// 下载进度监听
-if (window.electronAPI?.materialBrowser?.onDownloadStarted) {
-  window.electronAPI.materialBrowser.onDownloadStarted((data) => {
-    document.getElementById('downloadProgressBar').classList.remove('hidden');
-    showToast(`开始下载: ${data.fileName}`, 'info');
-  });
-}
-
-if (window.electronAPI?.materialBrowser?.onDownloadProgress) {
-  window.electronAPI.materialBrowser.onDownloadProgress((data) => {
-    document.getElementById('downloadProgressInner').style.width = `${data.percent || 0}%`;
-  });
-}
-
-if (window.electronAPI?.materialBrowser?.onDownloadComplete) {
-  window.electronAPI.materialBrowser.onDownloadComplete(async (data) => {
-    document.getElementById('downloadProgressBar').classList.add('hidden');
-    document.getElementById('downloadProgressInner').style.width = '0%';
-
-    try {
-      showProgress('导入照片', '正在导入...', '准备中');
-
-      const result = await window.electronAPI.materialBrowser.importToLibrary(
-        data.filePath,
-        data.url || window.location.href,
-        [],
-        currentProjectId
-      );
-
-      hideProgress();
-
-      if (result.success) {
-        if (result.alreadyImported) {
-          showToast('该照片已在样片库中', 'info');
-        } else {
-          showToast('已成功导入样片库', 'success');
-        }
-
-        // 只刷新照片数据，不跳转页面
-        await new Promise(resolve => setTimeout(resolve, 200));
-        await loadPhotos();
-      } else {
-        showToast('导入失败: ' + (result.error || '未知错误'), 'error');
-      }
-    } catch (e) {
-      hideProgress();
-      showToast('导入失败: ' + e, 'error');
-    }
-  });
-}
-
-if (window.electronAPI?.materialBrowser?.onDownloadFailed) {
-  window.electronAPI.materialBrowser.onDownloadFailed((data) => {
-    document.getElementById('downloadProgressBar').classList.add('hidden');
-    document.getElementById('downloadProgressInner').style.width = '0%';
-    showToast(`下载失败: ${data.fileName}`, 'error');
-  });
-}
-
 // ─── 导出 PDF / 视图切换 ───
-document.getElementById('exportPdfBtn').onclick = exportSelectedToPdf;
 
-document.getElementById('viewToggleBtn').onclick = () => {
+document.getElementById('viewToggleBtn').addEventListener('click', () => {
   setViewMode(currentViewMode === 'masonry' ? 'compact' : 'masonry');
-};
+});
 
+function bindCaptureEvents() {
+  const capture = window.electronAPI?.capture;
+  if (!capture) return;
+
+  capture.onSaved?.(data => {
+    void (async () => {
+      if (data?.projectId !== currentProjectId) return;
+      await loadPhotos(true);
+      const project = projects.find(candidate => candidate.id === currentProjectId);
+      if (project) project.photo_count = Number(project.photo_count || 0) + 1;
+      renderProjectSidebar();
+      updateStatusBar();
+      if (data?.clipboardCopied === false) {
+        showToast('截图已保存到当前项目样片库，但复制到剪贴板失败', 'warning');
+      } else {
+        showToast('截图已导入当前项目样片库并复制到剪贴板', 'success');
+      }
+    })();
+  });
+
+  capture.onError?.(data => {
+    if (data?.error) showToast(data.error, 'warning');
+  });
+}
 // ─── 初始化 ───
 async function initializeApp() {
+  bindCaptureEvents();
   initContextMenu();
+  // Keep legacy persisted browser state compatible, but the material browser
+  // now always embeds Xiaohongshu. Douyin is opened in the system browser.
+  browserSource = 'xiaohongshu';
+  browserMode = 'xiaohongshu';
+  localStorage.setItem('browserSource', browserSource);
+  localStorage.setItem('browserMode', browserMode);
   updateBrowserModeUI();
   initializeWebview();
   await loadVersionInfo();

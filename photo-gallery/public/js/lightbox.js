@@ -9,7 +9,7 @@ function openLightbox(photo, index) {
   document.getElementById('lightboxInfo').innerHTML = `<span class="text-blue-400 cursor-pointer hover:text-blue-300">${escapeHtml(filePath)}</span>`;
   const pathSpan = document.querySelector('#lightboxInfo span');
   if (pathSpan) {
-    pathSpan.onclick = () => {
+    pathSpan.addEventListener('click', () => {
       if (window.electronAPI?.photos?.openInExplorer) {
         window.electronAPI.photos.openInExplorer(filePath).then(result => {
           if (!result.success) {
@@ -21,7 +21,7 @@ function openLightbox(photo, index) {
       } else {
         showToast('功能不可用', 'error');
       }
-    };
+    });
   }
   updateLightboxRating(photo.rating || 0);
   renderLightboxTags(photo.tags || []);
@@ -66,18 +66,18 @@ function renderLightboxTags(tags) {
   ).join('');
 
   container.querySelectorAll('.tag-delete-btn').forEach(btn => {
-    btn.onclick = (e) => {
+    btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const tagBadge = e.target.closest('.lightbox-tag');
       const tagName = tagBadge.textContent.trim();
       removeLightboxTag(tagName);
-    };
+    });
   });
 }
 
 async function removeLightboxTag(tagName) {
   if (filteredPhotos.length === 0) {
-    showToast('没有可操作的照片', 'warning');
+    showToast('没有可操作的样片', 'warning');
     return;
   }
 
@@ -87,13 +87,13 @@ async function removeLightboxTag(tagName) {
 
   const photo = filteredPhotos[currentPhotoIndex];
   if (!photo) {
-    showToast('无法获取当前照片信息', 'error');
+    showToast('无法获取当前样片信息', 'error');
     return;
   }
 
   const fullPhoto = photos.find(p => p.id === photo.id);
   if (!fullPhoto) {
-    showToast('照片数据已失效，请刷新后重试', 'error');
+    showToast('样片数据已失效，请刷新后重试', 'error');
     await loadPhotos();
     return;
   }

@@ -1,9 +1,9 @@
-// 照片网格、虚拟滚动、选择与批量标签显示
+// 样片网格、虚拟滚动、选择与批量标签显示
 // 与 index.html 共享全局状态变量
 
 function createPhotoItem(photo, index, layout = null) {
   const item = document.createElement('div');
-  item.className = `photo-item ${selectedPhotos.has(photo.id) ? 'selected' : ''}`;
+  item.className = 'photo-item' + (selectedPhotos.has(photo.id) ? ' selected' : '');
   item.dataset.id = photo.id;
   item.dataset.index = index;
 
@@ -36,9 +36,6 @@ function createPhotoItem(photo, index, layout = null) {
     <div class="skeleton"></div>
     <div class="photo-content">
       <img data-src="${escapeHtml(imgSrc)}" alt="${escapeHtml(photo.filename)}" loading="lazy">
-    </div>
-    <div class="selection-indicator">
-      <i class="fa-solid ${selectedPhotos.has(photo.id) ? 'fa-check' : 'fa-plus'}"></i>
     </div>
     <div class="rating-overlay">${ratingHtml}</div>
     <div class="tags-overlay">${tagsHtml}</div>
@@ -111,7 +108,9 @@ function renderPhotoGrid(resetScroll = false) {
     });
   }
 
-  document.getElementById('emptyState').classList.toggle('hidden', photos.length > 0);
+  if (isRecycleBinView) setEmptyStateForRecycleBin();
+  else setEmptyStateForGallery();
+  document.getElementById('emptyState').classList.toggle('hidden', filteredPhotos.length > 0);
 
   photoGrid.innerHTML = '';
   if (resetScroll && gridScrollContainer) gridScrollContainer.scrollTop = 0;
@@ -144,7 +143,7 @@ function renderPhotoGrid(resetScroll = false) {
   }
 }
 
-// 虚拟滚动：计算所有照片的瀑布流位置
+// 虚拟滚动：计算所有样片的瀑布流位置
 function computeGridLayout() {
   const containerWidth = photoGrid.clientWidth - 32;
   const gap = 12;
@@ -282,22 +281,13 @@ window.addEventListener('resize', () => {
 function restoreSelectedState() {
   selectedPhotos.forEach(id => {
     const item = document.querySelector(`[data-id="${id}"]`);
-    if (item) {
-      item.classList.add('selected');
-      const indicator = item.querySelector('.selection-indicator i');
-      if (indicator) indicator.className = 'fa-solid fa-check';
-    }
+    if (item) item.classList.add("selected");
   });
 }
 
 function handlePhotoClick(e, photo, index) {
   const item = e.currentTarget;
 
-  if (e.target.closest('.selection-indicator')) {
-    e.stopPropagation();
-    togglePhotoSelection(photo.id, item);
-    return;
-  }
 
   if (e.shiftKey && lastClickedIndex >= 0) {
     const start = Math.min(lastClickedIndex, index);
@@ -307,9 +297,7 @@ function handlePhotoClick(e, photo, index) {
       const photoItem = document.querySelector(`[data-id="${photoId}"]`);
       if (photoItem) {
         selectedPhotos.add(photoId);
-        photoItem.classList.add('selected');
-        const indicator = photoItem.querySelector('.selection-indicator i');
-        if (indicator) indicator.className = 'fa-solid fa-check';
+        photoItem.classList.add("selected");
       }
     }
     updateSelectedCount();
@@ -324,30 +312,87 @@ function togglePhotoSelection(photoId, item) {
   if (selectedPhotos.has(photoId)) {
     selectedPhotos.delete(photoId);
     item.classList.remove('selected');
-    const indicator = item.querySelector('.selection-indicator i');
-    if (indicator) indicator.className = 'fa-solid fa-plus';
   } else {
     selectedPhotos.add(photoId);
     item.classList.add('selected');
-    const indicator = item.querySelector('.selection-indicator i');
-    if (indicator) indicator.className = 'fa-solid fa-check';
   }
   updateSelectedCount();
 }
 
+function updateDesktopSaveButton() {
+  const count = typeof selectedPhotos !== 'undefined' ? selectedPhotos.size : 0;
+  const referenceCount = typeof browserCollectedReferences !== 'undefined' ? browserCollectedReferences.length : 0;
+  const copyButton = document.getElementById('copyToDesktopBtn');
+  const copyLabel = document.getElementById('saveDesktopLabel');
+  const pdfButton = document.getElementById('exportPdfBtn');
+  const pdfLabel = document.getElementById('exportPdfLabel');
+  if (copyButton) copyButton.disabled = count === 0 && referenceCount === 0;
+  if (pdfButton) pdfButton.disabled = count === 0;
+  if (copyLabel) {
+    copyLabel.textContent = count > 0 && referenceCount > 0
+      ? '保存已选与参考'
+      : count > 0
+        ? '保存已选'
+        : referenceCount > 0
+          ? '保存参考'
+          : '保存到桌面';
+  }
+  if (pdfLabel) pdfLabel.textContent = count > 0 ? '导出已选 PDF' : '导出 PDF';
+}
+
+function updateSelectAllButton() {
+  const button = document.getElementById('selectAllBtn');
+  if (!button) return;
+  const candidates = Array.isArray(filteredPhotos) ? filteredPhotos.filter(photo => photo && photo.id != null) : [];
+  const selectedCount = candidates.filter(photo => selectedPhotos.has(photo.id)).length;
+  const allSelected = candidates.length > 0 && selectedCount === candidates.length;
+  button.disabled = candidates.length === 0;
+  button.setAttribute('aria-pressed', String(allSelected));
+  button.title = allSelected ? '取消选择当前筛选结果' : '选择当前筛选结果';
+  const label = button.querySelector('span');
+  if (label) label.textContent = allSelected ? '取消全选' : '全选';
+}
+
+async function toggleSelectAllPhotos() {
+  const button = document.getElementById('selectAllBtn');
+  if (button) button.disabled = true;
+  try {
+    if (window.electronAPI && photoLoadedCount < photoTotalCount) {
+      while (photoLoadedCount < photoTotalCount) {
+        const before = photoLoadedCount;
+        await loadMorePhotos();
+        if (photoLoadedCount <= before) break;
+      }
+    }
+    const ids = (Array.isArray(filteredPhotos) ? filteredPhotos : []).filter(photo => photo && photo.id != null).map(photo => photo.id);
+    if (ids.length === 0) return;
+    const allSelected = ids.every(id => selectedPhotos.has(id));
+    ids.forEach(id => {
+      if (allSelected) selectedPhotos.delete(id);
+      else selectedPhotos.add(id);
+    });
+    document.querySelectorAll('.photo-item[data-id]').forEach(item => {
+      const id = Number(item.dataset.id);
+      if (ids.includes(id)) item.classList.toggle('selected', !allSelected);
+    });
+    updateSelectedCount();
+  } finally {
+    updateSelectAllButton();
+  }
+}
 function updatePhotoCount() {
   const hasMore = window.electronAPI && photoTotalCount > 0 && photoLoadedCount < photoTotalCount;
   if (isRecycleBinView) {
     const base = window.electronAPI
-      ? `${photoLoadedCount}/${photoTotalCount} 张已删除照片`
-      : `${photos.length} 张已删除照片`;
+      ? `${photoLoadedCount}/${photoTotalCount} 张已删除样片`
+      : `${photos.length} 张已删除样片`;
     document.getElementById('photoCount').textContent = hasMore ? `${base}（加载中…）` : base;
   } else {
     const base = window.electronAPI
-      ? `${photoLoadedCount}/${photoTotalCount} 张照片`
+      ? `${photoLoadedCount}/${photoTotalCount} 张样片`
       : (filteredPhotos.length === photos.length
-          ? `${photos.length} 张照片`
-          : `${filteredPhotos.length}/${photos.length} 张照片`);
+          ? `${photos.length} 张样片`
+          : `${filteredPhotos.length}/${photos.length} 张样片`);
     document.getElementById('photoCount').textContent = hasMore ? `${base}（加载中…）` : base;
   }
   updateStatusBar();
@@ -356,7 +401,7 @@ function updatePhotoCount() {
 function updateSelectedCount() {
   const count = selectedPhotos.size;
   const selectedCountEl = document.getElementById('selectedCount');
-  if (selectedCountEl) selectedCountEl.textContent = `已选择 ${count} 张照片`;
+  if (selectedCountEl) selectedCountEl.textContent = `已选择 ${count} 张样片`;
   if (isRecycleBinView) {
     const restoreBtn = document.getElementById('restoreBtn');
     const permanentDeleteBtn = document.getElementById('permanentDeleteBtn');
@@ -364,14 +409,13 @@ function updateSelectedCount() {
     if (permanentDeleteBtn) permanentDeleteBtn.disabled = count === 0;
   } else {
     const deleteBtn = document.getElementById('deleteBtn');
-    const exportPdfBtn = document.getElementById('exportPdfBtn');
-    const copyToDesktopBtn = document.getElementById('copyToDesktopBtn');
     if (deleteBtn) deleteBtn.disabled = count === 0;
-    if (exportPdfBtn) exportPdfBtn.disabled = count === 0;
-    if (copyToDesktopBtn) copyToDesktopBtn.disabled = count === 0;
   }
+  updateDesktopSaveButton();
+  updateSelectAllButton();
   updateApplyButtons();
   updateContextPanel();
+  if (typeof updateSelectionActionBar === 'function') updateSelectionActionBar();
 }
 
 function updateApplyButtons() {

@@ -44,3 +44,4 @@ desktop.ini
 
 # Generated vendor assets (rebuilt by npm run copy-vendor)
 photo-gallery/public/vendor/
+dist-pkg-*/

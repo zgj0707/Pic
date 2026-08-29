@@ -2,7 +2,8 @@
 // 与 app.js 共享全局状态变量
 
 const XHS_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-const NORMAL_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+const XHS_URL = 'https://www.xiaohongshu.com';
+const DOUYIN_URL = 'https://www.douyin.com/';
 
 const CHANGELOG_COLOR_MAP = {
   accent: 'text-accent',
@@ -13,155 +14,101 @@ const CHANGELOG_COLOR_MAP = {
   red: 'text-red-500'
 };
 
-function initializeWebview() {
+async function openDouyinExternal() {
+  if (!window.electronAPI?.materialBrowser?.openExternal) {
+    showToast('当前版本不支持打开系统浏览器', 'error');
+    return false;
+  }
+  const result = await window.electronAPI.materialBrowser.openExternal(DOUYIN_URL);
+  if (!result?.success) {
+    showToast(result?.error || '无法打开系统浏览器', 'error');
+    return false;
+  }
+  return true;
+}
+
+function clearEmbeddedWebview() {
   const webview = document.getElementById('materialWebview');
-  if (webview) {
-    webview.addEventListener('did-finish-load', () => {
-      webview.setUserAgent(browserMode === 'xiaohongshu' ? XHS_USER_AGENT : NORMAL_USER_AGENT);
-    });
-
-    webview.addEventListener('did-navigate', () => {
-      const urlInput = document.getElementById('browserUrl');
-      if (urlInput) {
-        urlInput.value = webview.getURL();
-      }
-    });
-  }
-}
-
-function openMaterialBrowserPanel() {
-  const panel = document.getElementById('materialBrowserPanel');
-  if (panel) panel.classList.add('open');
-}
-
-function closeMaterialBrowserPanel() {
-  const panel = document.getElementById('materialBrowserPanel');
-  if (panel) panel.classList.remove('open');
-}
-
-function resetToolbarForGallery() {
-  document.getElementById('deleteBtn').classList.remove('hidden');
-  document.getElementById('restoreBtn').classList.add('hidden');
-  document.getElementById('permanentDeleteBtn').classList.add('hidden');
-  document.getElementById('importFolderBtn').classList.remove('hidden');
-  document.getElementById('importFilesBtn').classList.remove('hidden');
-  document.getElementById('searchInput').parentElement.classList.remove('hidden');
-  document.getElementById('ratingFilter').parentElement.parentElement.classList.remove('hidden');
-}
-
-function setEmptyStateForGallery() {
-  document.getElementById('emptyStateTitle').textContent = '还没有导入任何照片';
-  document.getElementById('emptyStateSubtitle').textContent = '点击下方按钮开始导入您的样片';
-  document.getElementById('emptyStateActions').classList.remove('hidden');
-}
-
-function setEmptyStateForRecycleBin() {
-  document.getElementById('emptyStateTitle').textContent = '回收站为空';
-  document.getElementById('emptyStateSubtitle').textContent = '删除的照片会在这里保留 30 天';
-  document.getElementById('emptyStateActions').classList.add('hidden');
-}
-
-function switchToGallery() {
-  isRecycleBinView = false;
-  currentPanel = 'gallery';
-  selectedPhotos.clear();
-  const selectedCountEl = document.getElementById('selectedCount');
-  if (selectedCountEl) selectedCountEl.textContent = '已选择 0 张照片';
-  const exportPdfBtn = document.getElementById('exportPdfBtn');
-  const deleteBtn = document.getElementById('deleteBtn');
-  const copyToDesktopBtn = document.getElementById('copyToDesktopBtn');
-  if (exportPdfBtn) exportPdfBtn.disabled = true;
-  if (deleteBtn) deleteBtn.disabled = true;
-  if (copyToDesktopBtn) copyToDesktopBtn.disabled = true;
-
-  // 恢复回收站视图隐藏的控件
-  const searchWrap = document.getElementById('searchInput')?.parentElement;
-  const ratingWrap = document.getElementById('ratingFilter')?.parentElement;
-  if (searchWrap) searchWrap.classList.remove('hidden');
-  if (ratingWrap) ratingWrap.classList.remove('hidden');
-
-  resetToolbarForGallery();
-  setEmptyStateForGallery();
-  updateStatusBar();
-  updateContextPanel();
-  if (window.electronAPI) loadPhotos(true);
-  else renderPhotoGrid();
-}
-
-function switchToRecycleBin() {
-  isRecycleBinView = true;
-  currentPanel = 'recycle';
-  selectedPhotos.clear();
-  const selectedCountEl = document.getElementById('selectedCount');
-  if (selectedCountEl) selectedCountEl.textContent = '已选择 0 张照片';
-  const deleteBtn = document.getElementById('deleteBtn');
-  const restoreBtn = document.getElementById('restoreBtn');
-  const permanentDeleteBtn = document.getElementById('permanentDeleteBtn');
-  const importFolderBtn = document.getElementById('importFolderBtn');
-  const importFilesBtn = document.getElementById('importFilesBtn');
-  if (deleteBtn) deleteBtn.classList.add('hidden');
-  if (restoreBtn) {
-    restoreBtn.classList.remove('hidden');
-    restoreBtn.disabled = true;
-  }
-  if (permanentDeleteBtn) {
-    permanentDeleteBtn.classList.remove('hidden');
-    permanentDeleteBtn.disabled = true;
-  }
-  if (importFolderBtn) importFolderBtn.classList.add('hidden');
-  if (importFilesBtn) importFilesBtn.classList.add('hidden');
-  const searchWrap = document.getElementById('searchInput')?.parentElement;
-  const ratingWrap = document.getElementById('ratingFilter')?.parentElement;
-  if (searchWrap) searchWrap.classList.add('hidden');
-  if (ratingWrap) ratingWrap.classList.add('hidden');
-  setEmptyStateForRecycleBin();
-  updateStatusBar();
-  updateContextPanel();
-  if (window.electronAPI) loadPhotos(true);
-  else renderPhotoGrid();
+  if (!webview) return;
+  try {
+    webview.stop?.();
+    if (typeof webview.loadURL === 'function' && webview.getURL?.() !== 'about:blank') {
+      webview.loadURL('about:blank');
+    }
+  } catch { /* best effort */ }
 }
 
 function updateBrowserModeUI() {
-  const btn = document.getElementById('browserModeToggle');
-  const icon = document.getElementById('browserModeIcon');
-  if (browserMode === 'xiaohongshu') {
-    btn.title = '当前: 小红书模式 - 点击切换普通浏览器';
-    btn.classList.remove('text-accent');
-    btn.classList.add('text-textSecondary');
-    icon.className = 'fa-solid fa-heart';
-  } else {
-    btn.title = '当前: 普通浏览器模式 - 点击切换小红书';
-    btn.classList.remove('text-textSecondary');
-    btn.classList.add('text-accent');
-    icon.className = 'fa-solid fa-globe';
+  const notice = document.getElementById('browserModeNotice');
+  const webview = document.getElementById('materialWebview');
+  if (notice) notice.textContent = '小红书内嵌浏览 · Alt+A 截图';
+  webview?.classList.remove('hidden');
+}
+
+function isAllowedMaterialSourceUrl(source, rawUrl) {
+  if (source !== 'xiaohongshu') return false;
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+    const host = parsed.hostname.toLowerCase();
+    return host === 'xiaohongshu.com' || host.endsWith('.xiaohongshu.com') || host === 'xhslink.com' || host.endsWith('.xhslink.com');
+  } catch {
+    return false;
   }
 }
 
-function setBrowserMode(mode) {
-  browserMode = mode;
-  localStorage.setItem('browserMode', mode);
+function rememberBrowserSourceUrl(source, rawUrl) {
+  if (source !== 'xiaohongshu') return;
+  if (!isAllowedMaterialSourceUrl(source, rawUrl)) return;
+  browserSourceUrls[source] = rawUrl;
+  localStorage.setItem('browserSourceUrls', JSON.stringify(browserSourceUrls));
+}
 
-  const webview = document.getElementById('materialWebview');
-  if (webview) {
-    const currentUrl = webview.getURL();
-    webview.setUserAgent(mode === 'xiaohongshu' ? XHS_USER_AGENT : NORMAL_USER_AGENT);
-    webview.loadURL(currentUrl);
+async function saveCurrentBrowserReference() {
+  if (currentProjectId === null) {
+    showToast('请先创建或选择一个拍摄项目', 'warning');
+    return;
   }
-
-  updateBrowserModeUI();
-  showToast(mode === 'xiaohongshu' ? '已切换到小红书模式' : '已切换到普通浏览器模式', 'success');
+  const webview = document.getElementById('materialWebview');
+  const url = webview?.getURL?.() || '';
+  if (!isAllowedMaterialSourceUrl('xiaohongshu', url)) {
+    showToast('请先打开小红书内容页面', 'warning');
+    return;
+  }
+  if (!window.electronAPI?.projectReferences?.add) {
+    showToast('当前版本不支持保存远程参考', 'error');
+    return;
+  }
+  const title = typeof webview.getTitle === 'function' ? webview.getTitle() : '';
+  const result = await window.electronAPI.projectReferences.add({
+    projectId: currentProjectId,
+    source: 'xiaohongshu',
+    sourceItemId: url,
+    mediaType: 'link',
+    title: title || '小红书参考',
+    originalUrl: url
+  });
+  if (!result?.success && !result?.reference) {
+    showToast('保存远程参考失败: ' + (result?.error || '未知错误'), 'warning');
+    return;
+  }
+  if (typeof recordBrowserReference === 'function') recordBrowserReference(result.reference);
+  showToast(result.alreadyExists ? '该页面已在当前项目中' : '远程参考已加入当前项目', result.alreadyExists ? 'info' : 'success');
 }
 
 function updateViewToggleButton() {
   const btn = document.getElementById('viewToggleBtn');
   const icon = document.getElementById('viewToggleIcon');
+  const label = document.getElementById('viewToggleLabel');
 
   if (currentViewMode === 'compact') {
     btn.title = '切换到瀑布流';
     icon.className = 'fa-solid fa-th';
+    if (label) label.textContent = '切换到瀑布流';
   } else {
     btn.title = '切换到紧凑视图';
     icon.className = 'fa-solid fa-th-large';
+    if (label) label.textContent = '切换到紧凑视图';
   }
 }
 
@@ -251,47 +198,6 @@ async function openChangelogModal() {
 
 function closeChangelogModal() {
   document.getElementById('changelogModal').classList.add('hidden');
-}
-
-async function takeBrowserScreenshot() {
-  const webview = document.getElementById('materialWebview');
-  if (!webview) {
-    showToast('浏览器未就绪', 'error');
-    return;
-  }
-
-  try {
-    showProgress('截图', '正在截取页面...', '准备中');
-
-    const image = await webview.capturePage();
-    showProgress('截图', '正在保存...', '50%');
-
-    const screenshotData = image.toPNG ? image.toPNG() : image;
-    const timestamp = Date.now();
-    const filename = `screenshot_${timestamp}.jpg`;
-
-    const result = await window.electronAPI.materialBrowser.saveScreenshot(screenshotData, filename);
-
-    hideProgress();
-
-    if (result.success) {
-      showProgress('截图', '正在导入...', '75%');
-      const importResult = await window.electronAPI.materialBrowser.importToLibrary(result.filePath, webview.getURL(), []);
-      hideProgress();
-
-      if (importResult.success) {
-        showToast('截图已保存并导入样片库', 'success');
-      } else {
-        showToast('截图已保存，但导入失败: ' + (importResult.error || ''), 'warning');
-      }
-    } else {
-      hideProgress();
-      showToast('截图保存失败: ' + (result.error || ''), 'error');
-    }
-  } catch (e) {
-    hideProgress();
-    showToast('截图失败: ' + e, 'error');
-  }
 }
 
 function openBrowserDownloadDir() {

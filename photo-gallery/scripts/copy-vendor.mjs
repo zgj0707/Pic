@@ -54,9 +54,4 @@ writeFileSync(
 )
 copyDir(join(faDir, 'webfonts'), join(vendorDir, 'webfonts'))
 
-// 4. jsPDF
-console.log('Copying jsPDF...')
-const jspdfDir = join(root, 'node_modules', 'jspdf', 'dist')
-copyFileSync(join(jspdfDir, 'jspdf.umd.min.js'), join(vendorDir, 'jspdf.umd.min.js'))
-
 console.log('Vendor files copied to public/vendor')

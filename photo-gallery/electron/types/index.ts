@@ -22,16 +22,91 @@ export interface Photo {
   deleted_at?: number | null
   project_id?: number | null
   original_filepath?: string | null
+  review_state: ReviewState
+  delivered_at?: number | null
+  source_url?: string | null
+  source_domain?: string | null
+  source_type?: 'web' | 'local' | null
+  source_note?: string | null
   tags?: string[]
 }
 
+export interface ProjectMaterialReference {
+  id: number
+  project_id: number
+  source_type: 'xiaohongshu' | 'douyin'
+  source_item_id: string
+  media_type: 'image' | 'gallery' | 'video' | 'link'
+  title: string
+  author: string | null
+  original_url: string
+  metadata_json: string | null
+  created_at: number
+}
+
+export type ReviewState = 'unreviewed' | 'pick' | 'reject'
+
+export interface ProjectSelection {
+  id: number
+  project_id: number
+  photo_id: number
+  position: number
+  created_at: number
+  chapter: string
+  note: string | null
+  photo: Photo
+}
+
+export interface ProjectShot {
+  id: number
+  project_id: number
+  photo_id: number
+  position: number
+  chapter: string
+  title: string
+  intent: string | null
+  composition_notes: string | null
+  lighting_gear_notes: string | null
+  status: 'planned' | 'ready' | 'done'
+  created_at: number
+  updated_at: number
+  photo: Photo
+}
+
+export interface ProjectExport {
+  id: number
+  project_id: number
+  kind: 'moodboard' | 'shot-list' | 'reference-package'
+  target_path: string
+  item_count: number
+  created_at: number
+}
 export interface Project {
   id: number
   name: string
   description: string | null
+  client_name?: string | null
+  shoot_date?: string | null
+  location?: string | null
+  owner?: string | null
+  deliverable_goal?: string | null
+  cover_photo_id?: number | null
+  cover_thumbnail_path?: string | null
+  cover_filepath?: string | null
   created_at: number
   updated_at: number
   photo_count?: number
+}
+
+export interface ProjectBriefInput {
+  name: string
+  description?: string | null
+  clientName?: string | null
+  shootDate?: string | null
+  location?: string | null
+  owner?: string | null
+  deliverableGoal?: string | null
+  coverPhotoId?: number | null
 }
 
 export interface Tag {
@@ -95,6 +170,10 @@ export interface PhotoFilter {
   orientation?: 'landscape' | 'portrait' | 'square'
   camera?: string
   lens?: string
+  reviewState?: ReviewState | 'all'
+  sourceType?: 'web' | 'local'
+  sourceDomain?: string
+  tagsAll?: string[]
 }
 
 export interface PhotoQueryOptions {

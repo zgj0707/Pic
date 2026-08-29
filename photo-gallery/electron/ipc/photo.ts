@@ -1,15 +1,24 @@
-import { ipcMain, app } from 'electron'
+import { ipcMain } from 'electron'
 import { join, basename, dirname } from 'path'
-import { existsSync, mkdirSync, writeFileSync, renameSync, copyFileSync, rmSync } from 'fs'
+import { existsSync, mkdirSync, renameSync, copyFileSync, rmSync } from 'fs'
 import { dbAdapter, saveDatabase } from '../services/database'
 import { getDownloadDir } from '../services/config'
 import { syncTagsToPhotoExif } from '../utils/exifSync'
 import { buildInPlaceholders } from '../utils/dbHelpers'
+import { removeSelectionsForPhotos } from '../services/projectSelections'
+import { removeShotsForPhotos } from '../services/projectShots'
 import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
-import type { PhotoFilter, PhotoQueryOptions, Photo, IpcResponse } from '../types'
+import type { PhotoFilter, PhotoQueryOptions, Photo, ReviewState } from '../types'
 
 const RECYCLE_BIN_DIR_NAME = '回收站'
 const RECYCLE_BIN_RETENTION_DAYS = 30
+
+const REVIEW_STATES: readonly ReviewState[] = ['unreviewed', 'pick', 'reject']
+
+function isReviewState(value: unknown): value is ReviewState {
+  return typeof value === 'string' && REVIEW_STATES.includes(value as ReviewState)
+ }
+
 
 function getRecycleBinDir(): string {
   return join(getDownloadDir(), RECYCLE_BIN_DIR_NAME)
@@ -66,6 +75,21 @@ function buildPhotoFilterSql(filter: PhotoFilter): { whereClause: string; params
     params.push(filter.projectId)
   }
 
+  if (filter.sourceType) {
+    conditions.push('p.source_type = ?')
+    params.push(filter.sourceType)
+  }
+
+  if (filter.sourceDomain) {
+    conditions.push('p.source_domain = ?')
+    params.push(filter.sourceDomain)
+  }
+
+  if (filter.reviewState && filter.reviewState !== 'all') {
+    conditions.push('p.review_state = ?')
+    params.push(filter.reviewState)
+  }
+
   if (filter.unrated) {
     conditions.push('p.rating = 0')
   }
@@ -80,9 +104,9 @@ function buildPhotoFilterSql(filter: PhotoFilter): { whereClause: string; params
   }
 
   if (filter.search) {
-    conditions.push('(p.filename LIKE ? OR p.filepath LIKE ? OR EXISTS (SELECT 1 FROM photo_tags pt JOIN tags t ON pt.tag_id = t.id WHERE pt.photo_id = p.id AND t.name LIKE ?))')
+    conditions.push('(p.filename LIKE ? OR p.filepath LIKE ? OR p.source_url LIKE ? OR p.source_domain LIKE ? OR EXISTS (SELECT 1 FROM photo_tags pt JOIN tags t ON pt.tag_id = t.id WHERE pt.photo_id = p.id AND t.name LIKE ?))')
     const like = `%${filter.search}%`
-    params.push(like, like, like)
+    params.push(like, like, like, like, like)
   }
 
   if (filter.dateFrom) {
@@ -99,6 +123,13 @@ function buildPhotoFilterSql(filter: PhotoFilter): { whereClause: string; params
     const placeholders = buildInPlaceholders(filter.tags.length)
     conditions.push(`EXISTS (SELECT 1 FROM photo_tags pt JOIN tags t ON pt.tag_id = t.id WHERE pt.photo_id = p.id AND t.name IN (${placeholders}))`)
     params.push(...filter.tags)
+  }
+
+  if (filter.tagsAll && filter.tagsAll.length > 0) {
+    for (const tag of filter.tagsAll) {
+      conditions.push('EXISTS (SELECT 1 FROM photo_tags pt JOIN tags t ON pt.tag_id = t.id WHERE pt.photo_id = p.id AND t.name = ?)')
+      params.push(tag)
+    }
   }
 
   if (filter.orientation) {
@@ -167,7 +198,39 @@ export function registerPhotoIpc(): void {
   ipcMain.handle('photos:updateRating', wrapHandler('photos:updateRating',
     (_event, id: number, rating: number) => {
       dbAdapter.run('UPDATE photos SET rating = ? WHERE id = ?', [rating, id])
+      saveDatabase()
       return { success: true }
+    }
+  ))
+
+  ipcMain.handle('photos:setReviewState', wrapHandler('photos:setReviewState',
+    (_event, id: number, state: ReviewState) => {
+      if (!isReviewState(state)) throw new Error('Invalid review state')
+      dbAdapter.run('UPDATE photos SET review_state = ? WHERE id = ?', [state, id])
+      saveDatabase()
+      return { success: true }
+    }
+  ))
+
+  ipcMain.handle('photos:batchSetReviewState', wrapHandler('photos:batchSetReviewState',
+    (_event, ids: number[], state: ReviewState) => {
+      if (!isReviewState(state)) throw new Error('Invalid review state')
+      if (!Array.isArray(ids) || ids.length === 0) return { success: true, updated: 0 }
+      const placeholders = buildInPlaceholders(ids.length)
+      const result = dbAdapter.run('UPDATE photos SET review_state = ? WHERE id IN (' + placeholders + ')', [state, ...ids])
+      saveDatabase()
+      return { success: true, updated: result.changes }
+    }
+  ))
+
+  ipcMain.handle('photos:countByReviewState', wrapHandler('photos:countByReviewState',
+    (_event, projectId: number) => {
+      const rows = dbAdapter.query('SELECT review_state, COUNT(*) as total FROM photos WHERE project_id = ? AND deleted_at IS NULL GROUP BY review_state', [projectId])
+      const counts: Record<ReviewState, number> = { unreviewed: 0, pick: 0, reject: 0 }
+      for (const row of rows) {
+        if (isReviewState(row.review_state)) counts[row.review_state] = Number(row.total) || 0
+      }
+      return counts
     }
   ))
 
@@ -188,6 +251,13 @@ export function registerPhotoIpc(): void {
       }
 
       await syncTagsToPhotoExif(id)
+      return { success: true }
+    }
+  ))
+
+  ipcMain.handle('photos:updateSourceNote', wrapHandler('photos:updateSourceNote',
+    (_event, id: number, note: string) => {
+      dbAdapter.run('UPDATE photos SET source_note = ? WHERE id = ?', [typeof note === 'string' ? note.trim() || null : null, id])
       return { success: true }
     }
   ))
@@ -227,7 +297,7 @@ export function registerPhotoIpc(): void {
         success: failed === 0,
         moved,
         failed,
-        error: failed > 0 ? `${failed} 张照片移动失败` : undefined
+        error: failed > 0 ? `${failed} 张样片移动失败` : undefined
       }
     }
   ))
@@ -274,7 +344,7 @@ export function registerPhotoIpc(): void {
         success: failed === 0,
         restored,
         failed,
-        error: failed > 0 ? `${failed} 张照片恢复失败` : undefined
+        error: failed > 0 ? `${failed} 张样片恢复失败` : undefined
       }
     }
   ))
@@ -299,6 +369,8 @@ export function registerPhotoIpc(): void {
         }
       }
 
+      removeSelectionsForPhotos(deletedIds)
+      removeShotsForPhotos(deletedIds)
       if (deletedIds.length > 0) {
         const deletedPlaceholders = buildInPlaceholders(deletedIds.length)
         dbAdapter.run(`DELETE FROM photo_tags WHERE photo_id IN (${deletedPlaceholders})`, deletedIds)
@@ -309,7 +381,7 @@ export function registerPhotoIpc(): void {
         success: failed === 0,
         deleted: deletedIds.length,
         failed,
-        error: failed > 0 ? `${failed} 张照片删除失败` : undefined
+        error: failed > 0 ? `${failed} 张样片删除失败` : undefined
       }
     }
   ))
@@ -408,6 +480,7 @@ export function registerPhotoIpc(): void {
         }
       }
       dbAdapter.run(`DELETE FROM photo_tags WHERE photo_id IN (${placeholders})`, expiredIds)
+      removeShotsForPhotos(expiredIds)
       dbAdapter.run(`DELETE FROM photos WHERE id IN (${placeholders})`, expiredIds)
       console.log(`[recycle] Auto cleaned ${expired.length} expired photos`)
     }
@@ -415,15 +488,4 @@ export function registerPhotoIpc(): void {
     console.error('[recycle] Auto cleanup error:', error)
   }
 
-  ipcMain.handle('pdf:saveToDesktop', wrapAsyncHandler('pdf:saveToDesktop',
-    async (_event, pdfData: string, filename: string): Promise<IpcResponse<{ path: string }>> => {
-      const desktopPath = app.getPath('desktop')
-      const filePath = join(desktopPath, filename)
-
-      const buffer = Buffer.from(pdfData.split(',')[1], 'base64')
-      writeFileSync(filePath, buffer)
-
-      return { success: true, data: { path: filePath } }
-    }
-  ))
 }

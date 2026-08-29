@@ -7,6 +7,36 @@ import { isSupportedFile, scanDirectory, getValidFileStat, getImageDimensions } 
 import { wrapAsyncHandler } from '../utils/ipcHandler'
 import type { ImportProgress, ImportResult } from '../types'
 
+export interface PhotoSourceInput {
+  type?: 'web' | 'local'
+  url?: string | null
+  note?: string | null
+}
+
+function normalizeSource(source?: PhotoSourceInput): { source_url: string | null; source_domain: string | null; source_type: 'web' | 'local'; source_note: string | null } {
+  if (source?.type === 'web' && source.url) {
+    try {
+      const parsed = new URL(source.url)
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        return {
+          source_url: parsed.toString(),
+          source_domain: parsed.hostname || null,
+          source_type: 'web',
+          source_note: source.note?.trim() || null
+        }
+      }
+    } catch {
+      // Invalid source URLs are treated as local/unknown rather than blocking import.
+    }
+  }
+  return {
+    source_url: null,
+    source_domain: null,
+    source_type: 'local',
+    source_note: source?.note?.trim() || null
+  }
+}
+
 let importProgress: ImportProgress = {
   total: 0,
   current: 0,
@@ -30,7 +60,8 @@ function notifyProgress(progress: ImportProgress): void {
  */
 export async function importPhotoToDatabase(
   filePath: string,
-  projectId?: number | null
+  projectId?: number | null,
+  source?: PhotoSourceInput
 ): Promise<{ id: number; filename: string; filepath: string; rating: number; tags: string[]; alreadyImported: boolean } | null> {
   if (!isSupportedFile(filePath) || !existsSync(filePath)) {
     return null
@@ -87,7 +118,8 @@ export async function importPhotoToDatabase(
     width,
     height,
     created_at: createdAt,
-    exif_json: exifJson
+    exif_json: exifJson,
+    ...normalizeSource(source)
   }
   if (projectId !== undefined && projectId !== null) {
     insertData.project_id = projectId
@@ -108,7 +140,7 @@ export async function importPhotoToDatabase(
 async function performImport(
   filePaths: string[],
   statusLabel: string,
-  projectId?: number | null
+  projectId: number
 ): Promise<ImportResult> {
   notifyProgress({ total: 0, current: 0, status: 'scanning', message: '扫描文件中...' })
   notifyProgress({ total: filePaths.length, current: 0, status: 'importing', message: `${statusLabel}... 0/${filePaths.length}` })
@@ -125,7 +157,7 @@ async function performImport(
       message: `${statusLabel}... ${i + 1}/${filePaths.length} (新增: ${imported}, 跳过: ${skipped})`
     })
 
-    const photo = await importPhotoToDatabase(filePath, projectId)
+    const photo = await importPhotoToDatabase(filePath, projectId, { type: 'local' })
     if (photo) {
       if (photo.alreadyImported) {
         skipped++
@@ -148,6 +180,12 @@ export function registerImportIpc(mainWindow: BrowserWindow | null): void {
 
   ipcMain.handle('import:fromDirectory', wrapAsyncHandler('import:fromDirectory',
     async (_event, dirPath: string, projectId?: number | null): Promise<ImportResult> => {
+      if (projectId === null || projectId === undefined) {
+        return { success: false, imported: 0, skipped: 0, thumbnailsGenerated: 0, total: 0, error: '请先创建或选择一个拍摄项目' }
+      }
+      if (!dbAdapter.get('SELECT id FROM projects WHERE id = ?', [projectId])) {
+        return { success: false, imported: 0, skipped: 0, thumbnailsGenerated: 0, total: 0, error: '当前拍摄项目不存在，请重新选择项目' }
+      }
       const filePaths = scanDirectory(dirPath)
       const result = await performImport(filePaths, '导入中', projectId)
 
@@ -162,6 +200,12 @@ export function registerImportIpc(mainWindow: BrowserWindow | null): void {
 
   ipcMain.handle('import:fromFiles', wrapAsyncHandler('import:fromFiles',
     async (_event, filePaths: string[], projectId?: number | null): Promise<ImportResult> => {
+      if (projectId === null || projectId === undefined) {
+        return { success: false, imported: 0, skipped: 0, thumbnailsGenerated: 0, total: 0, error: '请先创建或选择一个拍摄项目' }
+      }
+      if (!dbAdapter.get('SELECT id FROM projects WHERE id = ?', [projectId])) {
+        return { success: false, imported: 0, skipped: 0, thumbnailsGenerated: 0, total: 0, error: '当前拍摄项目不存在，请重新选择项目' }
+      }
       return await performImport(filePaths, '导入中', projectId)
     }
   ))

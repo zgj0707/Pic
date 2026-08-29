@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Pic 截图</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; }
+    body { cursor: crosshair; user-select: none; font-family: "Microsoft YaHei", sans-serif; }
+    #screenCanvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    #shade { position: fixed; inset: 0; background: rgba(0, 0, 0, .28); pointer-events: none; }
+    #selection {
+      position: fixed; display: none; border: 2px solid #f3c969;
+      background: rgba(243, 201, 105, .12); box-shadow: 0 0 0 9999px rgba(0, 0, 0, .28);
+      pointer-events: none;
+    }
+    #hint {
+      position: fixed; left: 50%; top: 24px; transform: translateX(-50%);
+      padding: 8px 14px; border-radius: 8px; color: #fff; background: rgba(20, 20, 20, .78);
+      font-size: 14px; letter-spacing: .2px; pointer-events: none;
+    }
+    #size {
+      position: fixed; display: none; padding: 4px 7px; border-radius: 4px;
+      color: #1c1c1c; background: #f3c969; font-size: 12px; pointer-events: none;
+    }
+    #error {
+      position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      padding: 14px 18px; border-radius: 8px; color: #fff; background: rgba(120, 25, 25, .92);
+      font-size: 14px; pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="screenCanvas"></canvas>
+  <div id="shade"></div>
+  <div id="selection"></div>
+  <div id="size"></div>
+  <div id="hint">拖动选择截图区域，松开鼠标自动导入素材库并复制到剪贴板 · Esc 取消</div>
+  <div id="error" hidden></div>
+  <script>
+    (() => {
+      const api = window.electronAPI?.capture;
+      let displayId = '';
+      let physicalWidth = 1920;
+      let physicalHeight = 1080;
+      const canvas = document.getElementById('screenCanvas');
+      const selection = document.getElementById('selection');
+      const size = document.getElementById('size');
+      const hint = document.getElementById('hint');
+      const errorBox = document.getElementById('error');
+      let image = null;
+      let start = null;
+      let saving = false;
+
+      function fail(message) {
+        errorBox.textContent = message;
+        errorBox.hidden = false;
+        hint.hidden = true;
+        if (api?.reportError) void api.reportError(message);
+      }
+
+      function drawScreen(source) {
+        image = new Image();
+        image.onload = () => {
+          canvas.width = image.naturalWidth;
+          canvas.height = image.naturalHeight;
+          const context = canvas.getContext('2d');
+          context.drawImage(image, 0, 0);
+          if (api?.overlayReady) void api.overlayReady();
+        };
+        image.onerror = () => fail('无法读取当前屏幕内容，可能被系统或受保护窗口拦截');
+        image.src = source;
+      }
+
+      async function init() {
+        if (!api?.captureScreen || !api?.getConfig) {
+          fail('当前 Pic 版本不支持全局截图，请重新构建');
+          return;
+        }
+        try {
+          const config = await api.getConfig();
+          if (!config?.success || !config.data) {
+            fail(config?.error || '截图配置不可用');
+            return;
+          }
+          displayId = config.data.displayId;
+          physicalWidth = config.data.physicalWidth;
+          physicalHeight = config.data.physicalHeight;
+          const result = await api.captureScreen(displayId, physicalWidth, physicalHeight);
+          if (!result?.success || !result.data) {
+            fail(result?.error || '无法捕获当前显示器');
+            return;
+          }
+          drawScreen(result.data);
+        } catch (error) {
+          fail(error instanceof Error ? error.message : String(error));
+        }
+      }
+
+      function pointerPosition(event) {
+        return { x: Math.max(0, Math.min(window.innerWidth, event.clientX)), y: Math.max(0, Math.min(window.innerHeight, event.clientY)) };
+      }
+
+      function updateSelection(point) {
+        const x = Math.min(start.x, point.x);
+        const y = Math.min(start.y, point.y);
+        const width = Math.abs(point.x - start.x);
+        const height = Math.abs(point.y - start.y);
+        selection.style.display = 'block';
+        selection.style.left = x + 'px';
+        selection.style.top = y + 'px';
+        selection.style.width = width + 'px';
+        selection.style.height = height + 'px';
+        size.textContent = Math.round(width) + ' × ' + Math.round(height);
+        size.style.display = 'block';
+        size.style.left = Math.min(window.innerWidth - 90, Math.max(4, x + 6)) + 'px';
+        size.style.top = Math.min(window.innerHeight - 28, Math.max(4, y + height + 6)) + 'px';
+      }
+
+      async function saveSelection(point) {
+        if (!image || saving) return;
+        const rect = canvas.getBoundingClientRect();
+        const left = Math.min(start.x, point.x);
+        const top = Math.min(start.y, point.y);
+        const width = Math.abs(point.x - start.x);
+        const height = Math.abs(point.y - start.y);
+        if (width < 12 || height < 12) {
+          selection.style.display = 'none';
+          size.style.display = 'none';
+          hint.textContent = '截图区域太小，请重新框选 · Esc 取消';
+          return;
+        }
+
+        const scaleX = image.naturalWidth / rect.width;
+        const scaleY = image.naturalHeight / rect.height;
+        const sx = Math.max(0, Math.floor(left * scaleX));
+        const sy = Math.max(0, Math.floor(top * scaleY));
+        const sw = Math.min(image.naturalWidth - sx, Math.max(1, Math.floor(width * scaleX)));
+        const sh = Math.min(image.naturalHeight - sy, Math.max(1, Math.floor(height * scaleY)));
+        const crop = document.createElement('canvas');
+        crop.width = sw;
+        crop.height = sh;
+        crop.getContext('2d').drawImage(image, sx, sy, sw, sh, 0, 0, sw, sh);
+
+        saving = true;
+        hint.textContent = '正在导入素材库并复制到剪贴板…';
+        document.body.style.cursor = 'wait';
+        crop.toBlob(async blob => {
+          if (!blob) {
+            fail('无法生成截图图片');
+            return;
+          }
+          try {
+            const bytes = new Uint8Array(await blob.arrayBuffer());
+            const result = await api.saveToLibrary({ imageData: bytes });
+            if (!result?.success) {
+              saving = false;
+              document.body.style.cursor = 'crosshair';
+              hint.textContent = result?.error || '保存失败，请重试';
+            }
+          } catch (error) {
+            saving = false;
+            document.body.style.cursor = 'crosshair';
+            hint.textContent = error instanceof Error ? error.message : String(error);
+          }
+        }, 'image/png');
+      }
+
+      document.addEventListener('pointerdown', event => {
+        if (saving || event.button !== 0) return;
+        start = pointerPosition(event);
+        selection.setPointerCapture?.(event.pointerId);
+        updateSelection(start);
+      });
+      document.addEventListener('pointermove', event => {
+        if (start && !saving) updateSelection(pointerPosition(event));
+      });
+      document.addEventListener('pointerup', event => {
+        if (!start || saving || event.button !== 0) return;
+        const point = pointerPosition(event);
+        updateSelection(point);
+        void saveSelection(point);
+        start = null;
+      });
+      document.addEventListener('pointercancel', () => { start = null; });
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          if (api?.cancel) void api.cancel();
+        }
+      });
+      window.addEventListener('blur', () => { start = null; });
+
+      void init();
+    })();
+  </script>
+</body>
+</html>

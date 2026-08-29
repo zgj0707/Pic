@@ -20,6 +20,10 @@ describe('Database Service', () => {
     expect(columnNames).toContain('deleted_at')
     expect(columnNames).toContain('project_id')
     expect(columnNames).toContain('original_filepath')
+    expect(columnNames).toContain('source_url')
+    expect(columnNames).toContain('source_domain')
+    expect(columnNames).toContain('source_type')
+    expect(columnNames).toContain('source_note')
   })
 
   afterAll(() => {

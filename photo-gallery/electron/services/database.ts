@@ -44,13 +44,72 @@ CREATE TABLE IF NOT EXISTS photos (
   exif_json TEXT,
   deleted_at INTEGER,
   project_id INTEGER,
-  original_filepath TEXT
+  original_filepath TEXT,
+  review_state TEXT NOT NULL DEFAULT 'unreviewed',
+  delivered_at INTEGER,
+  source_url TEXT,
+  source_domain TEXT,
+  source_type TEXT NOT NULL DEFAULT 'local',
+  source_note TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_photos_rating ON photos(rating);
 CREATE INDEX IF NOT EXISTS idx_photos_favorite ON photos(is_favorite);
 CREATE INDEX IF NOT EXISTS idx_photos_created ON photos(created_at);
 CREATE INDEX IF NOT EXISTS idx_photos_imported ON photos(imported_at);
+
+CREATE TABLE IF NOT EXISTS project_selections (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL,
+  photo_id INTEGER NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER DEFAULT (strftime('%s', 'now')),
+  UNIQUE (project_id, photo_id)
+);
+CREATE INDEX IF NOT EXISTS idx_project_selections_project_position ON project_selections(project_id, position);
+-- Remote references remain separate from local photos.
+CREATE TABLE IF NOT EXISTS project_material_references (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL,
+  source_type TEXT NOT NULL,
+  source_item_id TEXT NOT NULL,
+  media_type TEXT NOT NULL DEFAULT 'link',
+  title TEXT NOT NULL DEFAULT '未命名参考',
+  author TEXT,
+  original_url TEXT NOT NULL,
+  metadata_json TEXT,
+  created_at INTEGER DEFAULT (strftime('%s', 'now')),
+  UNIQUE (project_id, source_type, source_item_id)
+);
+CREATE INDEX IF NOT EXISTS idx_project_material_references_project_created
+  ON project_material_references(project_id, created_at);
+CREATE TABLE IF NOT EXISTS project_shots (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL,
+  photo_id INTEGER NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0,
+  chapter TEXT NOT NULL DEFAULT '未分组',
+  title TEXT NOT NULL,
+  intent TEXT,
+  composition_notes TEXT,
+  lighting_gear_notes TEXT,
+  status TEXT NOT NULL DEFAULT 'planned',
+  created_at INTEGER DEFAULT (strftime('%s', 'now')),
+  updated_at INTEGER DEFAULT (strftime('%s', 'now')),
+  UNIQUE (project_id, photo_id)
+);
+CREATE INDEX IF NOT EXISTS idx_project_shots_project_position ON project_shots(project_id, position);
+CREATE INDEX IF NOT EXISTS idx_project_shots_photo ON project_shots(photo_id);
+CREATE TABLE IF NOT EXISTS project_exports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL,
+  kind TEXT NOT NULL,
+  target_path TEXT NOT NULL,
+  item_count INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER DEFAULT (strftime('%s', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_project_exports_project_created ON project_exports(project_id, created_at);
+
 
 CREATE TABLE IF NOT EXISTS albums (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -89,6 +148,12 @@ CREATE TABLE IF NOT EXISTS projects (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   description TEXT,
+  client_name TEXT,
+  shoot_date TEXT,
+  location TEXT,
+  owner TEXT,
+  deliverable_goal TEXT,
+  cover_photo_id INTEGER,
   created_at INTEGER DEFAULT (strftime('%s', 'now')),
   updated_at INTEGER DEFAULT (strftime('%s', 'now'))
 );
@@ -185,7 +250,13 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
       exif_json TEXT,
       deleted_at INTEGER,
       project_id INTEGER,
-      original_filepath TEXT
+      original_filepath TEXT,
+      review_state TEXT NOT NULL DEFAULT 'unreviewed',
+      delivered_at INTEGER,
+      source_url TEXT,
+      source_domain TEXT,
+      source_type TEXT NOT NULL DEFAULT 'local',
+      source_note TEXT
     )
   `)
   try {
@@ -216,7 +287,137 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
       console.error('[database] original_filepath migration failed:', error)
     }
   }
+  // Migration: add the keyboard-first culling state to legacy photo tables.
+  // Check PRAGMA first so the migration is idempotent.
+  const photoColumns = dbAdapter.query('PRAGMA table_info(photos)')
+  if (!photoColumns.some(column => column.name === 'review_state')) {
+    db.exec("ALTER TABLE photos ADD COLUMN review_state TEXT NOT NULL DEFAULT 'unreviewed'")
+  }
+
+  // Migration: add delivery status without assuming a specific legacy schema.
+  const deliveryColumns = dbAdapter.query('PRAGMA table_info(photos)')
+  if (!deliveryColumns.some(column => column.name === 'delivered_at')) {
+    db.exec('ALTER TABLE photos ADD COLUMN delivered_at INTEGER')
+  }
+
+  // Migration: keep source metadata for web-collected and local reference samples.
+  const sourceColumns = dbAdapter.query('PRAGMA table_info(photos)')
+  if (!sourceColumns.some(column => column.name === 'source_url')) {
+    db.exec('ALTER TABLE photos ADD COLUMN source_url TEXT')
+  }
+  if (!sourceColumns.some(column => column.name === 'source_domain')) {
+    db.exec('ALTER TABLE photos ADD COLUMN source_domain TEXT')
+  }
+  if (!sourceColumns.some(column => column.name === 'source_type')) {
+    db.exec("ALTER TABLE photos ADD COLUMN source_type TEXT NOT NULL DEFAULT 'local'")
+  }
+  if (!sourceColumns.some(column => column.name === 'source_note')) {
+    db.exec('ALTER TABLE photos ADD COLUMN source_note TEXT')
+  }
+  dbAdapter.run("UPDATE photos SET source_type = 'local' WHERE source_type IS NULL OR source_type = ''")
+
   db.exec(SCHEMA)
+  // Migration: keep a lightweight audit trail for planning exports.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS project_exports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      kind TEXT NOT NULL,
+      target_path TEXT NOT NULL,
+      item_count INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER DEFAULT (strftime('%s', 'now'))
+    )
+  `)
+  db.exec('CREATE INDEX IF NOT EXISTS idx_project_exports_project_created ON project_exports(project_id, created_at)')
+  // Migration: add chapter and note fields to legacy inspiration-board entries.
+  const selectionColumns = dbAdapter.query('PRAGMA table_info(project_selections)')
+  if (!selectionColumns.some(column => column.name === 'chapter')) {
+    db.exec("ALTER TABLE project_selections ADD COLUMN chapter TEXT NOT NULL DEFAULT '未分组'")
+  }
+  if (!selectionColumns.some(column => column.name === 'note')) {
+    db.exec('ALTER TABLE project_selections ADD COLUMN note TEXT')
+  }
+  dbAdapter.run("UPDATE project_selections SET chapter = '未分组' WHERE chapter IS NULL OR chapter = ''")
+
+  // Migration: create the independent shot-list table for legacy installations.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS project_shots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      photo_id INTEGER NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0,
+      chapter TEXT NOT NULL DEFAULT '未分组',
+      title TEXT NOT NULL,
+      intent TEXT,
+      composition_notes TEXT,
+      lighting_gear_notes TEXT,
+      status TEXT NOT NULL DEFAULT 'planned',
+      created_at INTEGER DEFAULT (strftime('%s', 'now')),
+      updated_at INTEGER DEFAULT (strftime('%s', 'now')),
+      UNIQUE (project_id, photo_id)
+    )
+  `)
+  const shotColumns = dbAdapter.query('PRAGMA table_info(project_shots)')
+  if (!shotColumns.some(column => column.name === 'chapter')) {
+    db.exec("ALTER TABLE project_shots ADD COLUMN chapter TEXT NOT NULL DEFAULT '未分组'")
+  }
+  dbAdapter.run("UPDATE project_shots SET chapter = '未分组' WHERE chapter IS NULL OR chapter = ''")
+  db.exec('CREATE INDEX IF NOT EXISTS idx_project_shots_project_position ON project_shots(project_id, position)')
+  db.exec('CREATE INDEX IF NOT EXISTS idx_project_shots_photo ON project_shots(photo_id)')
+
+  // Migration: early project tables used client_id/date/album_id and did not
+  // have the timestamps required by the current create/update handlers.
+  // CREATE TABLE IF NOT EXISTS does not add columns to an existing table, so
+  // older installations would fail every projects:create call with
+  // "no such column: created_at".
+  for (const column of ['created_at', 'updated_at']) {
+    try {
+      db.exec(`ALTER TABLE projects ADD COLUMN ${column} INTEGER`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (!message.includes('duplicate column name')) {
+        console.error(`[database] projects.${column} migration failed:`, error)
+      }
+    }
+  }
+
+  const projectBriefColumns = [
+    ['client_name', 'TEXT'],
+    ['shoot_date', 'TEXT'],
+    ['location', 'TEXT'],
+    ['owner', 'TEXT'],
+    ['deliverable_goal', 'TEXT'],
+    ['cover_photo_id', 'INTEGER']
+  ]
+  for (const [column, type] of projectBriefColumns) {
+    try {
+      db.exec(`ALTER TABLE projects ADD COLUMN ${column} ${type}`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (!message.includes('duplicate column name')) {
+        console.error(`[database] projects.${column} migration failed:`, error)
+      }
+    }
+  }
+
+  try {
+    const projectColumns = dbAdapter.query('PRAGMA table_info(projects)')
+    const hasLegacyDate = projectColumns.some(column => column.name === 'date')
+    const now = Math.floor(Date.now() / 1000)
+    if (hasLegacyDate) {
+      dbAdapter.run(
+        'UPDATE projects SET created_at = COALESCE(created_at, date, ?), updated_at = COALESCE(updated_at, date, created_at, ?)',
+        [now, now]
+      )
+    } else {
+      dbAdapter.run(
+        'UPDATE projects SET created_at = COALESCE(created_at, ?), updated_at = COALESCE(updated_at, created_at, ?)',
+        [now, now]
+      )
+    }
+  } catch (error) {
+    console.error('[database] Project timestamp backfill failed:', error)
+  }
 
   // 单独创建 deleted_at 索引，确保列已存在
   try {
@@ -230,6 +431,19 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
     db.exec('CREATE INDEX IF NOT EXISTS idx_photos_project ON photos(project_id)')
   } catch (error) {
     console.error('[database] Failed to create project_id index:', error)
+  }
+
+  try {
+    db.exec('CREATE INDEX IF NOT EXISTS idx_photos_review_state ON photos(review_state)')
+  } catch (error) {
+    console.error('[database] Failed to create review_state index:', error)
+  }
+
+  try {
+    db.exec('CREATE INDEX IF NOT EXISTS idx_photos_source_type ON photos(source_type)')
+    db.exec('CREATE INDEX IF NOT EXISTS idx_photos_source_domain ON photos(source_domain)')
+  } catch (error) {
+    console.error('[database] Failed to create source indexes:', error)
   }
 
   // 为没有项目的旧数据创建默认项目并关联

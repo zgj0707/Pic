@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow, DownloadItem, shell } from 'electron'
 import { join, resolve } from 'path'
-import { existsSync, mkdirSync, statSync, promises as fsPromises } from 'fs'
+import { existsSync, statSync, promises as fsPromises } from 'fs'
 import { dbAdapter, saveDatabase } from '../services/database'
 import { importPhotoToDatabase } from './import'
 import { addTagToPhoto } from './tagManager'
@@ -10,12 +10,20 @@ import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
 import type { IpcResponse } from '../types'
 
 const activeDownloads: Map<string, DownloadItem> = new Map()
+const DOUYIN_EXTERNAL_URL = 'https://www.douyin.com/'
 
 export function registerMaterialBrowserIpc(_mainWindow: BrowserWindow | null) {
-  ipcMain.handle('material-browser:open-external', wrapHandler('material-browser:open-external',
-    (_event, url: string) => {
-      shell.openExternal(url)
-      return { success: true }
+  ipcMain.handle('material-browser:open-external', wrapAsyncHandler('material-browser:open-external',
+    async (_event, url: string) => {
+      if (url !== DOUYIN_EXTERNAL_URL) {
+        return { success: false, error: '仅支持打开抖音' }
+      }
+      try {
+        await shell.openExternal(DOUYIN_EXTERNAL_URL)
+        return { success: true }
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : '无法打开系统浏览器' }
+      }
     }
   ))
 
@@ -62,39 +70,15 @@ export function registerMaterialBrowserIpc(_mainWindow: BrowserWindow | null) {
     }
   ))
 
-  ipcMain.handle('material-browser:save-screenshot', wrapAsyncHandler('material-browser:save-screenshot',
-    async (_event, imageData: Buffer | Uint8Array | string, filename: string): Promise<IpcResponse<{ filePath: string }>> => {
-      const downloadDir = getDownloadDir()
-
-      if (!existsSync(downloadDir)) {
-        mkdirSync(downloadDir, { recursive: true })
-      }
-
-      const filePath = getUniqueFilePath(join(downloadDir, filename))
-
-      let bufferData: Buffer
-      if (Buffer.isBuffer(imageData)) {
-        bufferData = imageData
-      } else if (imageData instanceof Uint8Array) {
-        bufferData = Buffer.from(imageData)
-      } else if (typeof imageData === 'string') {
-        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '')
-        bufferData = Buffer.from(base64Data, 'base64')
-      } else {
-        return { success: false, error: 'Invalid image data format' }
-      }
-
-      const { Jimp } = await import('jimp')
-
-      const image = await Jimp.read(bufferData)
-      await (image as any).write(filePath, { quality: 95 })
-
-      return { success: true, data: { filePath } }
-    }
-  ))
-
   ipcMain.handle('material-browser:import-to-library', wrapAsyncHandler('material-browser:import-to-library',
     async (_event, filePath: string, sourceUrl: string, tags: string[] = [], projectId?: number | null): Promise<IpcResponse<{ photoId: number; photo?: unknown; alreadyImported: boolean }>> => {
+      if (projectId === null || projectId === undefined) {
+        return { success: false, error: '请先创建或选择一个拍摄项目' }
+      }
+      if (!dbAdapter.get('SELECT id FROM projects WHERE id = ?', [projectId])) {
+        return { success: false, error: '当前拍摄项目不存在，请重新选择项目' }
+      }
+
       // Wait for file to be fully written (download in progress)
       let fileReady = false
       let retryCount = 0
@@ -128,7 +112,7 @@ export function registerMaterialBrowserIpc(_mainWindow: BrowserWindow | null) {
         return { success: true, data: { photoId: existing.id, alreadyImported: true } }
       }
 
-      const photo = await importPhotoToDatabase(filePath, projectId)
+      const photo = await importPhotoToDatabase(filePath, projectId, { type: 'web', url: sourceUrl })
 
       if (photo) {
         // 缩略图改为按需生成，导入时不再同步生成
@@ -157,6 +141,8 @@ export function setupDownloadHandler(mainWindow: BrowserWindow) {
 
   webContents.session.on('will-download', (event, item, _webContents) => {
     const fileName = item.getFilename()
+    // Freeze the source at download start; the webview may navigate before completion.
+    const sourceUrl = item.getURL() || _webContents?.getURL() || ''
 
     // Check if the download is an image file
     if (!isSupportedFile(fileName) && !/\.(gif)$/i.test(fileName)) {
@@ -175,6 +161,7 @@ export function setupDownloadHandler(mainWindow: BrowserWindow) {
       id: downloadId,
       fileName,
       filePath,
+      sourceUrl,
       totalBytes: item.getTotalBytes()
     })
 
@@ -199,7 +186,8 @@ export function setupDownloadHandler(mainWindow: BrowserWindow) {
         mainWindow?.webContents.send('material-browser:download-complete', {
           id: downloadId,
           fileName,
-          filePath: finalPath
+          filePath: finalPath,
+          sourceUrl
         })
       } else {
         mainWindow?.webContents.send('material-browser:download-failed', {

@@ -14,7 +14,7 @@
  */
 
 import { build } from 'esbuild'
-import { mkdirSync, writeFileSync, readFileSync, existsSync, cpSync } from 'fs'
+import { mkdirSync, writeFileSync, readFileSync, existsSync, cpSync, rmSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
@@ -28,7 +28,8 @@ const outEntry = join(outDir, 'app.js')
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf-8'))
 const version = pkg.version || '0.0.0'
 
-// Output set is deterministic — just mkdir, no deletion needed.
+// This directory is generated output. Clean it so removed renderer modules cannot leak into releases.
+rmSync(outDir, { recursive: true, force: true })
 mkdirSync(outDir, { recursive: true })
 
 // External deps — these stay in node_modules (native or heavy).
@@ -101,7 +102,7 @@ const manifest = {
   renderer: 'renderer/index.html',
   requiresShell: '>=2.4.0',
   capabilities: {
-    ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser'],
+    ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'capture', 'projectReferences', 'projects', 'selection', 'projectShots', 'planningExports', 'delivery', 'pdfExport'],
     services: ['cache', 'changelog', 'window'],
     db: true
   },

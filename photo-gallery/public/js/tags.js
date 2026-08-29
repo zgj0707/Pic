@@ -32,13 +32,27 @@ async function updateTagFilter() {
   });
 }
 
+function renderReferenceCategoryPresets(currentTags = []) {
+  const container = document.getElementById('referenceCategoryPresets');
+  if (!container) return;
+  container.innerHTML = REFERENCE_CATEGORY_PRESETS.map(preset => `
+    <button type="button" class="tag-badge cursor-pointer hover:bg-accent/30 ${currentTags.includes(preset.tag) ? 'opacity-40' : ''}" data-reference-tag="${escapeHtml(preset.tag)}" ${currentTags.includes(preset.tag) ? 'disabled' : ''}>${escapeHtml(preset.label)}</button>
+  `).join('');
+  container.querySelectorAll('[data-reference-tag]').forEach(button => {
+    button.addEventListener('click', () => {
+      document.getElementById('tagInputField').value = button.dataset.referenceTag || '';
+      document.getElementById('tagInputField').focus();
+    });
+  });
+}
+
 async function handleAddTag() {
   if (filteredPhotos.length === 0) {
-    showToast('没有可操作的照片', 'warning');
+    showToast('没有可操作的样片', 'warning');
     return;
   }
 
-  // 优先使用选中的照片，如果有多个选中则使用第一个
+  // 优先使用选中的样片，如果有多个选中则使用第一个
   let targetPhoto = null;
   if (selectedPhotos.size > 0) {
     const firstSelectedId = Array.from(selectedPhotos)[0];
@@ -48,7 +62,7 @@ async function handleAddTag() {
     }
   }
 
-  // 如果没有选中的照片，使用 currentPhotoIndex 指向的照片
+  // 如果没有选中的样片，使用 currentPhotoIndex 指向的样片
   if (!targetPhoto) {
     if (currentPhotoIndex >= filteredPhotos.length) {
       currentPhotoIndex = Math.max(0, filteredPhotos.length - 1);
@@ -57,34 +71,35 @@ async function handleAddTag() {
   }
 
   if (!targetPhoto) {
-    showToast('无法获取当前照片信息', 'error');
+    showToast('无法获取当前样片信息', 'error');
     return;
   }
 
   const fullPhoto = photos.find(p => p.id === targetPhoto.id);
   if (!fullPhoto) {
-    showToast('照片数据已失效，请刷新后重试', 'error');
+    showToast('样片数据已失效，请刷新后重试', 'error');
     await loadPhotos();
     return;
   }
 
-  // 更新 currentPhotoIndex 到目标照片
+  // 更新 currentPhotoIndex 到目标样片
   const targetIndex = filteredPhotos.findIndex(p => p.id === targetPhoto.id);
   if (targetIndex > -1) {
     currentPhotoIndex = targetIndex;
   }
 
   const usedTags = document.getElementById('usedTagsList');
+  renderReferenceCategoryPresets(fullPhoto.tags || []);
   const allTags = [...new Set(photos.flatMap(p => p.tags || []))].sort();
   usedTags.innerHTML = allTags.filter(t => !(fullPhoto.tags || []).includes(t)).map(tag =>
     `<span class="tag-badge cursor-pointer hover:bg-accent/30" data-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</span>`
   ).join('') || '<span class="text-textDisabled text-sm">没有可用标签</span>';
 
   usedTags.querySelectorAll('[data-tag]').forEach(el => {
-    el.onclick = () => {
+    el.addEventListener('click', () => {
       const tag = el.dataset.tag;
       document.getElementById('tagInputField').value = tag;
-    };
+    });
   });
 
   document.getElementById('tagInputField').value = '';
@@ -100,12 +115,12 @@ async function confirmAddTag() {
   }
 
   if (filteredPhotos.length === 0) {
-    showToast('没有可操作的照片', 'warning');
+    showToast('没有可操作的样片', 'warning');
     document.getElementById('tagInputModal').classList.add('hidden');
     return;
   }
 
-  // 使用与 handleAddTag 相同的逻辑找到目标照片
+  // 使用与 handleAddTag 相同的逻辑找到目标样片
   let targetPhoto = null;
   if (selectedPhotos.size > 0) {
     const firstSelectedId = Array.from(selectedPhotos)[0];
@@ -123,20 +138,20 @@ async function confirmAddTag() {
   }
 
   if (!targetPhoto) {
-    showToast('无法获取当前照片信息', 'error');
+    showToast('无法获取当前样片信息', 'error');
     document.getElementById('tagInputModal').classList.add('hidden');
     return;
   }
 
   const fullPhoto = photos.find(p => p.id === targetPhoto.id);
   if (!fullPhoto) {
-    showToast('照片数据已失效，请刷新后重试', 'error');
+    showToast('样片数据已失效，请刷新后重试', 'error');
     document.getElementById('tagInputModal').classList.add('hidden');
     await loadPhotos();
     return;
   }
 
-  // 更新 currentPhotoIndex 到目标照片
+  // 更新 currentPhotoIndex 到目标样片
   const targetIndex = filteredPhotos.findIndex(p => p.id === targetPhoto.id);
   if (targetIndex > -1) {
     currentPhotoIndex = targetIndex;
@@ -167,11 +182,11 @@ function renderRemoveTags() {
   ).join('');
 
   container.querySelectorAll('.remove-tag-btn').forEach(btn => {
-    btn.onclick = (e) => {
+    btn.addEventListener('click', (e) => {
       const idx = parseInt(e.currentTarget.closest('[data-idx]').dataset.idx);
       removeTags.splice(idx, 1);
       renderRemoveTags();
-    };
+    });
   });
 
   updateApplyButtons();

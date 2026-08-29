@@ -25,7 +25,7 @@
 
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import { join } from 'path'
-import { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, copyFileSync, readFileSync, writeFileSync } from 'fs'
 
 // ─── Database (bundled — manages its own lifecycle) ───
 import {
@@ -43,7 +43,15 @@ import { registerTagManagerIpc } from '../ipc/tagManager'
 import { registerExifToolIpc } from '../ipc/exifTool'
 import { registerDeleteIpc } from '../ipc/delete'
 import { registerProjectIpc } from '../ipc/project'
+import { registerSelectionIpc } from '../ipc/selection'
+import { registerProjectShotsIpc } from '../ipc/projectShots'
+import { copyPhotosToDesktopFolder } from '../services/desktopExport'
+import { registerPdfExportIpc } from '../ipc/pdfExport'
+import { registerPlanningExportsIpc } from '../ipc/planningExports'
+import { registerDeliveryIpc } from '../ipc/delivery'
 import { registerMaterialBrowserIpc, setupDownloadHandler } from '../ipc/materialBrowser'
+import { registerProjectReferencesIpc } from '../ipc/projectReferences'
+import { registerScreenCapture, disposeScreenCapture } from '../services/screenCapture'
 
 // ─── Services (cache manager, thumbnail, exif sync) ───
 import { getCacheStats, clearThumbnailCache, cleanOldThumbnails, formatBytes } from '../services/cacheManager'
@@ -52,11 +60,11 @@ import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
 import type { ChangelogEntry } from '../types'
 
 export const name = 'pic-content'
-export const version = '3.2.2'
+export const version = '4.2.0'
 
 // Content module capabilities (what the shell can rely on).
 export const capabilities = {
-  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'projects'],
+  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'capture', 'projectReferences', 'projects', 'selection', 'projectShots', 'planningExports', 'delivery', 'pdfExport'],
   services: ['cache', 'changelog', 'window'],
   db: true
 }
@@ -79,6 +87,7 @@ export interface ContentContext {
   resourcesPath: string
   isPackaged: boolean
   portableDir: string | null
+  preloadPath: string
 }
 
 /**
@@ -121,7 +130,13 @@ export function registerIpc(c: ContentContext): void {
   registerExifToolIpc()
   registerDeleteIpc()
   registerProjectIpc()
+  registerSelectionIpc()
+  registerProjectShotsIpc()
+  registerPlanningExportsIpc()
+  registerDeliveryIpc()
+  registerPdfExportIpc(c)
   registerMaterialBrowserIpc(c.getMainWindow())
+  registerProjectReferencesIpc(c.app.getPath('desktop'))
 
   // ── Generic app/dialog/window/path/shell/cache handlers (moved from main.ts) ──
   registerGenericHandlers(c)
@@ -135,6 +150,10 @@ export function onWindowCreated(c: ContentContext): void {
   const win = c.getMainWindow()
   if (win) {
     setupDownloadHandler(win)
+    registerScreenCapture({
+      getMainWindow: c.getMainWindow,
+      preloadPath: c.preloadPath
+    }, getRendererPath(c))
   }
 }
 
@@ -172,6 +191,7 @@ export function getRendererFallback(): string {
  * Persist DB before quit.
  */
 export async function onQuit(): Promise<void> {
+  try { disposeScreenCapture() } catch (e) { console.error('[content] capture dispose fail:', e) }
   try { saveDatabase() } catch (e) { console.error('[content] save fail:', e) }
   try { await closeExifTool() } catch (e) { console.error('[content] exiftool close fail:', e) }
   try { closeDatabase() } catch (e) { console.error('[content] close fail:', e) }
@@ -311,21 +331,8 @@ function registerGenericHandlers(c: ContentContext): void {
 
   // ─── Photo file helpers ───
   ipcMain.handle('photos:copyToDesktopFolder', wrapAsyncHandler('photos:copyToDesktopFolder',
-    async (_e, filePaths: string[], folderName: string) => {
-      const desktopPath = app.getPath('desktop')
-      const folderPath = join(desktopPath, folderName)
-      if (!existsSync(folderPath)) mkdirSync(folderPath, { recursive: true })
-      let copied = 0, failed = 0
-      for (const fp of filePaths) {
-        try {
-          if (existsSync(fp)) {
-            copyFileSync(fp, join(folderPath, require('path').basename(fp)))
-            copied++
-          } else failed++
-        } catch { failed++ }
-      }
-      return { success: true, folderPath, copied, failed }
-    }
+    async (_e, filePaths: string[], folderName: string) =>
+      copyPhotosToDesktopFolder(filePaths, folderName, app.getPath('desktop'))
   ))
 
   ipcMain.handle('photos:copyImageToClipboard', wrapAsyncHandler('photos:copyImageToClipboard',

@@ -10,696 +10,138 @@
 
   <link rel="stylesheet" href="vendor/tailwind.css">
   <link rel="stylesheet" href="vendor/fontawesome.css">
-
-  <script src="vendor/jspdf.umd.min.js"></script>
-  
-  <style>
-    :root {
-      --sidebar-width: 280px;
-      --sidebar-min-width: 200px;
-      --sidebar-max-width: 400px;
-      --accent: #c9955a;
-      --accent-glow: rgba(201, 149, 90, 0.3);
-      --bg-deep: #0a0a0a;
-      --bg-surface: #141414;
-      --bg-elevated: #1a1a1a;
-      --border-subtle: #1e1e1e;
-      --text-warm: #f0ede8;
-      --text-muted: #9a9791;
-    }
-    
-    * { transform: translateZ(0); backface-visibility: hidden; }
-    
-    body {
-      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-    
-    /* === Noise Texture Overlay === */
-    body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 9998;
-      opacity: 0.035;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-      background-repeat: repeat;
-      background-size: 256px 256px;
-    }
-    
-    /* === Scrollbar === */
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #333333; border-radius: 3px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555555; }
-    
-    /* === Photo Grid === */
-    .photo-grid { 
-      padding: 20px; 
-      position: relative;
-    }
-    
-    .photo-grid .photo-item {
-      background: #141414;
-      border-radius: 4px;
-      overflow: hidden;
-      cursor: pointer;
-      position: absolute;
-      opacity: 1;
-      transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.3s ease;
-      will-change: transform;
-    }
-    
-    .photo-grid .photo-item::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: 4px;
-      pointer-events: none;
-      z-index: 3;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
-      transition: box-shadow 0.3s ease;
-    }
-    
-    .photo-grid.compact-view {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      padding: 20px;
-    }
-    
-    .photo-grid.compact-view .photo-item {
-      position: relative;
-      width: 160px;
-      height: 107px;
-      flex-shrink: 0;
-    }
-    
-    .photo-grid.compact-view .photo-item .photo-content {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
-    
-    .photo-grid.compact-view .photo-item .photo-content img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    
-    /* === Photo Hover Glow === */
-    .photo-grid .photo-item:hover {
-      transform: scale(1.03);
-      box-shadow: 0 0 0 1px rgba(201, 149, 90, 0.15), 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 60px rgba(201, 149, 90, 0.06);
-      z-index: 5;
-    }
-    
-    .photo-grid .photo-item:hover::after {
-      box-shadow: inset 0 0 0 1px rgba(201, 149, 90, 0.2);
-    }
-    
-    .photo-grid .photo-item.selected {
-      box-shadow: 0 0 0 2px var(--accent), 0 0 0 4px rgba(201, 149, 90, 0.15), 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 60px rgba(201, 149, 90, 0.08);
-      z-index: 4;
-    }
-    
-    .photo-grid .photo-item.selected::after {
-      box-shadow: inset 0 0 0 1px rgba(201, 149, 90, 0.3);
-    }
-    
-    .photo-grid .photo-item.selected::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: rgba(201, 149, 90, 0.05);
-      pointer-events: none;
-      z-index: 1;
-    }
-    
-    .photo-grid .photo-item img { 
-      display: block; 
-      width: 100%; 
-      height: auto;
-      background: #1a1a1a; 
-    }
-
-    .photo-grid:not(.compact-view) .photo-item .photo-content {
-      width: 100%;
-      height: 100%;
-    }
-
-    .photo-grid:not(.compact-view) .photo-item .photo-content img {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-    
-    .photo-item img.loaded { 
-      opacity: 1; 
-      transition: opacity 0.4s ease;
-    }
-    
-    .photo-item img:not(.loaded) { 
-      opacity: 0; 
-    }
-    
-    .photo-item .skeleton {
-      position: absolute; 
-      inset: 0;
-      background: linear-gradient(90deg, #141414 25%, #1e1e1e 50%, #141414 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-      z-index: 0;
-    }
-    
-    @keyframes shimmer { 
-      0% { background-position: 200% 0; } 
-      100% { background-position: -200% 0; } 
-    }
-    
-    .photo-item .photo-content {
-      position: relative;
-      z-index: 2;
-    }
-    
-    .photo-item .photo-content img {
-      width: 100%;
-      display: block;
-    }
-    
-    /* === Selection Indicator === */
-    .photo-item .selection-indicator {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 22px;
-      height: 22px;
-      background: rgba(0, 0, 0, 0.6);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-      opacity: 0;
-      transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
-      border: 2px solid rgba(255,255,255,0.2);
-      transform: scale(0.85);
-    }
-    
-    .photo-item:hover .selection-indicator {
-      opacity: 1;
-      transform: scale(1);
-    }
-    
-    .photo-item.selected .selection-indicator {
-      opacity: 1;
-      transform: scale(1);
-      background: var(--accent);
-      border-color: #fff;
-      box-shadow: 0 0 12px rgba(201, 149, 90, 0.4);
-    }
-    
-    .photo-item .selection-indicator i {
-      color: #fff;
-      font-size: 11px;
-    }
-    
-    .photo-item .rating-overlay {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      display: flex;
-      gap: 1px;
-      z-index: 10;
-    }
-    
-    .photo-item .tags-overlay {
-      position: absolute;
-      bottom: 8px;
-      left: 8px;
-      right: 8px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 3px;
-      z-index: 10;
-      max-height: 60px;
-      overflow: hidden;
-    }
-    
-    .photo-item .tags-overlay .tag-badge {
-      font-size: 9px;
-      padding: 2px 6px;
-      background: rgba(0, 0, 0, 0.65);
-      backdrop-filter: blur(4px);
-      border-radius: 3px;
-      color: #f0ede8;
-      letter-spacing: 0.02em;
-      border: 1px solid rgba(255,255,255,0.06);
-    }
-    
-    /* === Lightbox === */
-    .lightbox-viewer {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.96); z-index: 1000;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-    }
-    .lightbox-viewer img { max-width: 95vw; max-height: 90vh; object-fit: contain; cursor: grab; }
-    .lightbox-viewer img:active { cursor: grabbing; }
-    
-    /* === Metadata Panel === */
-    .metadata-panel {
-      flex-shrink: 0;
-      width: 0;
-      overflow: hidden;
-      background: #141414;
-      border-left: 1px solid #1e1e1e;
-      transition: width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.25s ease;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      opacity: 0;
-    }
-    .metadata-panel.open {
-      width: var(--sidebar-width);
-      opacity: 1;
-    }
-    .metadata-panel .panel-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1.25rem;
-      min-width: var(--sidebar-min-width);
-    }
-    .resize-handle {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 4px;
-      height: 100%;
-      cursor: col-resize;
-      background: transparent;
-      transition: background 0.15s ease;
-      z-index: 10;
-    }
-    .resize-handle:hover,
-    .resize-handle:active {
-      background: var(--accent);
-    }
-    
-    /* === Toast === */
-    .toast-container {
-      position: fixed; bottom: 24px; right: 24px; z-index: 2000;
-      display: flex; flex-direction: column; gap: 10px;
-    }
-    .toast {
-      padding: 14px 22px; background: rgba(26, 26, 26, 0.92); border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
-      animation: slideIn 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-      backdrop-filter: blur(16px);
-      font-size: 13px;
-      color: #f0ede8;
-    }
-    @keyframes slideIn { from { transform: translateY(8px) scale(0.96); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
-    @keyframes slideOut { from { transform: translateY(0) scale(1); opacity: 1; } to { transform: translateY(8px) scale(0.96); opacity: 0; } }
-    
-    /* === Progress Overlay === */
-    .progress-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.8);
-      backdrop-filter: blur(8px);
-      z-index: 1500; display: flex; align-items: center; justify-content: center;
-    }
-    .progress-card { background: rgba(20, 20, 20, 0.95); padding: 32px; border-radius: 14px; min-width: 400px; border: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(16px); box-shadow: 0 16px 48px rgba(0,0,0,0.5); }
-    
-    /* === Context Menu === */
-    .context-menu { 
-      position: fixed; 
-      background: rgba(20, 20, 20, 0.96); 
-      border: 1px solid rgba(255,255,255,0.08); 
-      border-radius: 8px; 
-      z-index: 3000; 
-      min-width: 180px; 
-      box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
-      backdrop-filter: blur(20px);
-      padding: 4px;
-    }
-    .context-menu-item { 
-      padding: 9px 14px; 
-      cursor: pointer; 
-      font-size: 13px; 
-      color: #e0ddd8; 
-      display: flex; 
-      align-items: center;
-      border-radius: 4px;
-      transition: background 0.15s ease;
-    }
-    .context-menu-item:hover { 
-      background: var(--accent); 
-      color: #fff; 
-    }
-    
-    /* === Modal === */
-    .modal-overlay { 
-      position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; 
-      display: flex; align-items: center; justify-content: center; 
-      backdrop-filter: blur(8px);
-    }
-    .modal-content { 
-      background: rgba(20, 20, 20, 0.97); 
-      padding: 28px; 
-      border-radius: 14px; 
-      min-width: 400px; 
-      max-width: 90vw; 
-      border: 1px solid rgba(255,255,255,0.06); 
-      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
-      animation: modalIn 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    }
-    @keyframes modalIn {
-      from { opacity: 0; transform: scale(0.96) translateY(8px); }
-      to { opacity: 1; transform: scale(1) translateY(0); }
-    }
-    
-    .zoom-controls { 
-      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); 
-      display: flex; gap: 8px; z-index: 1002; 
-      background: rgba(20,20,20,0.85); 
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(255,255,255,0.06);
-      padding: 6px;
-    }
-    
-    .tag-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 3px 8px;
-      background: rgba(255,255,255,0.06);
-      border-radius: 4px;
-      font-size: 11px;
-      color: #f0ede8;
-      border: 1px solid rgba(255,255,255,0.04);
-    }
-    
-    /* === Photo item entrance animation === */
-    .photo-item {
-      animation: photoEntrance 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-    }
-    @keyframes photoEntrance {
-      from { opacity: 0; transform: scale(0.95) translateY(8px); }
-      to { opacity: 1; transform: scale(1) translateY(0); }
-    }
-    
-    /* === Nav item active indicator === */
-    .nav-item {
-      position: relative;
-      font-family: 'DM Sans', sans-serif;
-      letter-spacing: 0.02em;
-    }
-    .nav-item.active::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 20px;
-      height: 2px;
-      background: var(--accent);
-      border-radius: 1px;
-    }
-    
-    /* === Header Glass Effect === */
-    header {
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      background: rgba(10, 10, 10, 0.85) !important;
-      border-bottom: 1px solid rgba(255,255,255,0.04) !important;
-    }
-    
-    /* === Main content area background === */
-    .bg-bgPrimary {
-      background-color: var(--bg-deep);
-    }
-    
-    /* === Accent button hover refinement === */
-    .hover\\:bg-accent\\/80:hover {
-      background-color: rgba(201, 149, 90, 0.8) !important;
-    }
-    
-    .focus\\:border-accent:focus {
-      border-color: var(--accent) !important;
-    }
-    
-    /* === Scrollbar for lightbox === */
-    .lightbox-viewer .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-    
-    /* === Smooth transition for view changes === */
-    .photo-grid {
-      transition: opacity 0.2s ease;
-    }
-    
-    /* === Hamburger/right sidebar === */
-    .w-16.bg-bgPrimary {
-      background: transparent !important;
-      border-left: 1px solid rgba(255,255,255,0.04) !important;
-    }
-
-    /* === Project Sidebar === */
-    .project-sidebar {
-      width: 220px;
-      flex-shrink: 0;
-      background: var(--bg-surface);
-      border-right: 1px solid var(--border-subtle);
-      display: flex;
-      flex-direction: column;
-    }
-    .project-sidebar-header {
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border-subtle);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .project-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px;
-    }
-    .project-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      color: var(--text-muted);
-      transition: background 0.15s ease, color 0.15s ease;
-      margin-bottom: 2px;
-    }
-    .project-item:hover {
-      background: rgba(255,255,255,0.04);
-      color: var(--text-warm);
-    }
-    .project-item.active {
-      background: rgba(201, 149, 90, 0.12);
-      color: var(--accent);
-    }
-    .project-item .project-name {
-      font-size: 13px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      flex: 1;
-    }
-    .project-item .photo-count {
-      font-size: 11px;
-      color: inherit;
-      opacity: 0.7;
-      margin-left: 8px;
-    }
-    .create-project-btn {
-      width: 22px;
-      height: 22px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 4px;
-      color: var(--text-muted);
-      transition: all 0.15s ease;
-    }
-    .create-project-btn:hover {
-      background: rgba(255,255,255,0.08);
-      color: var(--text-warm);
-    }
-
-    /* === Smart Filter Bar === */
-    .filter-chip {
-      display: inline-flex;
-      align-items: center;
-      padding: 4px 12px;
-      border-radius: 999px;
-      font-size: 12px;
-      color: var(--text-muted);
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.06);
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.15s ease;
-      user-select: none;
-    }
-    .filter-chip:hover {
-      background: rgba(255,255,255,0.08);
-      color: var(--text-warm);
-    }
-    .filter-chip.active {
-      background: rgba(201, 149, 90, 0.15);
-      border-color: rgba(201, 149, 90, 0.35);
-      color: var(--accent);
-    }
-
-    /* === Status Bar === */
-    .status-bar {
-      height: 28px;
-      flex-shrink: 0;
-      background: var(--bg-surface);
-      border-top: 1px solid var(--border-subtle);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-    .status-bar button {
-      color: inherit;
-      transition: color 0.15s ease;
-    }
-
-    /* === Material Browser Slide-over Panel === */
-    .material-browser-panel {
-      position: fixed;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 520px;
-      max-width: 90vw;
-      background: var(--bg-surface);
-      border-left: 1px solid var(--border-subtle);
-      z-index: 900;
-      transform: translateX(100%);
-      transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-      display: flex;
-      flex-direction: column;
-    }
-    .material-browser-panel.open {
-      transform: translateX(0);
-    }
-
-    /* === Single Photo Inspector === */
-    .single-photo-inspector .info-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      font-size: 13px;
-    }
-    .single-photo-inspector .info-label {
-      color: var(--text-muted);
-    }
-    .single-photo-inspector .info-value {
-      color: var(--text-warm);
-      text-align: right;
-      max-width: 60%;
-      word-break: break-word;
-    }
-    .single-photo-inspector .inspector-thumb {
-      width: 100%;
-      aspect-ratio: 4/3;
-      object-fit: cover;
-      border-radius: 6px;
-      margin-bottom: 16px;
-      background: var(--bg-deep);
-    }
-
-    .hidden { display: none !important; }
-  </style>
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/layout.css">
+  <link rel="stylesheet" href="styles/components.css">
 </head>
 <body class="bg-bgPrimary text-textPrimary h-screen overflow-hidden select-none">
-  <div class="flex flex-col h-screen">
-    <header class="h-12 bg-bgSecondary flex items-center px-4 border-b border-borderColor shrink-0">
-      <div class="flex items-center space-x-4 mr-4">
-        <span class="text-lg font-semibold text-accent" style="font-family: 'DM Serif Display', serif;">Pic</span>
-        <button id="importFolderBtn" class="px-3 py-1.5 bg-accent text-white text-sm rounded hover:bg-accent/80">
-          <i class="fa-solid fa-folder-open mr-1"></i>导入文件夹
-        </button>
-        <button id="importFilesBtn" class="px-3 py-1.5 bg-bgPrimary border border-borderColor text-textPrimary text-sm rounded hover:bg-bgSecondary">
-          <i class="fa-solid fa-file-import mr-1"></i>导入文件
-        </button>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand-lockup">
+        <span class="brand-mark">Pic</span>
+        <span class="brand-context">摄影工作台</span>
       </div>
-      <div class="relative flex-1 max-w-md">
-        <input type="text" id="searchInput" placeholder="搜索关键词、标签、评级..." 
-          class="w-full h-8 bg-bgPrimary border border-borderColor rounded px-10 text-sm text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent">
-        <i class="fa-solid fa-magnifying-glass absolute right-3 top-1/2 -translate-y-1/2 text-textDisabled"></i>
+      <div class="header-project-context">
+        <span class="header-project-label">当前项目</span>
+        <strong id="headerProjectName">未选择项目</strong>
       </div>
-      <div class="flex items-center space-x-2 ml-4">
-        <button id="deleteBtn" class="p-2 hover:bg-bgPrimary rounded text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed" title="删除选中" disabled>
-          <i class="fa-solid fa-trash"></i>
-        </button>
-        <button id="restoreBtn" class="hidden p-2 hover:bg-bgPrimary rounded text-green-400 hover:text-green-300 disabled:opacity-50 disabled:cursor-not-allowed" title="恢复选中" disabled>
-          <i class="fa-solid fa-rotate-left"></i>
-        </button>
-        <button id="permanentDeleteBtn" class="hidden p-2 hover:bg-bgPrimary rounded text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed" title="彻底删除" disabled>
-          <i class="fa-solid fa-trash-can"></i>
-        </button>
-        <button id="exportPdfBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary disabled:opacity-50 disabled:cursor-not-allowed" title="导出为PDF" disabled>
-          <i class="fa-solid fa-file-pdf"></i>
-        </button>
-        <button id="copyToDesktopBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary disabled:opacity-50 disabled:cursor-not-allowed" title="复制选中到桌面" disabled>
-          <i class="fa-solid fa-folder-plus"></i>
-        </button>
-        <button id="viewToggleBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary" title="切换到紧凑视图">
-          <i class="fa-solid fa-th-large" id="viewToggleIcon"></i>
-        </button>
-        <button id="settingsBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary" title="设置">
-          <i class="fa-solid fa-cog"></i>
-        </button>
-        <button id="metadataPanelBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary" title="批量操作">
-          <i class="fa-solid fa-sliders-h"></i>
-        </button>
-        <button id="aboutBtn" class="p-2 hover:bg-bgPrimary rounded text-textSecondary hover:text-textPrimary" title="关于">
-          <i class="fa-solid fa-info-circle"></i>
-        </button>
-      </div>
-    </header>
-    
-    <main class="flex-1 overflow-hidden flex">
-      <!-- 左侧项目栏 -->
-      <aside class="project-sidebar">
-        <div class="project-sidebar-header">
-          <h3 class="text-sm font-medium text-textPrimary">项目</h3>
-          <button id="createProjectBtn" class="create-project-btn" title="新建项目">
-            <i class="fa-solid fa-plus text-xs"></i>
+      <div class="header-actions">
+        <div class="header-primary-actions">
+          <button id="importFolderBtn" class="primary-action" type="button">
+            <i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>导入文件夹</span>
           </button>
         </div>
-        <div id="projectList" class="project-list custom-scrollbar">
-          <!-- projects rendered here -->
+        <div class="header-search">
+          <input type="text" id="searchInput" placeholder="搜索关键词、标签、评级..." aria-label="搜索样片">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        </div>
+        <div class="header-tool-actions" aria-label="样片工具">
+          <button id="copyToDesktopBtn" class="primary-action" type="button" title="把当前选中的样片复制到桌面文件夹" disabled><i class="fa-solid fa-folder-plus" aria-hidden="true"></i><span id="saveDesktopLabel">保存到桌面</span></button>
+          <button id="exportPdfBtn" class="primary-action" type="button" title="按 A4 竖版格式将当前选中的样片导出为 PDF" disabled><i class="fa-solid fa-file-pdf" aria-hidden="true"></i><span id="exportPdfLabel">导出 PDF</span></button>
+          <div class="header-overflow">
+            <button id="headerMoreBtn" class="tool-button" type="button" title="更多工具" aria-label="更多工具" aria-expanded="false"><i class="fa-solid fa-ellipsis"></i></button>
+            <div id="headerOverflowMenu" class="header-overflow-menu hidden" role="menu">
+              <button id="importFilesBtn" type="button" role="menuitem"><i class="fa-solid fa-file-import" aria-hidden="true"></i><span>导入文件</span></button>
+              <button id="viewToggleBtn" type="button" role="menuitem"><i class="fa-solid fa-th-large" id="viewToggleIcon" aria-hidden="true"></i><span id="viewToggleLabel">切换视图</span></button>
+              <button id="metadataPanelBtn" type="button" role="menuitem"><i class="fa-solid fa-list-check" aria-hidden="true"></i><span>样片详情与批量操作</span></button>
+              <button id="aboutBtn" type="button" role="menuitem"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>关于与更新公告</span></button>
+              <button id="settingsBtn" type="button" role="menuitem"><i class="fa-solid fa-gear" aria-hidden="true"></i><span>设置</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="workspace-frame">
+      <aside class="project-sidebar" aria-label="项目导航">
+        <div class="project-sidebar-header">
+          <div>
+            <span class="sidebar-eyebrow">工作项目</span>
+            <h2 class="sidebar-title">项目</h2>
+          </div>
+          <button id="createProjectBtn" class="create-project-btn" type="button" title="新建项目">
+            <i class="fa-solid fa-folder-plus" aria-hidden="true"></i><span>新建项目</span>
+          </button>
+        </div>
+        <div id="projectList" class="project-list custom-scrollbar" aria-label="项目列表"></div>
+        <div class="sidebar-auxiliary" aria-label="辅助空间">
+          <span class="sidebar-section-label">辅助空间</span>
+          <button id="statusRecycleBtn" type="button"><i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>回收站</span><span id="recycleCount" class="auxiliary-count"></span></button>
+          <button id="statusBrowserBtn" type="button"><i class="fa-solid fa-photo-film" aria-hidden="true"></i><span>素材浏览器</span></button>
+          <button id="statusSettingsBtn" type="button"><i class="fa-solid fa-gear" aria-hidden="true"></i><span>设置</span></button>
         </div>
       </aside>
-      
-      <!-- 中间主内容 -->
-      <div class="flex-1 flex flex-col overflow-hidden">
-        <!-- 智能筛选条 -->
-        <div class="h-11 bg-bgPrimary border-b border-borderColor shrink-0 px-4 flex items-center gap-2 overflow-x-auto custom-scrollbar">
+
+      <main class="workspace-main" aria-label="项目工作区">
+        <section class="project-titlebar" aria-labelledby="currentProjectTitle">
+          <div class="project-brief-main">
+            <button id="projectCoverButton" class="project-cover-button" type="button" title="选择一张样片后可设为项目封面" aria-label="项目封面">
+              <i class="fa-regular fa-image" aria-hidden="true"></i>
+              <span>项目封面</span>
+            </button>
+            <div class="project-heading">
+              <div class="project-heading-title">
+                <div>
+                  <span class="section-eyebrow">拍摄简报</span>
+                  <h1 id="currentProjectTitle">未选择项目</h1>
+                </div>
+                <button id="projectBriefEditBtn" class="brief-edit-button" type="button" disabled><i class="fa-solid fa-pen" aria-hidden="true"></i><span>编辑简报</span></button>
+              </div>
+              <p id="currentProjectDescription">创建或选择一个项目开始整理参考样片</p>
+              <div id="currentProjectBriefMeta" class="project-brief-meta">
+                <span id="currentProjectClient"><i class="fa-regular fa-building" aria-hidden="true"></i>未填写客户</span>
+                <span id="currentProjectDate"><i class="fa-regular fa-calendar" aria-hidden="true"></i>尚未设置拍摄日期</span>
+                <span id="currentProjectLocation"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>未填写场地</span>
+                <span id="currentProjectOwner"><i class="fa-regular fa-user" aria-hidden="true"></i>未填写负责人</span>
+              </div>
+              <p id="currentProjectGoal" class="project-goal">尚未填写交付目标</p>
+            </div>
+          </div>
+          <div class="project-summary" aria-label="项目统计">
+            <div class="project-stat"><span>参考样片</span><strong id="projectPhotoCount">0</strong></div>
+            <div class="project-stat"><span>未处理</span><strong id="projectUnprocessedCount">0</strong></div>
+          </div>
+          <form id="projectBriefEditor" class="project-brief-editor hidden">
+            <label>项目名称<input id="briefNameInput" type="text" maxlength="100" required></label>
+            <label>客户 / 品牌<input id="briefClientInput" type="text" maxlength="100"></label>
+            <label>拍摄日期<input id="briefShootDateInput" type="date"></label>
+            <label>场地<input id="briefLocationInput" type="text" maxlength="120"></label>
+            <label>负责人<input id="briefOwnerInput" type="text" maxlength="100"></label>
+            <label class="brief-wide">项目说明<textarea id="briefDescriptionInput" rows="2" maxlength="500"></textarea></label>
+            <label class="brief-wide">交付目标<textarea id="briefGoalInput" rows="2" maxlength="500" placeholder="例如：品牌主视觉 3 张、社交媒体竖图 6 张"></textarea></label>
+            <div class="brief-cover-editor brief-wide">
+              <div class="brief-cover-heading">
+                <div><strong>项目封面</strong><span id="briefCoverStatus">尚未设置封面</span></div>
+                <div class="brief-cover-actions">
+                  <button id="briefUseSelectedCoverBtn" class="secondary-action" type="button"><i class="fa-solid fa-arrow-pointer" aria-hidden="true"></i><span>使用图库当前选中</span></button>
+                  <button id="briefClearCoverBtn" class="secondary-action" type="button"><i class="fa-regular fa-image" aria-hidden="true"></i><span>清除封面</span></button>
+                </div>
+              </div>
+              <div id="briefCoverChoices" class="brief-cover-choices" role="listbox" aria-label="选择项目封面">
+                <span class="brief-cover-empty">当前项目还没有可用样片</span>
+              </div>
+            </div>
+            <div class="project-brief-editor-actions brief-wide">
+              <span class="brief-editor-spacer"></span>
+              <button id="briefCancelBtn" class="secondary-action" type="button">取消</button>
+              <button id="briefSaveBtn" class="primary-action" type="submit"><i class="fa-solid fa-check" aria-hidden="true"></i><span>保存简报与封面</span></button>
+            </div>
+          </form>
+        </section>
+
+        <nav class="workflow-stagebar" aria-label="工作流程">
+          <button id="galleryModeBtn" class="workflow-stage stage-action active" type="button" aria-current="step"><span class="stage-index">01</span><span>收集样片</span></button>
+          <button id="cullingModeBtn" class="workflow-stage stage-action" type="button"><span class="stage-index">02</span><span>快速筛选</span></button>
+          <span class="workflow-stage-note">选择样片后保存到桌面或导出 PDF</span>
+        </nav>
+
+        <div class="filter-bar custom-scrollbar" aria-label="样片筛选">
           <span class="filter-chip active" data-filter="all">全部</span>
-          <span class="filter-chip" data-filter="rating-5">5 星</span>
-          <span class="filter-chip" data-filter="rating-1">1 星及以上</span>
-          <span class="filter-chip" data-filter="unrated">未评级</span>
-          <span class="filter-chip" data-filter="orientation-landscape">横构图</span>
-          <span class="filter-chip" data-filter="orientation-portrait">竖构图</span>
+          <span class="filter-chip" data-filter="source-web">网页样片</span>
+          <span class="filter-chip" data-filter="source-local">本地样片</span>
           <span class="filter-chip" data-filter="favorite">收藏</span>
-          <span class="filter-chip" data-filter="recent">最近 7 天</span>
-          <div id="cameraFilterChips" class="flex items-center gap-2"></div>
-          <div id="lensFilterChips" class="flex items-center gap-2"></div>
-          <div class="flex-1"></div>
-          <select id="ratingFilter" class="bg-bgSecondary border border-borderColor rounded px-3 py-1 text-xs text-textPrimary focus:outline-none cursor-pointer h-7">
+          <div class="filter-spacer"></div>
+          <select id="ratingFilter" aria-label="评级筛选">
             <option value="">全部评级</option>
             <option value="5">5星</option>
             <option value="4">4星及以上</option>
@@ -707,69 +149,115 @@
             <option value="2">2星及以上</option>
             <option value="1">1星及以上</option>
           </select>
-          <select id="tagFilter" class="bg-bgSecondary border border-borderColor rounded px-3 py-1 text-xs text-textPrimary focus:outline-none cursor-pointer h-7">
-            <option value="">全部标签</option>
-          </select>
-          <button id="clearFilterBtn" class="px-2 py-1 text-xs text-textSecondary hover:text-textPrimary">
-            <i class="fa-solid fa-undo mr-1"></i>重置
-          </button>
-          <span id="photoCount" class="text-textSecondary text-xs ml-2"></span>
+          <select id="tagFilter" aria-label="标签筛选"><option value="">全部标签</option></select>
+          <button id="clearFilterBtn" class="filter-reset" type="button"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>重置</span></button>
+          <button id="selectAllBtn" class="filter-reset" type="button" title="选择当前筛选结果" disabled><i class="fa-solid fa-check-double" aria-hidden="true"></i><span>全选</span></button>
+          <span id="photoCount" class="photo-count-label"></span>
         </div>
-        
-        <!-- 样片库 / 回收站 视图 -->
-        <div id="galleryPanel" class="flex-1 flex flex-col overflow-hidden">
-          <div class="flex-1 overflow-y-auto custom-scrollbar" id="photoGridContainer">
-            <div id="emptyState" class="hidden absolute inset-0 flex flex-col items-center justify-center text-textSecondary">
-              <div class="w-20 h-20 rounded-full bg-white/[0.03] flex items-center justify-center mb-6 border border-white/[0.04]">
-                <i class="fa-regular fa-images text-3xl text-accent/60"></i>
-              </div>
-              <p id="emptyStateTitle" class="text-lg mb-1" style="font-family: 'DM Serif Display', serif; color: #f0ede8;">还没有导入任何照片</p>
-              <p id="emptyStateSubtitle" class="text-sm text-textDisabled mb-6">点击下方按钮开始导入您的样片</p>
-              <div id="emptyStateActions" class="flex gap-3">
-                <button id="emptyImportFolderBtn2" class="px-5 py-2.5 bg-accent text-white text-sm rounded-lg hover:bg-accent/90 transition-all duration-200 shadow-lg shadow-accent/20">
-                  <i class="fa-solid fa-folder-open mr-2"></i>导入文件夹
-                </button>
+
+        <section id="galleryPanel" class="gallery-panel" aria-label="样片浏览器">
+          <div class="photo-grid-container custom-scrollbar" id="photoGridContainer">
+            <div id="emptyState" class="empty-state hidden" role="status">
+              <div class="empty-state-icon"><i class="fa-regular fa-images" aria-hidden="true"></i></div>
+              <p id="emptyStateTitle" class="empty-state-title">还没有项目</p>
+              <p id="emptyStateSubtitle" class="empty-state-subtitle">创建一个项目开始收集和整理样片</p>
+              <div id="emptyStateActions" class="empty-state-actions">
+                <button id="emptyCreateProjectBtn" class="primary-action" type="button"><i class="fa-solid fa-folder-plus" aria-hidden="true"></i><span>新建项目</span></button>
+                <button id="emptyImportFolderBtn2" class="secondary-action" type="button"><i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>导入文件夹</span></button>
+                <button id="emptyClearFilterBtn" class="secondary-action hidden" type="button"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>清除筛选</span></button>
               </div>
             </div>
             <div id="photoGrid" class="photo-grid"></div>
           </div>
+        </section>
+
+        <div id="selectionActionBar" class="selection-actionbar hidden" role="toolbar" aria-label="选中样片操作">
+          <strong id="selectionActionCount">已选 0 张</strong>
+          <span class="selection-action-hint">金色描边表示已选样片</span>
+          <button id="selectionActionCoverBtn" class="secondary-action" type="button"><i class="fa-regular fa-image" aria-hidden="true"></i><span>设为封面</span></button>
+          <button id="selectionActionTagsBtn" class="secondary-action" type="button"><i class="fa-solid fa-tags" aria-hidden="true"></i><span>评级与标签</span></button>
+          <button id="deleteBtn" class="selection-action-danger" type="button" disabled><i class="fa-solid fa-trash" aria-hidden="true"></i><span>移入回收站</span></button>
+          <button id="restoreBtn" class="secondary-action hidden" type="button" disabled><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>恢复</span></button>
+          <button id="permanentDeleteBtn" class="selection-action-danger hidden" type="button" disabled><i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>彻底删除</span></button>
+          <button id="selectionActionCancelBtn" class="selection-action-close" type="button" aria-label="取消选择"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
         </div>
-        
-        <!-- 底部状态栏 -->
+
+        <section id="cullingWorkspace" class="culling-workspace hidden" aria-label="样片初筛工作区">
+          <header class="culling-header">
+            <div>
+              <span class="section-eyebrow">键盘优先</span>
+              <h2 id="cullingStageTitle">样片初筛</h2>
+              <p id="cullingProgress" class="culling-progress">准备开始</p>
+            </div>
+            <div class="culling-header-actions">
+              <span id="cullingLastAction" class="culling-last-action" role="status">最近操作：无</span>
+              <button id="cullingUndoBtn" class="secondary-action" type="button" disabled><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>撤销</span></button>
+              <button id="cullingExitBtn" class="secondary-action" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>返回图库</span></button>
+            </div>
+          </header>
+          <div class="culling-toolbar">
+            <div class="culling-view-switch" role="group" aria-label="初筛视图">
+              <button id="cullingGridViewBtn" class="filter-chip active" type="button"><i class="fa-solid fa-table-cells" aria-hidden="true"></i><span>网格</span></button>
+              <button id="cullingImmersiveViewBtn" class="filter-chip" type="button"><i class="fa-solid fa-expand" aria-hidden="true"></i><span>沉浸式</span></button>
+            </div>
+            <div class="culling-shortcuts" aria-label="初筛快捷键">
+              <span>← → 浏览</span><span>P 保留</span><span>X 拒绝</span><span>U 未处理</span><span>1–5 评级</span><span>Space 放大/适配</span><span>C 选择</span>
+            </div>
+          </div>
+          <div id="cullingGrid" class="culling-grid custom-scrollbar" tabindex="0" aria-label="初筛样片网格"></div>
+          <div id="cullingImmersive" class="culling-immersive hidden" aria-label="沉浸式样片预览">
+            <button id="cullingPreviousBtn" class="culling-nav culling-nav-previous" type="button" aria-label="上一张"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+            <div class="culling-immersive-stage">
+              <img id="cullingImmersiveImage" class="culling-immersive-image" src="" alt="">
+              <div class="culling-immersive-caption">
+                <strong id="cullingImmersiveFilename">未选择样片</strong>
+                <span id="cullingImmersiveMeta"></span>
+              </div>
+            </div>
+            <button id="cullingNextBtn" class="culling-nav culling-nav-next" type="button" aria-label="下一张"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+          </div>
+          <div class="culling-actionbar" role="group" aria-label="初筛操作">
+            <button id="cullingUnreviewedBtn" class="culling-action culling-action-neutral" type="button"><kbd>U</kbd><span>标为未处理</span></button>
+            <button id="cullingPickBtn" class="culling-action culling-action-pick" type="button"><kbd>P</kbd><span>保留</span></button>
+            <button id="cullingRejectBtn" class="culling-action culling-action-reject" type="button"><kbd>X</kbd><span>拒绝</span></button>
+          </div>
+        </section>
+
+
         <footer class="status-bar">
-          <div class="flex items-center gap-4">
-            <button id="statusProject" class="hover:text-textPrimary font-medium text-textPrimary"><i class="fa-solid fa-folder mr-1"></i><span>默认项目</span></button>
+          <div class="status-context">
+            <button id="statusProject" type="button"><i class="fa-solid fa-folder" aria-hidden="true"></i><span>未选择项目</span></button>
             <span id="statusView">瀑布流</span>
-            <span id="statusCount">0 张照片</span>
-            <button id="statusBackToGallery" class="hidden hover:text-textPrimary text-accent"><i class="fa-solid fa-arrow-left mr-1"></i>回到样片库</button>
+            <span id="statusCount">0 张样片</span>
+            <button id="statusBackToGallery" class="hidden" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>回到样片库</span></button>
           </div>
-          <div class="flex items-center gap-4">
-            <button id="statusBrowserBtn" class="hover:text-textPrimary"><i class="fa-solid fa-globe mr-1"></i>素材浏览器</button>
-            <button id="statusRecycleBtn" class="hover:text-textPrimary"><i class="fa-solid fa-trash-can mr-1"></i>回收站 <span id="recycleCount"></span></button>
-            <button id="statusSettingsBtn" class="hover:text-textPrimary"><i class="fa-solid fa-cog mr-1"></i>设置</button>
-          </div>
+          <div class="status-shortcuts"><button id="globalUndoBtn" class="status-undo-button" type="button" disabled><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span id="globalUndoLabel">没有可撤销操作</span></button><span><i class="fa-regular fa-keyboard" aria-hidden="true"></i> 快捷键：Enter 打开，Esc 返回，Ctrl+Z 撤销</span></div>
         </footer>
-      </div>
-      
+      </main>
       <!-- 右侧上下文面板 -->
       <div id="metadataPanel" class="metadata-panel">
         <div class="resize-handle"></div>
         <div class="panel-content custom-scrollbar">
           <div class="flex items-center justify-between mb-4">
             <h3 id="metadataPanelTitle" class="text-lg font-semibold">批量操作</h3>
-            <button id="closeMetadataPanel" class="p-1 hover:bg-white/10 rounded"><i class="fa-solid fa-times"></i></button>
+            <button id="closeMetadataPanel" class="p-1 hover:bg-white/10 rounded" aria-label="关闭样片详情"><i class="fa-solid fa-xmark"></i></button>
           </div>
-          <div id="selectedCount" class="text-textSecondary text-sm mb-4">已选择 0 张照片</div>
+          <div id="selectedCount" class="text-textSecondary text-sm mb-4">已选择 0 张样片</div>
           
-          <!-- 单张照片元数据 -->
+          <!-- 单张样片元数据 -->
           <div id="singlePhotoInspector" class="single-photo-inspector hidden">
             <img id="inspectorThumb" class="inspector-thumb" src="" alt="">
             <div class="info-row"><span class="info-label">文件名</span><span id="inspectorFilename" class="info-value"></span></div>
             <div class="info-row"><span class="info-label">路径</span><span id="inspectorPath" class="info-value"></span></div>
             <div class="info-row"><span class="info-label">尺寸</span><span id="inspectorDimensions" class="info-value"></span></div>
             <div class="info-row"><span class="info-label">大小</span><span id="inspectorFilesize" class="info-value"></span></div>
-            <div class="info-row"><span class="info-label">导入时间</span><span id="inspectorImportedAt" class="info-value"></span></div>
+            <div class="info-row"><span class="info-label">收集时间</span><span id="inspectorImportedAt" class="info-value"></span></div>
             <div class="info-row"><span class="info-label">拍摄时间</span><span id="inspectorDateTaken" class="info-value"></span></div>
+            <div class="info-row"><span class="info-label">来源类型</span><span id="inspectorSourceType" class="info-value"></span></div>
+            <div class="info-row"><span class="info-label">来源站点</span><span id="inspectorSourceDomain" class="info-value"></span></div>
+            <div class="info-row"><span class="info-label">来源 URL</span><span id="inspectorSourceUrl" class="info-value break-all"></span></div>
+            <button id="inspectorOpenSourceBtn" class="secondary-action w-full mt-2 hidden" type="button"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i><span>打开原网页</span></button>
+            <label class="info-row items-center"><span class="info-label">来源备注</span><input id="inspectorSourceNote" class="info-value bg-transparent border-b border-borderColor px-1" type="text" maxlength="240" placeholder="可选"><button id="inspectorSaveSourceNoteBtn" class="tool-button ml-2" type="button" title="保存来源备注" aria-label="保存来源备注"><i class="fa-solid fa-check" aria-hidden="true"></i></button></label>
             <div class="info-row"><span class="info-label">相机</span><span id="inspectorCamera" class="info-value"></span></div>
             <div class="info-row"><span class="info-label">镜头</span><span id="inspectorLens" class="info-value"></span></div>
             <div class="info-row"><span class="info-label">评级</span><span id="inspectorRating" class="info-value"></span></div>
@@ -796,19 +284,19 @@
               <h4 class="text-sm font-medium mb-2">批量添加标签</h4>
               <div class="flex gap-2 mb-2">
                 <input type="text" id="batchTagInput" placeholder="输入标签名" class="flex-1 h-8 bg-bgPrimary border border-borderColor rounded px-3 text-sm focus:outline-none focus:border-accent">
-                <button id="addBatchTagBtn" class="px-3 h-8 bg-accent text-white text-sm rounded hover:bg-accent/80"><i class="fa-solid fa-plus"></i></button>
+                <button id="addBatchTagBtn" class="px-3 h-8 bg-accent text-white text-sm rounded hover:bg-accent/80" aria-label="添加标签"><i class="fa-solid fa-plus"></i></button>
               </div>
               <div id="batchTags" class="flex flex-wrap gap-2 mb-2"></div>
-              <button id="applyBatchTagsBtn" class="w-full py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>应用标签到选中照片</button>
+              <button id="applyBatchTagsBtn" class="w-full py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>应用标签到选中样片</button>
             </div>
             <div class="mb-6">
               <h4 class="text-sm font-medium mb-2">批量移除标签</h4>
               <div class="flex gap-2 mb-2">
                 <input type="text" id="removeTagInput" placeholder="输入要移除的标签名" class="flex-1 h-8 bg-bgPrimary border border-borderColor rounded px-3 text-sm focus:outline-none focus:border-accent">
-                <button id="addRemoveTagBtn" class="px-3 h-8 bg-red-600 text-white text-sm rounded hover:bg-red-700"><i class="fa-solid fa-minus"></i></button>
+                <button id="addRemoveTagBtn" class="px-3 h-8 bg-red-600 text-white text-sm rounded hover:bg-red-700" aria-label="移除标签"><i class="fa-solid fa-minus"></i></button>
               </div>
               <div id="removeTags" class="flex flex-wrap gap-2 mb-2"></div>
-              <button id="applyRemoveTagsBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>移除选中照片的标签</button>
+              <button id="applyRemoveTagsBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>移除选中样片的标签</button>
             </div>
             <div class="mb-6">
               <h4 class="text-sm font-medium mb-2">现有标签</h4>
@@ -817,45 +305,50 @@
           </div>
         </div>
       </div>
-    </main>
+    </div>
   </div>
-  
-  <!-- 素材浏览器滑出面板 -->
+  <!-- 全屏素材浏览器 -->
   <div id="materialBrowserPanel" class="material-browser-panel">
-    <div class="h-10 bg-bgPrimary flex items-center px-4 border-b border-borderColor shrink-0">
-      <div class="flex items-center space-x-2 mr-4">
-        <button id="browserBack" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="后退">
+    <div class="material-browser-header">
+      <div class="material-browser-context">
+        <span class="material-browser-title">素材浏览器</span>
+        <span id="browserProjectContext" class="material-browser-project">未选择项目</span>
+        <span id="browserModeNotice" class="material-browser-mode-note">小红书内嵌浏览 · Alt+A 截图</span>
+      </div>
+      <div class="material-browser-nav">
+        <button id="browserBack" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" aria-label="后退" title="后退">
           <i class="fa-solid fa-arrow-left"></i>
         </button>
-        <button id="browserForward" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="前进">
+        <button id="browserForward" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" aria-label="前进" title="前进">
           <i class="fa-solid fa-arrow-right"></i>
         </button>
-        <button id="browserRefresh" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="刷新">
+        <button id="browserRefresh" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" aria-label="刷新" title="刷新">
           <i class="fa-solid fa-rotate-right"></i>
         </button>
       </div>
-      <div class="flex-1 flex items-center space-x-2">
+      <div class="material-browser-address">
         <input id="browserUrl" type="text" value="https://www.xiaohongshu.com" 
           class="flex-1 h-8 bg-bgSecondary border border-borderColor rounded px-3 text-sm text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent">
-        <button id="browserGo" class="px-3 py-1.5 bg-accent text-white text-sm rounded hover:bg-accent/80">
-          <i class="fa-solid fa-paper-plane"></i>
+        <button id="browserGo" class="px-3 py-1.5 bg-accent text-white text-sm rounded hover:bg-accent/80" aria-label="打开地址">
+          <i class="fa-solid fa-magnifying-glass"></i>
         </button>
       </div>
-      <div class="flex items-center space-x-2 ml-4">
-        <button id="browserModeToggle" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="切换浏览器模式">
-          <i class="fa-solid fa-globe" id="browserModeIcon"></i>
+      <div class="material-browser-tools">
+
+        <button id="openDouyinBtn" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="打开抖音" aria-label="在外部浏览器打开抖音">
+          <i class="fa-brands fa-tiktok" aria-hidden="true"></i>
         </button>
-        <button id="takeScreenshot" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="截图并保存">
-          <i class="fa-solid fa-camera"></i>
-        </button>
-        <button id="openDownloadDir" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="打开下载目录">
+        <button id="openDownloadDir" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="打开下载目录" aria-label="打开下载目录">
           <i class="fa-solid fa-folder-open"></i>
         </button>
-        <button id="clearDownloadCache" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="清空下载缓存">
+        <button id="clearDownloadCache" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="清空下载缓存" aria-label="清空下载缓存">
           <i class="fa-solid fa-trash"></i>
         </button>
-        <button id="closeMaterialBrowserBtn" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="关闭">
-          <i class="fa-solid fa-times"></i>
+        <button id="backToGalleryFromBrowser" class="p-1.5 hover:bg-bgSecondary rounded text-accent" title="回到样片库" aria-label="回到样片库">
+          <i class="fa-solid fa-images"></i>
+        </button>
+        <button id="closeMaterialBrowserBtn" class="p-1.5 hover:bg-bgSecondary rounded text-textSecondary" title="关闭" aria-label="关闭素材浏览器">
+          <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
     </div>
@@ -863,38 +356,47 @@
     <div class="flex-1 overflow-hidden">
       <webview id="materialWebview" src="https://www.xiaohongshu.com"
         class="w-full h-full"
-        webpreferences="webviewTag=true;plugins=false;nodeIntegration=false;contextIsolation=true;javascript=yes;webSecurity=yes;spellcheck=false"
-        allowpopups></webview>
+        webpreferences="webviewTag=true;plugins=false;nodeIntegration=false;contextIsolation=true;javascript=yes;webSecurity=yes;spellcheck=false"></webview>
     </div>
     
+    <div id="browserCollectionDock" class="browser-collection-dock">
+      <div class="browser-collection-summary">
+        <span class="browser-collection-icon"><i class="fa-solid fa-inbox" aria-hidden="true"></i></span>
+        <div><strong>本次收集</strong><span id="browserCollectionText">还没有保存样片</span></div>
+      </div>
+      <div id="browserCollectionItems" class="browser-collection-items"></div>
+      <div class="browser-collection-actions">
+        <button id="browserOpenCollectedBtn" class="secondary-action" type="button" disabled><i class="fa-solid fa-images" aria-hidden="true"></i><span>查看刚加入的样片</span></button>
+      </div>
+    </div>
     <div id="downloadProgressBar" class="hidden h-2 bg-bgSecondary border-t border-borderColor">
       <div id="downloadProgressInner" class="h-full bg-accent transition-all" style="width: 0%"></div>
     </div>
   </div>
   
   <div id="lightbox" class="lightbox-viewer hidden">
-    <button id="closeLightbox" class="absolute top-4 right-4 p-2 hover:bg-white/10 rounded text-white text-2xl z-10">
-      <i class="fa-solid fa-times"></i>
+    <button id="closeLightbox" class="absolute top-4 right-4 p-2 hover:bg-white/10 rounded text-white text-2xl z-10" aria-label="关闭样片预览">
+      <i class="fa-solid fa-xmark"></i>
     </button>
-    <button id="prevPhoto" class="absolute left-4 top-1/2 -translate-y-1/2 p-3 hover:bg-white/10 rounded text-white text-2xl z-10">
+    <button id="prevPhoto" class="absolute left-4 top-1/2 -translate-y-1/2 p-3 hover:bg-white/10 rounded text-white text-2xl z-10" aria-label="上一张样片">
       <i class="fa-solid fa-chevron-left"></i>
     </button>
-    <button id="nextPhoto" class="absolute right-4 top-1/2 -translate-y-1/2 p-3 hover:bg-white/10 rounded text-white text-2xl z-10">
+    <button id="nextPhoto" class="absolute right-4 top-1/2 -translate-y-1/2 p-3 hover:bg-white/10 rounded text-white text-2xl z-10" aria-label="下一张样片">
       <i class="fa-solid fa-chevron-right"></i>
     </button>
-    <button id="rotateLeft" class="absolute top-4 left-1/2 -translate-x-1/2 p-2 hover:bg-white/10 rounded text-white text-xl z-10" title="向左旋转">
+    <button id="rotateLeft" class="absolute top-4 left-1/2 -translate-x-1/2 p-2 hover:bg-white/10 rounded text-white text-xl z-10" title="向左旋转" aria-label="向左旋转">
       <i class="fa-solid fa-rotate-left"></i>
     </button>
-    <button id="rotateRight" class="absolute top-4 left-[calc(50%+48px)] p-2 hover:bg-white/10 rounded text-white text-xl z-10" title="向右旋转">
+    <button id="rotateRight" class="absolute top-4 left-[calc(50%+48px)] p-2 hover:bg-white/10 rounded text-white text-xl z-10" title="向右旋转" aria-label="向右旋转">
       <i class="fa-solid fa-rotate-right"></i>
     </button>
     <div id="imageContainer" class="flex items-center justify-center w-full h-full overflow-hidden">
       <img id="lightboxImage" src="" alt="">
     </div>
     <div class="zoom-controls bg-bgSecondary rounded-full px-4 py-2">
-      <button id="zoomOut" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white"><i class="fa-solid fa-minus"></i></button>
+      <button id="zoomOut" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white" aria-label="缩小样片"><i class="fa-solid fa-minus"></i></button>
       <span id="zoomLevel" class="px-3 py-1 text-white">100%</span>
-      <button id="zoomIn" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white"><i class="fa-solid fa-plus"></i></button>
+      <button id="zoomIn" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white" aria-label="放大样片"><i class="fa-solid fa-plus"></i></button>
       <button id="zoomReset" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white ml-2">重置</button>
     </div>
     <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 p-4 z-10">
@@ -924,7 +426,10 @@
     <div class="modal-content max-w-lg">
       <div class="flex items-center justify-between mb-6">
         <h3 class="text-lg font-semibold">设置</h3>
-        <button id="closeSettingsBtn" class="p-1 hover:bg-white/10 rounded"><i class="fa-solid fa-times"></i></button>
+        <div class="flex items-center gap-2">
+          <button id="backToGalleryFromSettings" class="p-1 hover:bg-white/10 rounded text-accent" title="回到样片库" aria-label="回到样片库"><i class="fa-solid fa-images"></i></button>
+          <button id="closeSettingsBtn" class="p-1 hover:bg-white/10 rounded" aria-label="关闭设置"><i class="fa-solid fa-xmark"></i></button>
+        </div>
       </div>
       <div class="bg-bgPrimary rounded-lg p-4 border border-borderColor mb-4">
         <h4 class="text-sm font-medium mb-3">缩略图缓存管理</h4>
@@ -933,7 +438,7 @@
           <div class="flex justify-between text-sm"><span class="text-textSecondary">缓存文件数:</span><span id="cacheFileCount" class="text-textPrimary">-</span></div>
         </div>
         <button id="cleanOldCacheBtn" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 mb-2"><i class="fa-solid fa-clock-rotate-left mr-2"></i>清理30天前的缓存</button>
-        <button id="clearAllCacheBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700"><i class="fa-solid fa-trash-alt mr-2"></i>清空全部缩略图缓存</button>
+        <button id="clearAllCacheBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700"><i class="fa-solid fa-broom mr-2"></i>清空全部缩略图缓存</button>
       </div>
       
       <div class="bg-bgPrimary rounded-lg p-4 border border-borderColor">
@@ -948,7 +453,7 @@
             <i class="fa-solid fa-external-link"></i>点击打开下载目录
           </a>
         </div>
-        <button id="clearDownloadCacheBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700"><i class="fa-solid fa-trash-alt mr-2"></i>清空下载缓存</button>
+        <button id="clearDownloadCacheBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700"><i class="fa-solid fa-broom mr-2"></i>清空下载缓存</button>
       </div>
     </div>
   </div>
@@ -957,7 +462,7 @@
     <div class="modal-content max-w-md">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-semibold">关于</h3>
-        <button id="closeAboutBtn" class="p-1 hover:bg-white/10 rounded text-textSecondary hover:text-textPrimary">
+        <button id="closeAboutBtn" class="p-1 hover:bg-white/10 rounded text-textSecondary hover:text-textPrimary" aria-label="关闭关于窗口">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
@@ -986,7 +491,7 @@
     <div class="modal-content max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-semibold">更新公告</h3>
-        <button id="closeChangelogBtn" class="p-1 hover:bg-white/10 rounded text-textSecondary hover:text-textPrimary">
+        <button id="closeChangelogBtn" class="p-1 hover:bg-white/10 rounded text-textSecondary hover:text-textPrimary" aria-label="关闭更新日志">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
@@ -1024,11 +529,23 @@
       <i class="fa-regular fa-copy mr-2"></i>复制图片到剪贴板
     </div>
   </div>
+
+  <div id="projectContextMenu" class="context-menu project-context-menu hidden" role="menu" aria-label="项目操作">
+    <div class="project-context-title" id="projectContextTitle">项目操作</div>
+    <button id="projectDuplicateBtn" class="context-menu-item" type="button" role="menuitem">
+      <i class="fa-regular fa-copy" aria-hidden="true"></i><span>复制项目</span>
+    </button>
+    <button id="projectDeleteBtn" class="context-menu-item context-menu-danger" type="button" role="menuitem">
+      <i class="fa-regular fa-trash-can" aria-hidden="true"></i><span>删除项目</span>
+    </button>
+  </div>
   
   <div id="tagInputModal" class="modal-overlay hidden">
     <div class="modal-content">
       <h3 class="text-lg font-semibold mb-4">添加标签</h3>
       <div class="mb-4">
+        <p class="text-sm text-textSecondary mb-2">拍摄维度预设：</p>
+        <div id="referenceCategoryPresets" class="flex flex-wrap gap-2 mb-3"></div>
         <p class="text-sm text-textSecondary mb-2">快速选择已使用的标签：</p>
         <div id="usedTagsList" class="flex flex-wrap gap-2 mb-3"></div>
       </div>
@@ -1061,6 +578,9 @@
     </div>
   </div>
 
+  <script src="js/state.js"></script>
+  <script src="js/navigation.js"></script>
+  <script src="js/projects.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/grid.js"></script>
   <script src="js/lightbox.js"></script>
@@ -1068,6 +588,8 @@
   <script src="js/batch.js"></script>
   <script src="js/import.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/culling.js"></script>
+  <script src="js/enhancements.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
