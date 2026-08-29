@@ -2,7 +2,7 @@ import { ipcMain } from 'electron'
 import { dbAdapter } from '../services/database'
 import { wrapHandler } from '../utils/ipcHandler'
 import type { Project, ProjectBriefInput } from '../types'
-import { deleteProjectAndMoveContents, duplicateProject } from '../services/projectManagement'
+import { deleteProjectAndMoveContents, duplicateProject, movePhotosToProject } from '../services/projectManagement'
 
 export function registerProjectIpc(): void {
   ipcMain.handle('projects:getAll', wrapHandler('projects:getAll', () => {
@@ -73,5 +73,14 @@ export function registerProjectIpc(): void {
 
   ipcMain.handle('projects:delete', wrapHandler('projects:delete', (_event, id: number) => {
     return deleteProjectAndMoveContents(id)
+  }))
+
+  ipcMain.handle('projects:movePhotos', wrapHandler('projects:movePhotos', (
+    _event,
+    sourceProjectId: number,
+    targetProjectId: number,
+    photoIds: number[]
+  ) => {
+    return movePhotosToProject(Number(sourceProjectId), Number(targetProjectId), photoIds)
   }))
 }

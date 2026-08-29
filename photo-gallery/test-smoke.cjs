@@ -96,7 +96,7 @@ async function main() {
     'photos:updateTags', 'photos:delete', 'photos:getTags', 'photos:generateThumbnails',
 
     'albums:getAll', 'albums:create', 'albums:rename', 'albums:delete', 'albums:addPhotos', 'albums:removePhotos',
-    'import:fromDirectory', 'import:fromFiles', 'import:getProgress',
+    'import:fromDirectory', 'import:fromFiles', 'import:fromDroppedPaths', 'import:getProgress',
     'rename:batch', 'rename:preview', 'rename:selectOutputDir',
     'tags:getAll', 'tags:create', 'tags:delete', 'tags:getByPhoto', 'tags:addToPhoto', 'tags:removeFromPhoto', 'tags:getAllWithCounts',
     'exif:getExifData', 'exif:writeRating', 'exif:writeTags', 'exif:batchWriteTags', 'exif:writeExifData', 'exif:getAllUsedTags',
@@ -109,7 +109,8 @@ async function main() {
     'shell:showItemInFolder', 'shell:openPath', 'app:getVersionInfo', 'app:getChangelog',
     'cache:getStats', 'cache:clearAll', 'cache:cleanOld', 'cache:enforceLimit',
     'window:minimize', 'window:maximize', 'window:close', 'window:isMaximized',
-    'photos:copyToDesktopFolder', 'photos:exportToPdf', 'photos:copyImageToClipboard'
+    'photos:copyToDesktopFolder', 'photos:exportToPdf', 'photos:copyImageToClipboard',
+    'projects:movePhotos'
   ]
   let missing = 0
   for (const ch of expected) {

@@ -1,18 +1,4 @@
 // Workspace and auxiliary-page navigation.
-// Legacy function names remain available for existing callers during the split.
-function setActiveWorkflowStage(stage) {
-  const stages = {
-    gallery: document.getElementById('galleryModeBtn'),
-    culling: document.getElementById('cullingModeBtn'),
-  }
-  Object.entries(stages).forEach(([key, button]) => {
-    const active = key === stage
-    button?.classList.toggle('active', active)
-    if (active) button?.setAttribute('aria-current', 'step')
-    else button?.removeAttribute('aria-current')
-  })
-}
-
 function navigateToWorkspace(workspace) {
   switch (workspace) {
     case 'gallery':
@@ -174,14 +160,10 @@ function switchToGallery() {
   const settingsModal = document.getElementById('settingsModal');
   if (settingsModal) settingsModal.classList.add('hidden');
   isRecycleBinView = false;
-  if (typeof cullingMode !== 'undefined') cullingMode = false;
   currentPanel = 'gallery';
 
   document.getElementById('galleryPanel')?.classList.remove('hidden');
-  document.getElementById('cullingWorkspace')?.classList.add('hidden');
   document.querySelector('.filter-bar')?.classList.remove('hidden');
-  setActiveWorkflowStage('gallery');
-
   const searchWrap = document.getElementById('searchInput')?.parentElement;
   const ratingWrap = document.getElementById('ratingFilter')?.parentElement;
   if (searchWrap) searchWrap.classList.remove('hidden');
@@ -247,7 +229,6 @@ function navigateBrowserToUrl() {
 }
 
 function bindNavigationEvents() {
-  document.getElementById('galleryModeBtn')?.addEventListener('click', switchToGallery);
   document.getElementById('statusBrowserBtn')?.addEventListener('click', () => {
     const panel = document.getElementById('materialBrowserPanel');
     if (panel?.classList.contains('open')) closeMaterialBrowserPanel();

@@ -1,6 +1,6 @@
 import { dbAdapter, saveDatabase } from './database'
-import { moveProjectSelections } from './projectSelections'
-import { moveProjectShots } from './projectShots'
+import { moveProjectSelections, moveProjectSelectionsForPhotos } from './projectSelections'
+import { moveProjectShots, moveProjectShotsForPhotos } from './projectShots'
 import { moveProjectExports } from './planningExports'
 import { copyProjectMaterialReferences, moveProjectMaterialReferences } from './projectReferences'
 
@@ -16,6 +16,17 @@ export interface DeleteProjectResult {
   targetProjectId?: number
   targetProjectName?: string
   movedPhotos?: number
+  error?: string
+}
+
+export interface MovePhotosResult {
+  success: boolean
+  sourceProjectId?: number
+  targetProjectId?: number
+  movedPhotoIds?: number[]
+  skippedPhotoIds?: number[]
+  movedPhotos?: number
+  skippedPhotos?: number
   error?: string
 }
 
@@ -92,5 +103,76 @@ export function deleteProjectAndMoveContents(projectId: number): DeleteProjectRe
     targetProjectId,
     targetProjectName: String(target.name),
     movedPhotos
+  }
+}
+
+function normalizePhotoIds(photoIds: number[]): number[] {
+  if (!Array.isArray(photoIds)) return []
+  return Array.from(new Set(photoIds.map(Number).filter(id => Number.isInteger(id) && id > 0)))
+}
+
+export function movePhotosToProject(
+  sourceProjectId: number,
+  targetProjectId: number,
+  requestedPhotoIds: number[]
+): MovePhotosResult {
+  const source = dbAdapter.get('SELECT id FROM projects WHERE id = ?', [sourceProjectId])
+  const target = dbAdapter.get('SELECT id FROM projects WHERE id = ?', [targetProjectId])
+  if (!source || !target) return { success: false, error: '来源或目标项目不存在' }
+  if (sourceProjectId === targetProjectId) return { success: false, error: '不能移动到当前项目' }
+
+  const photoIds = normalizePhotoIds(requestedPhotoIds)
+  if (photoIds.length === 0) return { success: false, error: '没有可移动的样片' }
+
+  const placeholders = photoIds.map(() => '?').join(', ')
+  const movableRows = dbAdapter.query(
+    `SELECT id FROM photos WHERE project_id = ? AND deleted_at IS NULL AND id IN (${placeholders})`,
+    [sourceProjectId, ...photoIds]
+  )
+  const movableSet = new Set(movableRows.map(row => Number(row.id)))
+  const movedPhotoIds = photoIds.filter(id => movableSet.has(id))
+  const movedSet = new Set(movedPhotoIds)
+  const skippedPhotoIds = photoIds.filter(id => !movedSet.has(id))
+  if (movedPhotoIds.length === 0) {
+    return {
+      success: true,
+      sourceProjectId,
+      targetProjectId,
+      movedPhotoIds: [],
+      skippedPhotoIds,
+      movedPhotos: 0,
+      skippedPhotos: skippedPhotoIds.length
+    }
+  }
+
+  const now = Math.floor(Date.now() / 1000)
+  try {
+    dbAdapter.exec('BEGIN TRANSACTION')
+    moveProjectSelectionsForPhotos(sourceProjectId, targetProjectId, movedPhotoIds)
+    moveProjectShotsForPhotos(sourceProjectId, targetProjectId, movedPhotoIds)
+    dbAdapter.run(
+      'UPDATE projects SET cover_photo_id = NULL, updated_at = ? WHERE id = ? AND cover_photo_id IN (' + placeholders + ')',
+      [now, sourceProjectId, ...movedPhotoIds]
+    )
+    dbAdapter.run(
+      'UPDATE photos SET project_id = ? WHERE project_id = ? AND deleted_at IS NULL AND id IN (' + placeholders + ')',
+      [targetProjectId, sourceProjectId, ...movedPhotoIds]
+    )
+    dbAdapter.run('UPDATE projects SET updated_at = ? WHERE id IN (?, ?)', [now, sourceProjectId, targetProjectId])
+    dbAdapter.exec('COMMIT')
+    saveDatabase()
+  } catch (error) {
+    try { dbAdapter.exec('ROLLBACK') } catch { /* Preserve the original error. */ }
+    throw error
+  }
+
+  return {
+    success: true,
+    sourceProjectId,
+    targetProjectId,
+    movedPhotoIds,
+    skippedPhotoIds,
+    movedPhotos: movedPhotoIds.length,
+    skippedPhotos: skippedPhotoIds.length
   }
 }

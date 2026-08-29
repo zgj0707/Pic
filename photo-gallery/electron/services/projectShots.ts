@@ -189,11 +189,24 @@ export function removeShotsForPhotos(photoIds: number[]): void {
   dbAdapter.run(`DELETE FROM project_shots WHERE photo_id IN (${placeholders})`, photoIds)
 }
 
-export function moveProjectShots(fromProjectId: number, toProjectId: number): void {
-  const shots = dbAdapter.query('SELECT id, photo_id FROM project_shots WHERE project_id = ? ORDER BY position, id', [fromProjectId])
+function moveProjectShotRows(fromProjectId: number, toProjectId: number, photoIds?: number[]): void {
+  const params: unknown[] = [fromProjectId]
+  const photoClause = photoIds && photoIds.length > 0
+    ? ` AND photo_id IN (${photoIds.map(() => '?').join(', ')})`
+    : ''
+  if (photoIds && photoIds.length > 0) params.push(...photoIds)
+  const shots = dbAdapter.query(`SELECT id, photo_id FROM project_shots WHERE project_id = ?${photoClause} ORDER BY position, id`, params)
   for (const shot of shots) {
     const duplicate = dbAdapter.get('SELECT id FROM project_shots WHERE project_id = ? AND photo_id = ?', [toProjectId, shot.photo_id])
     if (duplicate) dbAdapter.run('DELETE FROM project_shots WHERE id = ?', [shot.id])
     else dbAdapter.run('UPDATE project_shots SET project_id = ? WHERE id = ?', [toProjectId, shot.id])
   }
+}
+
+export function moveProjectShotsForPhotos(fromProjectId: number, toProjectId: number, photoIds: number[]): void {
+  moveProjectShotRows(fromProjectId, toProjectId, photoIds)
+}
+
+export function moveProjectShots(fromProjectId: number, toProjectId: number): void {
+  moveProjectShotRows(fromProjectId, toProjectId)
 }

@@ -99,7 +99,6 @@
           </div>
           <div class="project-summary" aria-label="项目统计">
             <div class="project-stat"><span>参考样片</span><strong id="projectPhotoCount">0</strong></div>
-            <div class="project-stat"><span>未处理</span><strong id="projectUnprocessedCount">0</strong></div>
           </div>
           <form id="projectBriefEditor" class="project-brief-editor hidden">
             <label>项目名称<input id="briefNameInput" type="text" maxlength="100" required></label>
@@ -128,12 +127,6 @@
             </div>
           </form>
         </section>
-
-        <nav class="workflow-stagebar" aria-label="工作流程">
-          <button id="galleryModeBtn" class="workflow-stage stage-action active" type="button" aria-current="step"><span class="stage-index">01</span><span>收集样片</span></button>
-          <button id="cullingModeBtn" class="workflow-stage stage-action" type="button"><span class="stage-index">02</span><span>快速筛选</span></button>
-          <span class="workflow-stage-note">选择样片后保存到桌面或导出 PDF</span>
-        </nav>
 
         <div class="filter-bar custom-scrollbar" aria-label="样片筛选">
           <span class="filter-chip active" data-filter="all">全部</span>
@@ -181,48 +174,6 @@
           <button id="permanentDeleteBtn" class="selection-action-danger hidden" type="button" disabled><i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>彻底删除</span></button>
           <button id="selectionActionCancelBtn" class="selection-action-close" type="button" aria-label="取消选择"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
         </div>
-
-        <section id="cullingWorkspace" class="culling-workspace hidden" aria-label="样片初筛工作区">
-          <header class="culling-header">
-            <div>
-              <span class="section-eyebrow">键盘优先</span>
-              <h2 id="cullingStageTitle">样片初筛</h2>
-              <p id="cullingProgress" class="culling-progress">准备开始</p>
-            </div>
-            <div class="culling-header-actions">
-              <span id="cullingLastAction" class="culling-last-action" role="status">最近操作：无</span>
-              <button id="cullingUndoBtn" class="secondary-action" type="button" disabled><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>撤销</span></button>
-              <button id="cullingExitBtn" class="secondary-action" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>返回图库</span></button>
-            </div>
-          </header>
-          <div class="culling-toolbar">
-            <div class="culling-view-switch" role="group" aria-label="初筛视图">
-              <button id="cullingGridViewBtn" class="filter-chip active" type="button"><i class="fa-solid fa-table-cells" aria-hidden="true"></i><span>网格</span></button>
-              <button id="cullingImmersiveViewBtn" class="filter-chip" type="button"><i class="fa-solid fa-expand" aria-hidden="true"></i><span>沉浸式</span></button>
-            </div>
-            <div class="culling-shortcuts" aria-label="初筛快捷键">
-              <span>← → 浏览</span><span>P 保留</span><span>X 拒绝</span><span>U 未处理</span><span>1–5 评级</span><span>Space 放大/适配</span><span>C 选择</span>
-            </div>
-          </div>
-          <div id="cullingGrid" class="culling-grid custom-scrollbar" tabindex="0" aria-label="初筛样片网格"></div>
-          <div id="cullingImmersive" class="culling-immersive hidden" aria-label="沉浸式样片预览">
-            <button id="cullingPreviousBtn" class="culling-nav culling-nav-previous" type="button" aria-label="上一张"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
-            <div class="culling-immersive-stage">
-              <img id="cullingImmersiveImage" class="culling-immersive-image" src="" alt="">
-              <div class="culling-immersive-caption">
-                <strong id="cullingImmersiveFilename">未选择样片</strong>
-                <span id="cullingImmersiveMeta"></span>
-              </div>
-            </div>
-            <button id="cullingNextBtn" class="culling-nav culling-nav-next" type="button" aria-label="下一张"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
-          </div>
-          <div class="culling-actionbar" role="group" aria-label="初筛操作">
-            <button id="cullingUnreviewedBtn" class="culling-action culling-action-neutral" type="button"><kbd>U</kbd><span>标为未处理</span></button>
-            <button id="cullingPickBtn" class="culling-action culling-action-pick" type="button"><kbd>P</kbd><span>保留</span></button>
-            <button id="cullingRejectBtn" class="culling-action culling-action-reject" type="button"><kbd>X</kbd><span>拒绝</span></button>
-          </div>
-        </section>
-
 
         <footer class="status-bar">
           <div class="status-context">
@@ -391,7 +342,7 @@
       <i class="fa-solid fa-rotate-right"></i>
     </button>
     <div id="imageContainer" class="flex items-center justify-center w-full h-full overflow-hidden">
-      <img id="lightboxImage" src="" alt="">
+      <img id="lightboxImage" src="" alt="" draggable="false">
     </div>
     <div class="zoom-controls bg-bgSecondary rounded-full px-4 py-2">
       <button id="zoomOut" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white" aria-label="缩小样片"><i class="fa-solid fa-minus"></i></button>
@@ -598,8 +549,8 @@
   <script src="js/batch.js"></script>
   <script src="js/import.js"></script>
   <script src="js/ui.js"></script>
-  <script src="js/culling.js"></script>
   <script src="js/enhancements.js"></script>
+  <script src="js/dragdrop.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

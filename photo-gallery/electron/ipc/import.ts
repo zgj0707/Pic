@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { dbAdapter } from '../services/database'
-import { existsSync } from 'fs'
+import { existsSync, statSync } from 'fs'
 import { basename } from 'path'
 import exifr from 'exifr'
 import { isSupportedFile, scanDirectory, getValidFileStat, getImageDimensions } from '../utils/fileSystem'
@@ -206,6 +206,27 @@ export function registerImportIpc(mainWindow: BrowserWindow | null): void {
       if (!dbAdapter.get('SELECT id FROM projects WHERE id = ?', [projectId])) {
         return { success: false, imported: 0, skipped: 0, thumbnailsGenerated: 0, total: 0, error: '当前拍摄项目不存在，请重新选择项目' }
       }
+      return await performImport(filePaths, '导入中', projectId)
+    }
+  ))
+
+  ipcMain.handle('import:fromDroppedPaths', wrapAsyncHandler('import:fromDroppedPaths',
+    async (_event, droppedPaths: string[], projectId?: number | null): Promise<ImportResult> => {
+      if (projectId === null || projectId === undefined) {
+        return { success: false, imported: 0, skipped: 0, thumbnailsGenerated: 0, total: 0, error: '请先创建或选择一个拍摄项目' }
+      }
+      if (!dbAdapter.get('SELECT id FROM projects WHERE id = ?', [projectId])) {
+        return { success: false, imported: 0, skipped: 0, thumbnailsGenerated: 0, total: 0, error: '当前拍摄项目不存在，请重新选择项目' }
+      }
+
+      const filePaths = Array.from(new Set((Array.isArray(droppedPaths) ? droppedPaths : []).flatMap(path => {
+        if (typeof path !== 'string' || !path.trim() || !existsSync(path)) return []
+        try {
+          return statSync(path).isDirectory() ? scanDirectory(path) : (isSupportedFile(path) ? [path] : [])
+        } catch {
+          return []
+        }
+      })))
       return await performImport(filePaths, '导入中', projectId)
     }
   ))

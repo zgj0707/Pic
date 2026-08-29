@@ -11,6 +11,8 @@ let removeTags = [];
 let zoomScale = 1;
 let isDragging = false;
 let dragStart = { x: 0, y: 0 };
+let dragPointerId = null;
+let dragOriginOffset = { x: 0, y: 0 };
 let imageOffset = { x: 0, y: 0 };
 let masonryInstance = null;
 let imageLoadCount = 0;
@@ -32,7 +34,6 @@ let photoLoadedCount = 0;
 let photoCurrentPage = 0;
 let isLoadingPhotos = false;
 let photoFilterState = { search: '', rating: '', tag: '' };
-let reviewStateCounts = { unreviewed: 0, pick: 0, reject: 0 };
 
 // ─── 其他状态 ───
 let batchRatingValue = 0;
@@ -95,20 +96,6 @@ function buildBackendPhotoFilter() {
 }
 
 
-async function refreshReviewStateCounts() {
-  if (isRecycleBinView || currentProjectId === null || !window.electronAPI?.photos?.countByReviewState) {
-    reviewStateCounts = { unreviewed: 0, pick: 0, reject: 0 }
-  } else {
-    try {
-      reviewStateCounts = await window.electronAPI.photos.countByReviewState(currentProjectId)
-    } catch (error) {
-      console.warn('读取初筛统计失败:', error)
-    }
-  }
-  const unprocessed = document.getElementById('projectUnprocessedCount')
-  if (unprocessed) unprocessed.textContent = String(reviewStateCounts.unreviewed)
-}
-
 async function loadPhotos(reset = true) {
   if (!window.electronAPI) {
     renderPhotoGrid();
@@ -164,7 +151,6 @@ async function loadPhotos(reset = true) {
   } finally {
     isLoadingPhotos = false;
   }
-  if (reset && !isRecycleBinView) await refreshReviewStateCounts()
   if (!isRecycleBinView) {
     await updateTagFilter();
   }
@@ -355,8 +341,6 @@ function updateStatusBar() {
   const project = projects.find(candidate => candidate.id === currentProjectId);
   const projectName = project?.name || currentProjectName || '未选择项目';
   const projectPhotoCount = project?.photo_count ?? (isRecycleBinView ? 0 : photoTotalCount);
-  const unprocessedCount = isRecycleBinView ? 0 : (currentProjectId === null ? projectPhotoCount : reviewStateCounts.unreviewed);
-
   if (projectEl) {
     const span = projectEl.querySelector('span');
     if (span) span.textContent = projectName;
@@ -365,7 +349,6 @@ function updateStatusBar() {
   document.getElementById('currentProjectTitle')?.replaceChildren(document.createTextNode(projectName));
   if (typeof renderProjectBrief === 'function') renderProjectBrief(project);
   document.getElementById('projectPhotoCount')?.replaceChildren(document.createTextNode(String(projectPhotoCount)));
-  document.getElementById('projectUnprocessedCount')?.replaceChildren(document.createTextNode(String(unprocessedCount)));
 
   if (viewEl) viewEl.textContent = currentViewMode === 'compact' ? '紧凑视图' : '瀑布流';
   if (countEl) {
@@ -428,12 +411,14 @@ document.getElementById('clearBatchRatingBtn').addEventListener('click', clearBa
 // ─── 灯箱交互 ───
 document.getElementById('zoomIn').addEventListener('click', () => {
   zoomScale = Math.min(5, zoomScale + 0.25);
-  lightboxImage.style.transform = `scale(${zoomScale}) translate(${imageOffset.x / zoomScale}px, ${imageOffset.y / zoomScale}px)`;
+  applyLightboxTransform();
+  lightboxImage.style.cursor = zoomScale > 1 ? 'grab' : 'default';
   document.getElementById('zoomLevel').textContent = Math.round(zoomScale * 100) + '%';
 });
 document.getElementById('zoomOut').addEventListener('click', () => {
   zoomScale = Math.max(0.1, zoomScale - 0.25);
-  lightboxImage.style.transform = `scale(${zoomScale}) translate(${imageOffset.x / zoomScale}px, ${imageOffset.y / zoomScale}px)`;
+  applyLightboxTransform();
+  lightboxImage.style.cursor = zoomScale > 1 ? 'grab' : 'default';
   document.getElementById('zoomLevel').textContent = Math.round(zoomScale * 100) + '%';
 });
 document.getElementById('zoomReset').addEventListener('click', resetZoom);
@@ -444,23 +429,42 @@ imageContainer.addEventListener('wheel', (e) => {
   else document.getElementById('zoomOut').click();
 });
 
-lightboxImage.addEventListener('mousedown', (e) => {
-  if (zoomScale > 1) {
-    isDragging = true;
-    dragStart = { x: e.clientX - imageOffset.x, y: e.clientY - imageOffset.y };
-    lightboxImage.style.cursor = 'grabbing';
-  }
+lightboxImage.draggable = false;
+lightboxImage.addEventListener('dragstart', (event) => {
+  event.preventDefault();
 });
-document.addEventListener('mousemove', (e) => {
-  if (isDragging) {
-    imageOffset = { x: e.clientX - dragStart.x, y: e.clientY - dragStart.y };
-    lightboxImage.style.transform = `scale(${zoomScale}) translate(${imageOffset.x / zoomScale}px, ${imageOffset.y / zoomScale}px)`;
-  }
+lightboxImage.addEventListener('pointerdown', (event) => {
+  if (event.button !== 0 || zoomScale <= 1) return;
+  event.preventDefault();
+  isDragging = true;
+  dragPointerId = event.pointerId;
+  dragStart = { x: event.clientX, y: event.clientY };
+  dragOriginOffset = { ...imageOffset };
+  lightboxImage.setPointerCapture(event.pointerId);
+  lightboxImage.style.cursor = 'grabbing';
 });
-document.addEventListener('mouseup', () => {
+lightboxImage.addEventListener('pointermove', (event) => {
+  if (!isDragging || event.pointerId !== dragPointerId) return;
+  event.preventDefault();
+  imageOffset = {
+    x: dragOriginOffset.x + event.clientX - dragStart.x,
+    y: dragOriginOffset.y + event.clientY - dragStart.y
+  };
+  applyLightboxTransform();
+});
+function endLightboxPan(event) {
+  if (!isDragging || (event && event.pointerId !== dragPointerId)) return;
+  const pointerId = dragPointerId;
   isDragging = false;
+  dragPointerId = null;
+  if (pointerId !== null && lightboxImage.hasPointerCapture(pointerId)) {
+    lightboxImage.releasePointerCapture(pointerId);
+  }
   lightboxImage.style.cursor = zoomScale > 1 ? 'grab' : 'default';
-});
+}
+lightboxImage.addEventListener('pointerup', endLightboxPan);
+lightboxImage.addEventListener('pointercancel', endLightboxPan);
+window.addEventListener('blur', () => endLightboxPan());
 
 document.getElementById('closeLightbox').addEventListener('click', closeLightbox);
 document.getElementById('prevPhoto').addEventListener('click', () => {

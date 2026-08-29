@@ -9,8 +9,8 @@ const contentSource = readFileSync(join(root, 'electron', 'content', 'index.ts')
 const changelog = JSON.parse(readFileSync(join(root, 'electron', 'changelog.json'), 'utf8'))
 
 describe('release version consistency', () => {
-  it('publishes Pic 4.3.0 everywhere the release version is declared', () => {
-    expect(packageJson.version).toBe('4.3.0')
+  it('publishes Pic 4.3.1 everywhere the release version is declared', () => {
+    expect(packageJson.version).toBe('4.3.1')
     expect(packageLock.version).toBe(packageJson.version)
     expect(packageLock.packages[''].version).toBe(packageJson.version)
     expect(contentSource).toContain(`export const version = '${packageJson.version}'`)
