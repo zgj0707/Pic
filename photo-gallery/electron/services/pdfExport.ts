@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, renameSync, unlinkSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'fs'
 import { basename, extname, join } from 'path'
 
 const PAGE_WIDTH = 595.276
@@ -67,7 +67,10 @@ function availablePdfPath(desktopPath: string, requestedBaseName: string): strin
 
 async function prepareImage(sourcePath: string): Promise<PreparedImage> {
   const sharp = await import('sharp')
-  const result = await sharp.default(sourcePath)
+  // Read the source first so libvips processes an in-memory buffer instead of
+  // retaining a Windows file handle after the export promise resolves.
+  const sourceData = readFileSync(sourcePath)
+  const result = await sharp.default(sourceData)
     // Respect the source EXIF orientation before measuring and placing the image.
     .rotate()
     .flatten({ background: '#ffffff' })
