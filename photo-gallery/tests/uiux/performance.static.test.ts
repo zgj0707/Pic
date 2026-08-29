@@ -141,6 +141,8 @@ describe('UI/UX refactor guardrails', () => {
     expect(htmlSource).not.toContain('快速筛选')
     expect(htmlSource).not.toContain('cullingModeBtn')
     expect(htmlSource).not.toContain('cullingWorkspace')
+    expect(htmlSource).not.toContain('workflow-stagebar')
+    expect(htmlSource).not.toContain('workflow-stage-note')
     expect(navigationSource).not.toContain('cullingMode')
     expect(appSource).not.toContain('refreshReviewStateCounts')
     expect(layoutSource).not.toContain('culling-workspace')

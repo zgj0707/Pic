@@ -1,17 +1,4 @@
 // Workspace and auxiliary-page navigation.
-// Legacy function names remain available for existing callers during the split.
-function setActiveWorkflowStage(stage) {
-  const stages = {
-    gallery: document.getElementById('galleryModeBtn'),
-  }
-  Object.entries(stages).forEach(([key, button]) => {
-    const active = key === stage
-    button?.classList.toggle('active', active)
-    if (active) button?.setAttribute('aria-current', 'step')
-    else button?.removeAttribute('aria-current')
-  })
-}
-
 function navigateToWorkspace(workspace) {
   switch (workspace) {
     case 'gallery':
@@ -177,8 +164,6 @@ function switchToGallery() {
 
   document.getElementById('galleryPanel')?.classList.remove('hidden');
   document.querySelector('.filter-bar')?.classList.remove('hidden');
-  setActiveWorkflowStage('gallery');
-
   const searchWrap = document.getElementById('searchInput')?.parentElement;
   const ratingWrap = document.getElementById('ratingFilter')?.parentElement;
   if (searchWrap) searchWrap.classList.remove('hidden');
@@ -244,7 +229,6 @@ function navigateBrowserToUrl() {
 }
 
 function bindNavigationEvents() {
-  document.getElementById('galleryModeBtn')?.addEventListener('click', switchToGallery);
   document.getElementById('statusBrowserBtn')?.addEventListener('click', () => {
     const panel = document.getElementById('materialBrowserPanel');
     if (panel?.classList.contains('open')) closeMaterialBrowserPanel();
