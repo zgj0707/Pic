@@ -244,6 +244,24 @@ async function saveCaptureToLibrary(event: Electron.IpcMainInvokeEvent, payload:
   }
 }
 
+function copyCaptureToClipboard(event: Electron.IpcMainInvokeEvent, payload: CapturePayload) {
+  if (!isOverlaySender(event.sender.id)) {
+    return { success: false, error: '截图请求来源无效' }
+  }
+  const buffer = normalizeImageData(payload?.imageData)
+  if (buffer.length === 0 || buffer.length > MAX_IMAGE_BYTES) {
+    return { success: false, error: '截图大小无效（最大 25 MB）' }
+  }
+  const image = nativeImage.createFromBuffer(buffer)
+  if (image.isEmpty()) return { success: false, error: '无法解析截图图片' }
+  const dimensions = image.getSize()
+  if (dimensions.width < MIN_CAPTURE_SIZE || dimensions.height < MIN_CAPTURE_SIZE) {
+    return { success: false, error: '截图区域太小，请重新框选' }
+  }
+  clipboard.writeImage(image)
+  return { success: true }
+}
+
 export function registerScreenCapture(context: ScreenCaptureContext, rendererPath: string): void {
   captureContext = context
   overlayPath = join(dirname(rendererPath), 'screenshot-overlay.html')
@@ -265,6 +283,16 @@ export function registerScreenCapture(context: ScreenCaptureContext, rendererPat
   ))
 
   ipcMain.handle('capture:trigger', wrapAsyncHandler('capture:trigger', async () => beginCapture()))
+  ipcMain.handle('capture:get-hotkey-status', wrapHandler('capture:get-hotkey-status',
+    () => ({
+      success: true,
+      data: {
+        hotkey: HOTKEY,
+        registered: hotkeyRegistered,
+        conflict: !hotkeyRegistered
+      }
+    })
+  ))
 
   ipcMain.handle('capture:get-screen', wrapAsyncHandler('capture:get-screen',
     async (event, displayId: string, width: number, height: number) => {
@@ -321,6 +349,9 @@ export function registerScreenCapture(context: ScreenCaptureContext, rendererPat
 
   ipcMain.handle('capture:save-to-library', wrapAsyncHandler('capture:save-to-library',
     (event, payload: CapturePayload) => saveCaptureToLibrary(event, payload)
+  ))
+  ipcMain.handle('capture:copy-to-clipboard', wrapHandler('capture:copy-to-clipboard',
+    (event, payload: CapturePayload) => copyCaptureToClipboard(event, payload)
   ))
 
   const registerResult = globalShortcut.register(HOTKEY, () => { void beginCapture() })

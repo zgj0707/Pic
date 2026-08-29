@@ -698,6 +698,21 @@ document.getElementById('applyRemoveTagsBtn').addEventListener('click', applyRem
 document.getElementById('settingsBtn').addEventListener('click', async () => {
   document.getElementById('settingsModal').classList.remove('hidden');
   updateStatusBar();
+  const hotkeyValue = document.getElementById('screenshotHotkeyValue');
+  const hotkeyStatus = document.getElementById('screenshotHotkeyStatus');
+  if (window.electronAPI?.capture?.getHotkeyStatus) {
+    const result = await window.electronAPI.capture.getHotkeyStatus();
+    const hotkey = result?.data?.hotkey || 'Alt+A';
+    if (hotkeyValue) hotkeyValue.textContent = hotkey.replace('+', ' + ');
+    if (hotkeyStatus) {
+      hotkeyStatus.textContent = result?.data?.registered
+        ? '已注册，可全局使用'
+        : '注册失败：可能与其他软件快捷键冲突';
+      hotkeyStatus.className = result?.data?.registered
+        ? 'mt-2 text-xs text-green-400'
+        : 'mt-2 text-xs text-red-400';
+    }
+  }
   if (window.electronAPI?.cache?.getStats) {
     window.electronAPI.cache.getStats().then(stats => {
       document.getElementById('cacheSize').textContent = stats.formattedSize;

@@ -440,6 +440,16 @@
         <button id="cleanOldCacheBtn" class="w-full py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 mb-2"><i class="fa-solid fa-clock-rotate-left mr-2"></i>清理30天前的缓存</button>
         <button id="clearAllCacheBtn" class="w-full py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700"><i class="fa-solid fa-broom mr-2"></i>清空全部缩略图缓存</button>
       </div>
+
+      <div class="bg-bgPrimary rounded-lg p-4 border border-borderColor mb-4">
+        <h4 class="text-sm font-medium mb-2">全局截图快捷键</h4>
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-textSecondary">截图快捷键</span>
+          <kbd id="screenshotHotkeyValue" class="rounded border border-borderColor bg-bgSecondary px-2 py-1 text-textPrimary">Alt + A</kbd>
+        </div>
+        <p id="screenshotHotkeyStatus" class="mt-2 text-xs text-textSecondary">检测中...</p>
+        <p class="mt-1 text-xs text-textDisabled">按下后可在任意应用上框选截图；若快捷键被其他软件占用，这里会显示冲突。</p>
+      </div>
       
       <div class="bg-bgPrimary rounded-lg p-4 border border-borderColor">
         <h4 class="text-sm font-medium mb-3">素材下载设置</h4>

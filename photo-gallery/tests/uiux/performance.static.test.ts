@@ -14,6 +14,7 @@ const componentsSource = readFileSync(join(publicRoot, 'styles', 'components.css
 const materialBrowserSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'materialBrowser.ts'), 'utf8')
 const screenCaptureSource = readFileSync(join(process.cwd(), 'electron', 'services', 'screenCapture.ts'), 'utf8')
 const preloadSource = readFileSync(join(process.cwd(), 'electron', 'preload.ts'), 'utf8')
+const screenshotOverlaySource = readFileSync(join(publicRoot, 'screenshot-overlay.html'), 'utf8')
 const enhancementsSource = readFileSync(join(publicRoot, 'js', 'enhancements.js'), 'utf8')
 const projectIpcSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'project.ts'), 'utf8')
 const projectsSource = readFileSync(join(publicRoot, 'js', 'projects.js'), 'utf8')
@@ -105,6 +106,22 @@ describe('UI/UX refactor guardrails', () => {
     expect(preloadSource).toContain('clipboardCopied: boolean')
     expect(preloadSource).not.toContain('saveScreenshot')
     expect(materialBrowserSource).not.toContain('material-browser:save-screenshot')
+  })
+
+  it('keeps the screenshot overlay in edit mode until the user confirms', () => {
+    expect(screenshotOverlaySource).toContain('id="toolbar"')
+    expect(screenshotOverlaySource).toContain('data-tool="arrow"')
+    expect(screenshotOverlaySource).toContain('data-tool="mosaic"')
+    expect(screenshotOverlaySource).toContain('id="undoButton"')
+    expect(screenshotOverlaySource).toContain('id="redoButton"')
+    expect(screenshotOverlaySource).toContain('function enterEditing()')
+    expect(screenshotOverlaySource).toContain('function completeCapture()')
+    expect(screenshotOverlaySource).not.toContain('void saveSelection(point)')
+    expect(preloadSource).toContain('capture:copy-to-clipboard')
+    expect(screenCaptureSource).toContain("'capture:copy-to-clipboard'")
+    expect(screenCaptureSource).toContain("'capture:get-hotkey-status'")
+    expect(preloadSource).toContain('getHotkeyStatus')
+    expect(htmlSource).toContain('id="screenshotHotkeyStatus"')
   })
 
   it('keeps keyboard and reduced-motion hooks for the core workflow', () => {
