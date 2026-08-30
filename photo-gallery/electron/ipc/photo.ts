@@ -104,9 +104,9 @@ function buildPhotoFilterSql(filter: PhotoFilter): { whereClause: string; params
   }
 
   if (filter.search) {
-    conditions.push('(p.filename LIKE ? OR p.filepath LIKE ? OR p.source_url LIKE ? OR p.source_domain LIKE ? OR EXISTS (SELECT 1 FROM photo_tags pt JOIN tags t ON pt.tag_id = t.id WHERE pt.photo_id = p.id AND t.name LIKE ?))')
+    conditions.push('(p.filename LIKE ? OR p.filepath LIKE ? OR p.source_url LIKE ? OR p.source_domain LIKE ?)')
     const like = `%${filter.search}%`
-    params.push(like, like, like, like, like)
+    params.push(like, like, like, like)
   }
 
   if (filter.dateFrom) {

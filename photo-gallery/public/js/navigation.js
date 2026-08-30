@@ -116,7 +116,6 @@ function resetToolbarForGallery() {
   document.getElementById('importFolderBtn').classList.remove('hidden');
   document.getElementById('importFilesBtn').classList.remove('hidden');
   document.getElementById('searchInput').parentElement.classList.remove('hidden');
-  document.getElementById('ratingFilter').parentElement.classList.remove('hidden');
 }
 
 function setEmptyStateForGallery() {
@@ -125,10 +124,7 @@ function setEmptyStateForGallery() {
   const createButton = document.getElementById('emptyCreateProjectBtn');
   const importButton = document.getElementById('emptyImportFolderBtn2');
   const clearButton = document.getElementById('emptyClearFilterBtn');
-  const hasFilter = Boolean(
-    photoFilterState?.search || photoFilterState?.rating || photoFilterState?.tag ||
-    Array.from(activeSmartFilters).some(key => key !== 'all')
-  );
+  const hasFilter = Boolean(photoFilterState?.search);
   const noProject = currentProjectId === null;
 
   if (noProject) {
@@ -163,11 +159,8 @@ function switchToGallery() {
   currentPanel = 'gallery';
 
   document.getElementById('galleryPanel')?.classList.remove('hidden');
-  document.querySelector('.filter-bar')?.classList.remove('hidden');
   const searchWrap = document.getElementById('searchInput')?.parentElement;
-  const ratingWrap = document.getElementById('ratingFilter')?.parentElement;
   if (searchWrap) searchWrap.classList.remove('hidden');
-  if (ratingWrap) ratingWrap.classList.remove('hidden');
 
   resetToolbarForGallery();
   setEmptyStateForGallery();
@@ -202,9 +195,7 @@ function switchToRecycleBin() {
   if (importFolderBtn) importFolderBtn.classList.add('hidden');
   if (importFilesBtn) importFilesBtn.classList.add('hidden');
   const searchWrap = document.getElementById('searchInput')?.parentElement;
-  const ratingWrap = document.getElementById('ratingFilter')?.parentElement;
   if (searchWrap) searchWrap.classList.add('hidden');
-  if (ratingWrap) ratingWrap.classList.add('hidden');
   setEmptyStateForRecycleBin();
   updateStatusBar();
   updateContextPanel();

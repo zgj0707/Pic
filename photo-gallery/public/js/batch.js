@@ -1,5 +1,5 @@
 // 批量操作相关函数
-// 与 app.js / grid.js / tags.js 共享全局状态变量
+// 与 app.js / grid.js 共享全局状态变量
 
 async function deleteSelectedPhotos() {
   if (selectedPhotos.size === 0) return;
@@ -90,82 +90,10 @@ async function permanentlyDeleteSelectedPhotos() {
 
 function applyPhotoFilters() {
   photoFilterState.search = document.getElementById('searchInput').value.toLowerCase().trim();
-  photoFilterState.rating = document.getElementById('ratingFilter').value;
-  photoFilterState.tag = document.getElementById('tagFilter').value;
   if (window.electronAPI) {
     loadPhotos(true);
   } else {
     renderPhotoGrid();
-  }
-}
-
-async function applyBatchRating() {
-  if (selectedPhotos.size === 0 || batchRatingValue === 0) return;
-  const previousRatings = Array.from(selectedPhotos).map(id => {
-    const photo = photos.find(item => item.id === id);
-    return photo ? { id, rating: photo.rating || 0, filepath: photo.filepath } : null;
-  }).filter(Boolean);
-
-  showProgress('批量评分', `正在设置 ${batchRatingValue} 星评级...`, '');
-
-  try {
-    for (const id of selectedPhotos) {
-      const photo = photos.find(p => p.id === id);
-      if (photo && window.electronAPI) {
-        await window.electronAPI.photos.updateRating(id, batchRatingValue);
-        if (photo.filepath) await window.electronAPI.exif.writeRating(photo.filepath, batchRatingValue);
-        photo.rating = batchRatingValue;
-      }
-    }
-
-    hideProgress();
-    if (window.electronAPI) await loadPhotos(true);
-    else renderPhotoGrid();
-    if (previousRatings.length && typeof pushAppUndo === 'function') {
-      pushAppUndo('批量评分', () => restorePhotoRatings(previousRatings));
-    }
-    showToast(`已为 ${selectedPhotos.size} 张样片设置 ${batchRatingValue} 星评级`, 'success');
-  } catch (e) {
-    hideProgress();
-    showToast('批量评分失败: ' + e, 'error');
-  }
-}
-
-async function clearBatchRating() {
-  if (selectedPhotos.size === 0) return;
-  const previousRatings = Array.from(selectedPhotos).map(id => {
-    const photo = photos.find(item => item.id === id);
-    return photo ? { id, rating: photo.rating || 0, filepath: photo.filepath } : null;
-  }).filter(Boolean);
-
-  showProgress('清空评分', '正在清空评分...', '');
-
-  try {
-    for (const id of selectedPhotos) {
-      const photo = photos.find(p => p.id === id);
-      if (photo && window.electronAPI) {
-        await window.electronAPI.photos.updateRating(id, 0);
-        if (photo.filepath) await window.electronAPI.exif.writeRating(photo.filepath, 0);
-        photo.rating = 0;
-      }
-    }
-
-    batchRatingValue = 0;
-    document.querySelectorAll('#batchRating .star').forEach(s => {
-      s.classList.remove('active');
-      s.querySelector('i').className = 'fa-regular fa-star';
-    });
-
-    hideProgress();
-    if (window.electronAPI) await loadPhotos(true);
-    else renderPhotoGrid();
-    if (previousRatings.length && typeof pushAppUndo === 'function') {
-      pushAppUndo('清空评分', () => restorePhotoRatings(previousRatings));
-    }
-    showToast(`已清空 ${selectedPhotos.size} 张样片的评分`, 'success');
-  } catch (e) {
-    hideProgress();
-    showToast('清空评分失败: ' + e, 'error');
   }
 }
 
@@ -261,78 +189,5 @@ async function exportSelectedToPdf() {
     }
   } else {
     showToast('PDF 导出功能不可用', 'error');
-  }
-}
-async function applyBatchTags() {
-  if (selectedPhotos.size === 0 || batchTags.length === 0) return;
-  const previousTags = Array.from(selectedPhotos).map(id => {
-    const photo = photos.find(item => item.id === id);
-    return photo ? { id, tags: [...(photo.tags || [])], filepath: photo.filepath } : null;
-  }).filter(Boolean);
-
-  const tagsToAdd = batchTags.length;
-  showProgress('批量添加标签', `正在为 ${selectedPhotos.size} 张样片添加 ${tagsToAdd} 个标签...`, '');
-
-  try {
-    for (const id of selectedPhotos) {
-      const photo = photos.find(p => p.id === id);
-      if (photo && window.electronAPI) {
-        const currentTags = photo.tags || [];
-        const newTags = Array.from(new Set([...currentTags, ...batchTags]));
-        await window.electronAPI.photos.updateTags(id, newTags);
-        if (photo.filepath) await window.electronAPI.exif.writeTags(photo.filepath, newTags);
-        photo.tags = newTags;
-      }
-    }
-
-    batchTags = [];
-    renderBatchTags();
-    hideProgress();
-    renderPhotoGrid();
-    await updateTagFilter();
-    if (previousTags.length && typeof pushAppUndo === 'function') {
-      pushAppUndo('批量添加标签', () => restorePhotoTags(previousTags));
-    }
-    showToast(`已为 ${selectedPhotos.size} 张样片添加 ${tagsToAdd} 个标签`, 'success');
-    await loadPhotos();
-  } catch (e) {
-    hideProgress();
-    showToast('批量添加标签失败: ' + e, 'error');
-  }
-}
-
-async function applyRemoveTags() {
-  if (selectedPhotos.size === 0 || removeTags.length === 0) return;
-  const previousTags = Array.from(selectedPhotos).map(id => {
-    const photo = photos.find(item => item.id === id);
-    return photo ? { id, tags: [...(photo.tags || [])], filepath: photo.filepath } : null;
-  }).filter(Boolean);
-
-  const tagsToRemove = removeTags.length;
-  showProgress('批量移除标签', `正在从 ${selectedPhotos.size} 张样片移除 ${tagsToRemove} 个标签...`, '');
-
-  try {
-    for (const id of selectedPhotos) {
-      const photo = photos.find(p => p.id === id);
-      if (photo && window.electronAPI) {
-        const currentTags = photo.tags || [];
-        const newTags = currentTags.filter(t => !removeTags.includes(t));
-        await window.electronAPI.photos.updateTags(id, newTags);
-        if (photo.filepath) await window.electronAPI.exif.writeTags(photo.filepath, newTags);
-        photo.tags = newTags;
-      }
-    }
-
-    removeTags = [];
-    document.getElementById('removeTags').innerHTML = '';
-    hideProgress();
-    await loadPhotos();
-    if (previousTags.length && typeof pushAppUndo === 'function') {
-      pushAppUndo('批量移除标签', () => restorePhotoTags(previousTags));
-    }
-    showToast(`已从 ${selectedPhotos.size} 张样片移除 ${tagsToRemove} 个标签`, 'success');
-  } catch (e) {
-    hideProgress();
-    showToast('批量移除标签失败: ' + e, 'error');
   }
 }

@@ -23,8 +23,6 @@ function openLightbox(photo, index) {
       }
     });
   }
-  updateLightboxRating(photo.rating || 0);
-  renderLightboxTags(photo.tags || []);
   lightbox.classList.remove('hidden');
   resetZoom();
 }
@@ -54,63 +52,4 @@ function rotateImage(direction) {
     rotateAngle += 90;
   }
   applyLightboxTransform();
-}
-
-function updateLightboxRating(rating) {
-  document.querySelectorAll('#lightboxRating .star').forEach((star, idx) => {
-    const isActive = idx < rating;
-    star.classList.toggle('active', isActive);
-    star.querySelector('i').className = `fa-${isActive ? 'solid' : 'regular'} fa-star`;
-  });
-}
-
-function renderLightboxTags(tags) {
-  const container = document.getElementById('lightboxTags');
-  container.innerHTML = tags.map(tag =>
-    `<span class="tag-badge lightbox-tag">${escapeHtml(tag)}<button class="ml-1 hover:text-red-400 tag-delete-btn"><i class="fa-solid fa-xmark text-xs"></i></button></span>`
-  ).join('');
-
-  container.querySelectorAll('.tag-delete-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const tagBadge = e.target.closest('.lightbox-tag');
-      const tagName = tagBadge.textContent.trim();
-      removeLightboxTag(tagName);
-    });
-  });
-}
-
-async function removeLightboxTag(tagName) {
-  if (filteredPhotos.length === 0) {
-    showToast('没有可操作的样片', 'warning');
-    return;
-  }
-
-  if (currentPhotoIndex >= filteredPhotos.length) {
-    currentPhotoIndex = Math.max(0, filteredPhotos.length - 1);
-  }
-
-  const photo = filteredPhotos[currentPhotoIndex];
-  if (!photo) {
-    showToast('无法获取当前样片信息', 'error');
-    return;
-  }
-
-  const fullPhoto = photos.find(p => p.id === photo.id);
-  if (!fullPhoto) {
-    showToast('样片数据已失效，请刷新后重试', 'error');
-    await loadPhotos();
-    return;
-  }
-
-  const newTags = fullPhoto.tags?.filter(t => t !== tagName) || [];
-
-  if (window.electronAPI) {
-    await window.electronAPI.photos.updateTags(fullPhoto.id, newTags);
-    if (fullPhoto.filepath) await window.electronAPI.exif.writeTags(fullPhoto.filepath, newTags);
-  }
-
-  fullPhoto.tags = newTags;
-  await loadPhotos();
-  showToast(`已移除标签 "${tagName}"`, 'success');
 }

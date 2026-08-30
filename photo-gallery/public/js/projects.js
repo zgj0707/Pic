@@ -78,11 +78,7 @@ async function selectProject(projectId) {
   updateToolbarForGallery();
 
   document.getElementById('searchInput').value = '';
-  document.getElementById('ratingFilter').value = '';
-  document.getElementById('tagFilter').value = '';
-  photoFilterState = { search: '', rating: '', tag: '' };
-  activeSmartFilters.clear();
-  updateFilterChipUI();
+  photoFilterState = { search: '' };
   PicEvents.emit('project:selected', project);
 
   await loadPhotos(true);

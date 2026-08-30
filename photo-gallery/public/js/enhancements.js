@@ -38,34 +38,6 @@ async function performAppUndo() {
   }
 }
 
-
-async function restorePhotoRatings(snapshots) {
-  for (const snapshot of snapshots) {
-    if (window.electronAPI?.photos?.updateRating) {
-      await window.electronAPI.photos.updateRating(snapshot.id, snapshot.rating)
-      if (snapshot.filepath) await window.electronAPI.exif.writeRating(snapshot.filepath, snapshot.rating)
-    }
-    const photo = photos.find(item => item.id === snapshot.id)
-    if (photo) photo.rating = snapshot.rating
-  }
-  if (window.electronAPI) await loadPhotos(true)
-  else renderPhotoGrid()
-}
-
-async function restorePhotoTags(snapshots) {
-  for (const snapshot of snapshots) {
-    if (window.electronAPI?.photos?.updateTags) {
-      await window.electronAPI.photos.updateTags(snapshot.id, snapshot.tags)
-      if (snapshot.filepath) await window.electronAPI.exif.writeTags(snapshot.filepath, snapshot.tags)
-    }
-    const photo = photos.find(item => item.id === snapshot.id)
-    if (photo) photo.tags = snapshot.tags.slice()
-  }
-  if (window.electronAPI) await loadPhotos(true)
-  else renderPhotoGrid()
-  if (typeof updateTagFilter === 'function') await updateTagFilter()
-}
-
 async function restoreDeletedPhotoIds(ids) {
   if (window.electronAPI?.photos?.restore) await window.electronAPI.photos.restore(ids)
   await loadPhotos(true)
@@ -85,9 +57,7 @@ function updateSelectionActionBar() {
   bar.classList.toggle('hidden', count === 0 || !visibleWorkspace)
   document.getElementById('selectionActionCount')?.replaceChildren(document.createTextNode(`已选 ${count} 张`))
   const coverButton = document.getElementById('selectionActionCoverBtn')
-  const tagsButton = document.getElementById('selectionActionTagsBtn')
   if (coverButton) coverButton.disabled = count !== 1 || currentProjectId === null || isRecycleBinView
-  if (tagsButton) tagsButton.disabled = count === 0 || isRecycleBinView
   if (!document.getElementById('projectBriefEditor')?.classList.contains('hidden')) renderBriefCoverPicker()
 }
 
@@ -417,10 +387,6 @@ function bindEnhancementEvents() {
     }
   })
   document.getElementById('selectionActionCoverBtn')?.addEventListener('click', () => { void setSelectedAsProjectCover() })
-  document.getElementById('selectionActionTagsBtn')?.addEventListener('click', () => {
-    document.getElementById('metadataPanel')?.classList.add('open')
-    updateContextPanel()
-  })
   document.getElementById('selectionActionCancelBtn')?.addEventListener('click', clearPhotoSelection)
   document.getElementById('projectBriefEditBtn')?.addEventListener('click', openProjectBriefEditor)
   const briefEditor = document.getElementById('projectBriefEditor')

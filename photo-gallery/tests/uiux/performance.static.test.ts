@@ -22,6 +22,7 @@ const enhancementsSource = readFileSync(join(publicRoot, 'js', 'enhancements.js'
 const projectIpcSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'project.ts'), 'utf8')
 const projectManagementSource = readFileSync(join(process.cwd(), 'electron', 'services', 'projectManagement.ts'), 'utf8')
 const projectsSource = readFileSync(join(publicRoot, 'js', 'projects.js'), 'utf8')
+const photoIpcSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'photo.ts'), 'utf8')
 
 describe('UI/UX refactor guardrails', () => {
   it('keeps paged data loading and virtual grid rendering for large projects', () => {
@@ -41,6 +42,41 @@ describe('UI/UX refactor guardrails', () => {
     expect(gridSource).toContain('function updateSelectAllButton')
     expect(htmlSource).toContain('id="selectAllBtn"')
     expect(appSource).toContain('toggleSelectAllPhotos')
+  })
+
+  it('removes ratings, tags and classification filters from the primary workflow', () => {
+    expect(htmlSource).not.toContain('ratingFilter')
+    expect(htmlSource).not.toContain('tagFilter')
+    expect(htmlSource).not.toContain('评级与标签')
+    expect(htmlSource).not.toContain('lightboxRating')
+    expect(htmlSource).not.toContain('lightboxTags')
+    expect(htmlSource).not.toContain('tagInputModal')
+    expect(htmlSource).not.toContain('data-filter="source-web"')
+    expect(htmlSource).not.toContain('data-filter="source-local"')
+    expect(htmlSource).not.toContain('data-filter="favorite"')
+    expect(htmlSource).not.toContain('id="photoCount"')
+    expect(htmlSource).not.toContain('js/tags.js')
+    expect(existsSync(join(publicRoot, 'js', 'tags.js'))).toBe(false)
+    expect(appSource).not.toContain('activeSmartFilters')
+    expect(appSource).not.toContain('updateTagFilter')
+    expect(appSource).not.toContain('loadCameraLensFilters')
+    expect(gridSource).not.toContain('rating-overlay')
+    expect(gridSource).not.toContain('tags-overlay')
+    expect(batchSource).not.toContain('applyBatchRating')
+    expect(batchSource).not.toContain('applyBatchTags')
+    expect(lightboxSource).not.toContain('updateLightboxRating')
+    expect(lightboxSource).not.toContain('renderLightboxTags')
+    expect(photoIpcSource).toContain('(p.filename LIKE ? OR p.filepath LIKE ? OR p.source_url LIKE ? OR p.source_domain LIKE ?)')
+    expect(photoIpcSource).not.toContain('t.name LIKE ?))')
+  })
+
+  it('places reset and select-all in the right-side header actions', () => {
+    const headerActions = htmlSource.match(/<div class="header-tool-actions"[\s\S]*?<\/div>\s*<\/div>\s*<\/header>/)?.[0] || ''
+    expect(headerActions).toContain('class="header-selection-actions"')
+    expect(headerActions.indexOf('id="clearFilterBtn"')).toBeGreaterThan(-1)
+    expect(headerActions.indexOf('id="selectAllBtn"')).toBeGreaterThan(headerActions.indexOf('id="clearFilterBtn"'))
+    expect(layoutSource).toContain('.header-selection-actions')
+    expect(layoutSource).not.toContain('.filter-bar')
   })
 
   it('removes the inspiration-board workflow from the renderer', () => {
