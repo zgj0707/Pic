@@ -46,7 +46,7 @@ export interface ElectronAPI {
     getAll: (projectId: number) => Promise<ProjectShot[]>
     create: (projectId: number, photoId: number, input?: { chapter?: string; title?: string; intent?: string | null; compositionNotes?: string | null; lightingGearNotes?: string | null; status?: 'planned' | 'ready' | 'done' }) => Promise<{ success: boolean; shot?: ProjectShot; error?: string }>
     generateFromSelections: (projectId: number) => Promise<{ success: boolean; shots?: ProjectShot[]; error?: string }>
-    update: (projectId: number, shotId: number, input: { title?: string; intent?: string | null; compositionNotes?: string | null; lightingGearNotes?: string | null; status?: 'planned' | 'ready' | 'done' }) => Promise<{ success: boolean; shot?: ProjectShot; error?: string }>
+    update: (projectId: number, shotId: number, input: { chapter?: string; title?: string; intent?: string | null; compositionNotes?: string | null; lightingGearNotes?: string | null; status?: 'planned' | 'ready' | 'done' }) => Promise<{ success: boolean; shot?: ProjectShot; error?: string }>
     reorder: (projectId: number, shotIds: number[]) => Promise<{ success: boolean; shots?: ProjectShot[]; error?: string }>
     remove: (projectId: number, shotId: number) => Promise<{ success: boolean; error?: string }>
   }
