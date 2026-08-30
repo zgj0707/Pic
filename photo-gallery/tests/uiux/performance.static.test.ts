@@ -19,9 +19,15 @@ const screenCaptureSource = readFileSync(join(process.cwd(), 'electron', 'servic
 const preloadSource = readFileSync(join(process.cwd(), 'electron', 'preload.ts'), 'utf8')
 const screenshotOverlaySource = readFileSync(join(publicRoot, 'screenshot-overlay.html'), 'utf8')
 const enhancementsSource = readFileSync(join(publicRoot, 'js', 'enhancements.js'), 'utf8')
+const planningSource = readFileSync(join(publicRoot, 'js', 'planning.js'), 'utf8')
 const projectIpcSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'project.ts'), 'utf8')
 const projectManagementSource = readFileSync(join(process.cwd(), 'electron', 'services', 'projectManagement.ts'), 'utf8')
+const projectShotsSource = readFileSync(join(process.cwd(), 'electron', 'services', 'projectShots.ts'), 'utf8')
+const projectShotsIpcSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'projectShots.ts'), 'utf8')
+const mainSource = readFileSync(join(process.cwd(), 'electron', 'main.ts'), 'utf8')
+const contentSource = readFileSync(join(process.cwd(), 'electron', 'content', 'index.ts'), 'utf8')
 const projectsSource = readFileSync(join(publicRoot, 'js', 'projects.js'), 'utf8')
+const photoIpcSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'photo.ts'), 'utf8')
 
 describe('UI/UX refactor guardrails', () => {
   it('keeps paged data loading and virtual grid rendering for large projects', () => {
@@ -43,6 +49,41 @@ describe('UI/UX refactor guardrails', () => {
     expect(appSource).toContain('toggleSelectAllPhotos')
   })
 
+  it('removes ratings, tags and classification filters from the primary workflow', () => {
+    expect(htmlSource).not.toContain('ratingFilter')
+    expect(htmlSource).not.toContain('tagFilter')
+    expect(htmlSource).not.toContain('评级与标签')
+    expect(htmlSource).not.toContain('lightboxRating')
+    expect(htmlSource).not.toContain('lightboxTags')
+    expect(htmlSource).not.toContain('tagInputModal')
+    expect(htmlSource).not.toContain('data-filter="source-web"')
+    expect(htmlSource).not.toContain('data-filter="source-local"')
+    expect(htmlSource).not.toContain('data-filter="favorite"')
+    expect(htmlSource).not.toContain('id="photoCount"')
+    expect(htmlSource).not.toContain('js/tags.js')
+    expect(existsSync(join(publicRoot, 'js', 'tags.js'))).toBe(false)
+    expect(appSource).not.toContain('activeSmartFilters')
+    expect(appSource).not.toContain('updateTagFilter')
+    expect(appSource).not.toContain('loadCameraLensFilters')
+    expect(gridSource).not.toContain('rating-overlay')
+    expect(gridSource).not.toContain('tags-overlay')
+    expect(batchSource).not.toContain('applyBatchRating')
+    expect(batchSource).not.toContain('applyBatchTags')
+    expect(lightboxSource).not.toContain('updateLightboxRating')
+    expect(lightboxSource).not.toContain('renderLightboxTags')
+    expect(photoIpcSource).toContain('(p.filename LIKE ? OR p.filepath LIKE ? OR p.source_url LIKE ? OR p.source_domain LIKE ?)')
+    expect(photoIpcSource).not.toContain('t.name LIKE ?))')
+  })
+
+  it('places reset and select-all in the right-side header actions', () => {
+    const headerActions = htmlSource.match(/<div class="header-tool-actions"[\s\S]*?<\/div>\s*<\/div>\s*<\/header>/)?.[0] || ''
+    expect(headerActions).toContain('class="header-selection-actions"')
+    expect(headerActions.indexOf('id="clearFilterBtn"')).toBeGreaterThan(-1)
+    expect(headerActions.indexOf('id="selectAllBtn"')).toBeGreaterThan(headerActions.indexOf('id="clearFilterBtn"'))
+    expect(layoutSource).toContain('.header-selection-actions')
+    expect(layoutSource).not.toContain('.filter-bar')
+  })
+
   it('removes the inspiration-board workflow from the renderer', () => {
     expect(htmlSource).not.toContain('灵感板')
     expect(htmlSource).not.toContain('boardModeBtn')
@@ -58,21 +99,34 @@ describe('UI/UX refactor guardrails', () => {
     expect(existsSync(join(publicRoot, 'js', 'compare.js'))).toBe(false)
   })
 
-  it('exports and saves only the current selected photos', () => {
-    expect(htmlSource).toContain('id="copyToDesktopBtn"')
-    expect(htmlSource).toContain('id="saveDesktopLabel"')
-    expect(htmlSource).toContain('id="exportPdfBtn"')
-    expect(batchSource).toContain('copySelectedToDesktop')
+  it('routes selected samples into the shoot plan instead of keeping duplicate exports', () => {
+    expect(htmlSource).toContain('id="addToShotListBtn"')
+    expect(htmlSource).toContain('id="planningExportBtn"')
+    expect(htmlSource).not.toContain('id="copyToDesktopBtn"')
+    expect(htmlSource).not.toContain('id="exportPdfBtn"')
     expect(batchSource).toContain('Array.from(selectedPhotos)')
-    expect(batchSource).toContain('copyToDesktopFolder')
-    expect(batchSource).toContain('exportSelectedToPdf')
-    expect(batchSource).toContain('exportToPdf')
+    expect(batchSource).not.toContain('copySelectedToDesktop')
+    expect(batchSource).not.toContain('exportSelectedToPdf')
+    expect(planningSource).toContain('planningExports?.exportPdf')
     expect(batchSource).not.toContain('selectionTrayItems')
     expect(batchSource).not.toContain('exportingBoard')
     expect(htmlSource).not.toContain('deliveryModeBtn')
     expect(htmlSource).not.toContain('shotListWorkspace')
     expect(htmlSource).not.toContain('deliveryWorkspace')
     expect(htmlSource).not.toContain('planningExport.js')
+  })
+
+  it('keeps normalized groups and shot items behind semantic IPC', () => {
+    expect(projectShotsSource).toContain('shot_items')
+    expect(projectShotsSource).toContain('plan_references')
+    expect(projectShotsSource).toContain('ensureNormalizedShots')
+    expect(projectShotsIpcSource).toContain("'shotGroups:getAll'")
+    expect(projectShotsIpcSource).toContain("'shotGroups:reorder'")
+    expect(planningSource).toContain('planningAddGroupBtn')
+    expect(planningSource).toContain('planning-delete-group')
+    expect(planningSource).toContain('planning-rename-group')
+    expect(planningSource).toContain('movePlanningGroup')
+    expect(htmlSource).toContain('id="planningGroupList"')
   })
 
   it('opens material browsing as a project-scoped full workspace and freezes source metadata', () => {
@@ -85,7 +139,8 @@ describe('UI/UX refactor guardrails', () => {
 
   it('keeps the material browser embedded on Xiaohongshu and opens Douyin externally', () => {
     expect(htmlSource).toContain('小红书内嵌浏览')
-    expect(htmlSource).toContain('id="materialWebview" src="https://www.xiaohongshu.com"')
+    expect(htmlSource).toContain('id="materialWebview" class="material-webview-host')
+    expect(htmlSource).not.toContain('<webview')
     expect(htmlSource).toContain('id="openDouyinBtn"')
     expect(htmlSource).not.toContain('browserSourceXhs')
     expect(htmlSource).not.toContain('browserSourceDouyin')
@@ -95,10 +150,31 @@ describe('UI/UX refactor guardrails', () => {
     expect(navigationSource).toContain("getElementById('openDouyinBtn')")
     expect(navigationSource).toContain('function ensureEmbeddedWebviewLoaded()')
     expect(navigationSource).toContain('getSavedXiaohongshuUrl()')
+    // navigation.js loads before ui.js and must own the URL constant used by
+    // its top-level state initializer.
+    expect(navigationSource).toContain("const XHS_URL = 'https://www.xiaohongshu.com';")
+    expect(uiSource).not.toContain("const XHS_URL = 'https://www.xiaohongshu.com';")
     expect(navigationSource).not.toContain("setBrowserSource('douyin')")
     expect(uiSource).toContain("const DOUYIN_URL = 'https://www.douyin.com/'")
     expect(uiSource).toContain('materialBrowser.openExternal(DOUYIN_URL)')
     expect(uiSource).not.toContain("browserSource === 'douyin'")
+  })
+
+  it('hosts Xiaohongshu in an isolated main-process WebContentsView', () => {
+    expect(mainSource).not.toContain('webviewTag')
+    expect(materialBrowserSource).toContain('WebContentsView')
+    expect(materialBrowserSource).toContain("persist:pic-xiaohongshu-v5")
+    expect(materialBrowserSource).toContain('setPermissionRequestHandler')
+    expect(materialBrowserSource).toContain('view-set-bounds')
+    expect(materialBrowserSource).toContain('isAllowedXiaohongshuUrl')
+    expect(contentSource).toContain('setupMaterialBrowserView')
+    expect(contentSource).toContain('disposeMaterialBrowserView')
+    expect(preloadSource).toContain("material-browser:view-state")
+    expect(preloadSource).toContain("material-browser:view-set-visible")
+    expect(navigationSource).toContain('syncMaterialBrowserViewBounds')
+    expect(navigationSource).toContain('setVisible')
+    expect(navigationSource).not.toContain('initializeWebview')
+    expect(navigationSource).not.toContain('webview.loadURL')
   })
 
   it('uses one global Alt+A screenshot flow and copies the result to the clipboard', () => {

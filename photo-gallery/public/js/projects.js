@@ -17,7 +17,7 @@ async function loadProjects(preferredProjectId = null) {
       await selectProject(projects[0].id);
     }
   } catch (e) {
-    console.error('加载项目失败:', e);
+    console.error('加载拍摄方案失败:', e);
   }
 }
 
@@ -31,8 +31,8 @@ function renderProjectSidebar() {
     item.className = `project-item ${project.id === currentProjectId ? 'active' : ''}`;
     item.dataset.projectId = project.id;
     item.tabIndex = 0;
-    item.setAttribute('aria-label', `${project.name}，${project.photo_count || 0} 张照片，右键打开项目菜单`);
-    item.title = '右键：复制或删除项目';
+      item.setAttribute('aria-label', `${project.name}，${project.photo_count || 0} 张样片，右键打开方案菜单`);
+    item.title = '右键：复制或删除拍摄方案';
     item.innerHTML = `
       <span class="project-name">${escapeHtml(project.name)}</span>
       <span class="project-item-meta">
@@ -78,11 +78,7 @@ async function selectProject(projectId) {
   updateToolbarForGallery();
 
   document.getElementById('searchInput').value = '';
-  document.getElementById('ratingFilter').value = '';
-  document.getElementById('tagFilter').value = '';
-  photoFilterState = { search: '', rating: '', tag: '' };
-  activeSmartFilters.clear();
-  updateFilterChipUI();
+  photoFilterState = { search: '' };
   PicEvents.emit('project:selected', project);
 
   await loadPhotos(true);
@@ -112,12 +108,12 @@ async function confirmCreateProject() {
   const description = descInput?.value.trim() || '';
 
   if (!name) {
-    showToast('请输入项目名称', 'error');
+    showToast('请输入拍摄方案名称', 'error');
     input?.focus();
     return;
   }
   if (!window.electronAPI?.projects?.create) {
-    showToast('项目功能当前不可用，请重启应用后重试', 'error');
+    showToast('拍摄方案功能当前不可用，请重启应用后重试', 'error');
     return;
   }
 
@@ -131,13 +127,13 @@ async function confirmCreateProject() {
     if (result?.success && result.id != null) {
       closeProjectInputModal();
       await loadProjects(result.id);
-      showToast('项目创建成功', 'success');
+      showToast('拍摄方案创建成功', 'success');
     } else {
-      showToast('项目创建失败: ' + (result?.error || '未返回项目编号'), 'error');
+      showToast('拍摄方案创建失败: ' + (result?.error || '未返回方案编号'), 'error');
     }
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    showToast('项目创建失败: ' + message, 'error');
+    showToast('拍摄方案创建失败: ' + message, 'error');
   } finally {
     if (confirmBtn) {
       confirmBtn.disabled = false;
@@ -184,11 +180,11 @@ async function duplicateContextProject() {
   if (!project || !window.electronAPI?.projects?.duplicate) return;
   try {
     const result = await window.electronAPI.projects.duplicate(projectId);
-    if (!result?.success || result.id == null) throw new Error(result?.error || '复制项目失败');
+    if (!result?.success || result.id == null) throw new Error(result?.error || '复制拍摄方案失败');
     await loadProjects(result.id);
-    showToast(`已创建「${result.name || project.name + ' 副本'}」，拍摄简报已复制，照片原文件未重复占用空间`, 'success');
+    showToast(`已创建「${result.name || project.name + ' 副本'}」，拍摄方案已复制，原文件未重复占用空间`, 'success');
   } catch (error) {
-    showToast(`复制项目失败：${error instanceof Error ? error.message : String(error)}`, 'error');
+    showToast(`复制拍摄方案失败：${error instanceof Error ? error.message : String(error)}`, 'error');
   }
 }
 
@@ -199,14 +195,14 @@ async function deleteContextProject() {
   if (!project || !window.electronAPI?.projects?.delete) return;
   const photoCount = Number(project.photo_count || 0);
   const detail = photoCount > 0
-    ? `项目内 ${photoCount} 张照片及相关记录将转移到其他项目，原图文件不会被删除。`
-    : '这个项目没有照片。';
-  const confirmed = confirm(`确定删除项目「${project.name}」吗？\n\n${detail}\n项目本身和拍摄简报将被删除，此操作不可撤销。`);
+    ? `方案内 ${photoCount} 张样片及相关记录将转移到其他方案，原图文件不会被删除。`
+    : '这个方案没有样片。';
+  const confirmed = confirm(`确定删除拍摄方案「${project.name}」吗？\n\n${detail}\n方案本身和拍摄简报将被删除，此操作不可撤销。`);
   if (!confirmed) return;
 
   try {
     const result = await window.electronAPI.projects.delete(projectId);
-    if (!result?.success) throw new Error(result?.error || '删除项目失败');
+    if (!result?.success) throw new Error(result?.error || '删除拍摄方案失败');
     currentProjectId = null;
     currentProjectName = '';
     void window.electronAPI?.capture?.setTargetProject?.(null);
@@ -214,11 +210,11 @@ async function deleteContextProject() {
     await loadProjects(result.targetProjectId ?? null);
     const moved = Number(result.movedPhotos || 0);
     const suffix = moved > 0
-      ? `，${moved} 张照片已转移到「${result.targetProjectName || '其他项目'}」`
+      ? `，${moved} 张样片已转移到「${result.targetProjectName || '其他方案'}」`
       : '';
-    showToast(`已删除项目「${project.name}」${suffix}`, 'success');
+    showToast(`已删除拍摄方案「${project.name}」${suffix}`, 'success');
   } catch (error) {
-    showToast(`删除项目失败：${error instanceof Error ? error.message : String(error)}`, 'error');
+    showToast(`删除拍摄方案失败：${error instanceof Error ? error.message : String(error)}`, 'error');
   }
 }
 

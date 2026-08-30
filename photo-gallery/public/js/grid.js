@@ -1,4 +1,4 @@
-// 样片网格、虚拟滚动、选择与批量标签显示
+// 样片网格、虚拟滚动与选择
 // 与 index.html 共享全局状态变量
 
 function createPhotoItem(photo, index, layout = null) {
@@ -23,23 +23,11 @@ function createPhotoItem(photo, index, layout = null) {
 
   const imgSrc = photo.thumbnail_path || photo.filepath || '';
 
-  const ratingHtml = photo.rating > 0
-    ? Array(5).fill().map((_, i) =>
-        `<i class="fa-${i < photo.rating ? 'solid' : 'regular'} fa-star text-xs ${i < photo.rating ? 'text-yellow-400' : 'text-gray-500'}"></i>`
-      ).join('')
-    : '';
-
-  const tagsHtml = photo.tags?.map(tag =>
-    `<span class="tag-badge">${escapeHtml(tag)}</span>`
-  ).join('') || '';
-
   item.innerHTML = `
     <div class="skeleton"></div>
     <div class="photo-content">
       <img data-src="${escapeHtml(imgSrc)}" alt="${escapeHtml(photo.filename)}" loading="lazy">
     </div>
-    <div class="rating-overlay">${ratingHtml}</div>
-    <div class="tags-overlay">${tagsHtml}</div>
   `;
 
   const img = item.querySelector('img');
@@ -118,16 +106,12 @@ function renderPhotoGrid(resetScroll = false) {
     filteredPhotos = photos.slice();
   } else {
     const searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
-    const ratingFilterVal = document.getElementById('ratingFilter').value;
-    const tagFilterVal = document.getElementById('tagFilter').value;
 
     filteredPhotos = photos.filter(photo => {
-      if (ratingFilterVal && (photo.rating || 0) < parseInt(ratingFilterVal)) return false;
-      if (tagFilterVal && !photo.tags?.some(t => t === tagFilterVal)) return false;
       if (searchQuery) {
         const matchName = photo.filename?.toLowerCase().includes(searchQuery);
-        const matchTags = photo.tags?.some(t => t.toLowerCase().includes(searchQuery));
-        if (!matchName && !matchTags) return false;
+        const matchPath = photo.filepath?.toLowerCase().includes(searchQuery);
+        if (!matchName && !matchPath) return false;
       }
       return true;
     });
@@ -144,7 +128,7 @@ function renderPhotoGrid(resetScroll = false) {
   imageLoadCount = 0;
   totalImagesToLoad = filteredPhotos.length;
 
-  updatePhotoCount();
+  updateStatusBar();
   restoreSelectedState();
 
   if (!gridScrollListenerAdded) {
@@ -346,23 +330,8 @@ function togglePhotoSelection(photoId, item) {
 
 function updateDesktopSaveButton() {
   const count = typeof selectedPhotos !== 'undefined' ? selectedPhotos.size : 0;
-  const referenceCount = typeof browserCollectedReferences !== 'undefined' ? browserCollectedReferences.length : 0;
-  const copyButton = document.getElementById('copyToDesktopBtn');
-  const copyLabel = document.getElementById('saveDesktopLabel');
-  const pdfButton = document.getElementById('exportPdfBtn');
-  const pdfLabel = document.getElementById('exportPdfLabel');
-  if (copyButton) copyButton.disabled = count === 0 && referenceCount === 0;
-  if (pdfButton) pdfButton.disabled = count === 0;
-  if (copyLabel) {
-    copyLabel.textContent = count > 0 && referenceCount > 0
-      ? '保存已选与参考'
-      : count > 0
-        ? '保存已选'
-        : referenceCount > 0
-          ? '保存参考'
-          : '保存到桌面';
-  }
-  if (pdfLabel) pdfLabel.textContent = count > 0 ? '导出已选 PDF' : '导出 PDF';
+  const planningButton = document.getElementById('addToShotListBtn');
+  if (planningButton) planningButton.disabled = count === 0;
 }
 
 function updateSelectAllButton() {
@@ -405,24 +374,6 @@ async function toggleSelectAllPhotos() {
     updateSelectAllButton();
   }
 }
-function updatePhotoCount() {
-  const hasMore = window.electronAPI && photoTotalCount > 0 && photoLoadedCount < photoTotalCount;
-  if (isRecycleBinView) {
-    const base = window.electronAPI
-      ? `${photoLoadedCount}/${photoTotalCount} 张已删除样片`
-      : `${photos.length} 张已删除样片`;
-    document.getElementById('photoCount').textContent = hasMore ? `${base}（加载中…）` : base;
-  } else {
-    const base = window.electronAPI
-      ? `${photoLoadedCount}/${photoTotalCount} 张样片`
-      : (filteredPhotos.length === photos.length
-          ? `${photos.length} 张样片`
-          : `${filteredPhotos.length}/${photos.length} 张样片`);
-    document.getElementById('photoCount').textContent = hasMore ? `${base}（加载中…）` : base;
-  }
-  updateStatusBar();
-}
-
 function updateSelectedCount() {
   const count = selectedPhotos.size;
   const selectedCountEl = document.getElementById('selectedCount');
@@ -438,39 +389,6 @@ function updateSelectedCount() {
   }
   updateDesktopSaveButton();
   updateSelectAllButton();
-  updateApplyButtons();
   updateContextPanel();
   if (typeof updateSelectionActionBar === 'function') updateSelectionActionBar();
-}
-
-function updateApplyButtons() {
-  document.getElementById('applyBatchTagsBtn').disabled = batchTags.length === 0 || selectedPhotos.size === 0;
-  document.getElementById('applyRemoveTagsBtn').disabled = removeTags.length === 0 || selectedPhotos.size === 0;
-}
-
-function addBatchTag(tag) {
-  if (!tag || batchTags.includes(tag)) return;
-  batchTags.push(tag);
-  renderBatchTags();
-}
-
-function removeBatchTag(tag) {
-  const idx = batchTags.indexOf(tag);
-  if (idx > -1) {
-    batchTags.splice(idx, 1);
-    renderBatchTags();
-  }
-}
-
-function renderBatchTags() {
-  const container = document.getElementById('batchTags');
-  container.innerHTML = batchTags.map(tag => `
-    <span class="tag-badge bg-accent/30">
-      ${escapeHtml(tag)}
-      <button class="ml-1 hover:text-red-400" onclick="removeBatchTag('${escapeHtml(tag).replace(/'/g, "\\'")}')">
-        <i class="fa-solid fa-xmark text-xs"></i>
-      </button>
-    </span>
-  `).join('');
-  updateApplyButtons();
 }

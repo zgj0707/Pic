@@ -2,7 +2,6 @@
 // 与 app.js 共享全局状态变量
 
 const XHS_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-const XHS_URL = 'https://www.xiaohongshu.com';
 const DOUYIN_URL = 'https://www.douyin.com/';
 
 const CHANGELOG_COLOR_MAP = {
@@ -27,29 +26,16 @@ async function openDouyinExternal() {
   return true;
 }
 
-function clearEmbeddedWebview() {
-  const webview = document.getElementById('materialWebview');
-  if (!webview) return;
-  try {
-    webview.stop?.();
-    if (typeof webview.loadURL === 'function' && webview.getURL?.() !== 'about:blank') {
-      webview.loadURL('about:blank');
-    }
-  } catch { /* best effort */ }
-}
-
 function updateBrowserModeUI() {
   const notice = document.getElementById('browserModeNotice');
-  const webview = document.getElementById('materialWebview');
   if (notice) notice.textContent = '小红书内嵌浏览 · Alt+A 截图';
-  webview?.classList.remove('hidden');
 }
 
 function isAllowedMaterialSourceUrl(source, rawUrl) {
   if (source !== 'xiaohongshu') return false;
   try {
     const parsed = new URL(rawUrl);
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+    if (parsed.protocol !== 'https:') return false;
     const host = parsed.hostname.toLowerCase();
     return host === 'xiaohongshu.com' || host.endsWith('.xiaohongshu.com') || host === 'xhslink.com' || host.endsWith('.xhslink.com');
   } catch {
@@ -66,11 +52,10 @@ function rememberBrowserSourceUrl(source, rawUrl) {
 
 async function saveCurrentBrowserReference() {
   if (currentProjectId === null) {
-    showToast('请先创建或选择一个拍摄项目', 'warning');
+    showToast('请先创建或选择一个拍摄方案', 'warning');
     return;
   }
-  const webview = document.getElementById('materialWebview');
-  const url = webview?.getURL?.() || '';
+  const url = materialBrowserViewState?.url || '';
   if (!isAllowedMaterialSourceUrl('xiaohongshu', url)) {
     showToast('请先打开小红书内容页面', 'warning');
     return;
@@ -79,7 +64,7 @@ async function saveCurrentBrowserReference() {
     showToast('当前版本不支持保存远程参考', 'error');
     return;
   }
-  const title = typeof webview.getTitle === 'function' ? webview.getTitle() : '';
+  const title = materialBrowserViewState?.title || '';
   const result = await window.electronAPI.projectReferences.add({
     projectId: currentProjectId,
     source: 'xiaohongshu',
@@ -93,7 +78,7 @@ async function saveCurrentBrowserReference() {
     return;
   }
   if (typeof recordBrowserReference === 'function') recordBrowserReference(result.reference);
-  showToast(result.alreadyExists ? '该页面已在当前项目中' : '远程参考已加入当前项目', result.alreadyExists ? 'info' : 'success');
+  showToast(result.alreadyExists ? '该页面已在当前方案中' : '远程参考已加入当前方案', result.alreadyExists ? 'info' : 'success');
 }
 
 function updateViewToggleButton() {

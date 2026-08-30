@@ -38,34 +38,6 @@ async function performAppUndo() {
   }
 }
 
-
-async function restorePhotoRatings(snapshots) {
-  for (const snapshot of snapshots) {
-    if (window.electronAPI?.photos?.updateRating) {
-      await window.electronAPI.photos.updateRating(snapshot.id, snapshot.rating)
-      if (snapshot.filepath) await window.electronAPI.exif.writeRating(snapshot.filepath, snapshot.rating)
-    }
-    const photo = photos.find(item => item.id === snapshot.id)
-    if (photo) photo.rating = snapshot.rating
-  }
-  if (window.electronAPI) await loadPhotos(true)
-  else renderPhotoGrid()
-}
-
-async function restorePhotoTags(snapshots) {
-  for (const snapshot of snapshots) {
-    if (window.electronAPI?.photos?.updateTags) {
-      await window.electronAPI.photos.updateTags(snapshot.id, snapshot.tags)
-      if (snapshot.filepath) await window.electronAPI.exif.writeTags(snapshot.filepath, snapshot.tags)
-    }
-    const photo = photos.find(item => item.id === snapshot.id)
-    if (photo) photo.tags = snapshot.tags.slice()
-  }
-  if (window.electronAPI) await loadPhotos(true)
-  else renderPhotoGrid()
-  if (typeof updateTagFilter === 'function') await updateTagFilter()
-}
-
 async function restoreDeletedPhotoIds(ids) {
   if (window.electronAPI?.photos?.restore) await window.electronAPI.photos.restore(ids)
   await loadPhotos(true)
@@ -84,10 +56,10 @@ function updateSelectionActionBar() {
   const visibleWorkspace = currentPanel === 'gallery' || isRecycleBinView
   bar.classList.toggle('hidden', count === 0 || !visibleWorkspace)
   document.getElementById('selectionActionCount')?.replaceChildren(document.createTextNode(`已选 ${count} 张`))
+  const addToShotList = document.getElementById('addToShotListBtn')
+  if (addToShotList) addToShotList.disabled = count === 0 || currentProjectId === null || isRecycleBinView
   const coverButton = document.getElementById('selectionActionCoverBtn')
-  const tagsButton = document.getElementById('selectionActionTagsBtn')
   if (coverButton) coverButton.disabled = count !== 1 || currentProjectId === null || isRecycleBinView
-  if (tagsButton) tagsButton.disabled = count === 0 || isRecycleBinView
   if (!document.getElementById('projectBriefEditor')?.classList.contains('hidden')) renderBriefCoverPicker()
 }
 
@@ -113,7 +85,7 @@ function renderProjectBrief(project = currentProjectRecord()) {
     return
   }
   const setText = (id, value) => document.getElementById(id)?.replaceChildren(document.createTextNode(value))
-  setText('currentProjectDescription', project.description || '未添加项目说明')
+  setText('currentProjectDescription', project.description || '未添加方案说明')
   setText('currentProjectClient', project.client_name || '未填写客户')
   setText('currentProjectDate', project.shoot_date || '尚未设置拍摄日期')
   setText('currentProjectLocation', project.location || '未填写场地')
@@ -160,7 +132,7 @@ function briefCoverCandidates() {
     if (coverPath) {
       candidates.unshift({
         id: Number(projectBriefDraftCoverPhotoId),
-        filename: '当前项目封面',
+        filename: '当前方案封面',
         thumbnail_path: coverPath,
         filepath: coverPath
       })
@@ -191,9 +163,9 @@ function renderBriefCoverPicker() {
   const current = candidates.find(photo => photo.id === Number(projectBriefDraftCoverPhotoId))
   status.textContent = current
     ? `保存后使用「${current.filename || '未命名样片'}」`
-    : '保存后不使用项目封面'
+    : '保存后不使用方案封面'
   if (candidates.length === 0) {
-    choices.innerHTML = '<span class="brief-cover-empty">当前项目还没有可用样片，请先导入照片</span>'
+    choices.innerHTML = '<span class="brief-cover-empty">当前方案还没有可用样片，请先导入照片</span>'
     return
   }
   choices.innerHTML = candidates.map(photo => {
@@ -254,7 +226,7 @@ async function refreshProjectAfterBriefSave(projectId) {
 
 async function saveProjectBriefPayload(input, options = {}) {
   if (currentProjectId === null || !input.name) {
-    showToast('项目名称不能为空', 'warning')
+    showToast('方案名称不能为空', 'warning')
     return false
   }
   const projectId = currentProjectId
@@ -310,7 +282,7 @@ async function saveProjectBrief(event) {
 
 async function setSelectedAsProjectCover() {
   if (selectedPhotos.size !== 1) {
-    showToast('请选择 1 张样片作为项目封面', 'warning')
+    showToast('请选择 1 张样片作为方案封面', 'warning')
     return
   }
   const project = currentProjectRecord()
@@ -417,10 +389,6 @@ function bindEnhancementEvents() {
     }
   })
   document.getElementById('selectionActionCoverBtn')?.addEventListener('click', () => { void setSelectedAsProjectCover() })
-  document.getElementById('selectionActionTagsBtn')?.addEventListener('click', () => {
-    document.getElementById('metadataPanel')?.classList.add('open')
-    updateContextPanel()
-  })
   document.getElementById('selectionActionCancelBtn')?.addEventListener('click', clearPhotoSelection)
   document.getElementById('projectBriefEditBtn')?.addEventListener('click', openProjectBriefEditor)
   const briefEditor = document.getElementById('projectBriefEditor')

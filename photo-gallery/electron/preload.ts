@@ -1,8 +1,8 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type {
-  Photo, PhotoQueryOptions, PhotoFilter, ReviewState, Tag, ExifData, Project, ProjectBriefInput, ProjectSelection, ProjectShot, ProjectExport,
+  Photo, PhotoQueryOptions, PhotoFilter, ReviewState, Tag, ExifData, Project, ProjectBriefInput, ProjectSelection, ProjectShot, ShotGroup, ProjectExport,
   ImportResult, ImportProgress, ProjectMaterialReference,
-  CacheStats, CacheCleanResult, IpcResponse, ChangelogEntry
+  CacheStats, CacheCleanResult, IpcResponse, ChangelogEntry, PlanningPdfExportResult, PlanningPdfPreflightResult
 } from './types'
 
 /**
@@ -33,10 +33,6 @@ export interface ElectronAPI {
     openInExplorer: (filePath: string) => Promise<{ success: boolean }>
     generateThumbnails: () => Promise<{ success: boolean; generated: number }>
     getThumbnail: (id: number, size?: 'grid' | 'preview') => Promise<{ success: boolean; data?: { path: string }; error?: string }>
-    copyToDesktopFolder: (filePaths: string[], folderName: string) =>
-      Promise<{ success: boolean; folderPath?: string; copied?: number; failed?: number; error?: string }>
-    exportToPdf: (filePaths: string[], fileBaseName: string) =>
-      Promise<{ success: boolean; filePath?: string; exported?: number; failed?: number; error?: string }>
     copyImageToClipboard: (filePath: string) => Promise<{ success: boolean; error?: string }>
   }
   selections: {
@@ -47,16 +43,23 @@ export interface ElectronAPI {
     updateMeta: (projectId: number, photoId: number, chapter: string, note: string) => Promise<{ success: boolean; selection?: ProjectSelection; error?: string }>
   },
   shots: {
+    getGroups: (projectId: number) => Promise<ShotGroup[]>
+    createGroup: (projectId: number, name: string) => Promise<{ success: boolean; group?: ShotGroup; error?: string }>
+    renameGroup: (projectId: number, groupId: number, name: string) => Promise<{ success: boolean; group?: ShotGroup; error?: string }>
+    reorderGroups: (projectId: number, groupIds: number[]) => Promise<{ success: boolean; groups?: ShotGroup[]; error?: string }>
+    removeGroup: (projectId: number, groupId: number) => Promise<{ success: boolean; error?: string }>
     getAll: (projectId: number) => Promise<ProjectShot[]>
     create: (projectId: number, photoId: number, input?: { chapter?: string; title?: string; intent?: string | null; compositionNotes?: string | null; lightingGearNotes?: string | null; status?: 'planned' | 'ready' | 'done' }) => Promise<{ success: boolean; shot?: ProjectShot; error?: string }>
     generateFromSelections: (projectId: number) => Promise<{ success: boolean; shots?: ProjectShot[]; error?: string }>
-    update: (projectId: number, shotId: number, input: { title?: string; intent?: string | null; compositionNotes?: string | null; lightingGearNotes?: string | null; status?: 'planned' | 'ready' | 'done' }) => Promise<{ success: boolean; shot?: ProjectShot; error?: string }>
+    update: (projectId: number, shotId: number, input: { chapter?: string; title?: string; intent?: string | null; compositionNotes?: string | null; lightingGearNotes?: string | null; status?: 'planned' | 'ready' | 'done' }) => Promise<{ success: boolean; shot?: ProjectShot; error?: string }>
     reorder: (projectId: number, shotIds: number[]) => Promise<{ success: boolean; shots?: ProjectShot[]; error?: string }>
     remove: (projectId: number, shotId: number) => Promise<{ success: boolean; error?: string }>
   }
   planningExports: {
     getAll: (projectId: number) => Promise<ProjectExport[]>
     record: (projectId: number, kind: ProjectExport['kind'], targetPath: string, itemCount: number) => Promise<{ success: boolean; export?: ProjectExport; error?: string }>
+    preflight: (projectId: number) => Promise<PlanningPdfPreflightResult & { error?: string }>
+    exportPdf: (projectId: number, fileBaseName: string) => Promise<PlanningPdfExportResult & { error?: string }>
   },
   delivery: {
     export: (projectId: number, photoIds: number[], targetDir: string, folderName: string, prefix: string) => Promise<{ success: boolean; folderPath?: string; copied: number; failed: number; results: { photoId: number; filename: string; targetPath: string; success: boolean; error?: string }[]; error?: string }>
@@ -105,6 +108,15 @@ export interface ElectronAPI {
     onError: (callback: (data: { error: string }) => void) => () => void
   },
   materialBrowser: {
+    viewState: () => Promise<{ url: string; title: string; canGoBack: boolean; canGoForward: boolean; loading: boolean; error?: string }>
+    navigate: (url: string) => Promise<{ success: boolean; state?: { url: string; title: string; canGoBack: boolean; canGoForward: boolean; loading: boolean; error?: string }; error?: string }>
+    back: () => Promise<{ success: boolean; state?: unknown }>
+    forward: () => Promise<{ success: boolean; state?: unknown }>
+    reload: () => Promise<{ success: boolean }>
+    stop: () => Promise<{ success: boolean }>
+    setVisible: (visible: boolean) => Promise<{ success: boolean }>
+    setBounds: (bounds: { x: number; y: number; width: number; height: number }) => Promise<{ success: boolean; error?: string }>
+    onViewState: (callback: (state: { url: string; title: string; canGoBack: boolean; canGoForward: boolean; loading: boolean; error?: string }) => void) => () => void
     openExternal: (url: string) => Promise<{ success: boolean; error?: string }>
     getDownloadDir: () => Promise<string>
     setDownloadDir: (dir: string) => Promise<{ success: boolean }>
@@ -185,8 +197,6 @@ const api: ElectronAPI = {
     openInExplorer: (filePath: string) => ipcRenderer.invoke('photos:openInExplorer', filePath),
     generateThumbnails: () => ipcRenderer.invoke('photos:generateThumbnails'),
     getThumbnail: (id: number, size?: 'grid' | 'preview') => ipcRenderer.invoke('photos:getThumbnail', id, size),
-    copyToDesktopFolder: (filePaths: string[], folderName: string) => ipcRenderer.invoke('photos:copyToDesktopFolder', filePaths, folderName),
-    exportToPdf: (filePaths: string[], fileBaseName: string) => ipcRenderer.invoke('photos:exportToPdf', filePaths, fileBaseName),
     copyImageToClipboard: (filePath: string) => ipcRenderer.invoke('photos:copyImageToClipboard', filePath)
   },
   selections: {
@@ -197,6 +207,11 @@ const api: ElectronAPI = {
     updateMeta: (projectId: number, photoId: number, chapter: string, note: string) => ipcRenderer.invoke('selections:updateMeta', projectId, photoId, chapter, note)
   },
   shots: {
+    getGroups: (projectId: number) => ipcRenderer.invoke('shotGroups:getAll', projectId),
+    createGroup: (projectId: number, name: string) => ipcRenderer.invoke('shotGroups:create', projectId, { name }),
+    renameGroup: (projectId: number, groupId: number, name: string) => ipcRenderer.invoke('shotGroups:rename', projectId, groupId, name),
+    reorderGroups: (projectId: number, groupIds: number[]) => ipcRenderer.invoke('shotGroups:reorder', projectId, groupIds),
+    removeGroup: (projectId: number, groupId: number) => ipcRenderer.invoke('shotGroups:remove', projectId, groupId),
     getAll: (projectId: number) => ipcRenderer.invoke('shots:getAll', projectId),
     create: (projectId: number, photoId: number, input?: unknown) => ipcRenderer.invoke('shots:create', projectId, photoId, input),
     generateFromSelections: (projectId: number) => ipcRenderer.invoke('shots:generateFromSelections', projectId),
@@ -206,7 +221,9 @@ const api: ElectronAPI = {
   },
   planningExports: {
     getAll: (projectId: number) => ipcRenderer.invoke('planningExports:getAll', projectId),
-    record: (projectId: number, kind: ProjectExport['kind'], targetPath: string, itemCount: number) => ipcRenderer.invoke('planningExports:record', projectId, kind, targetPath, itemCount)
+    record: (projectId: number, kind: ProjectExport['kind'], targetPath: string, itemCount: number) => ipcRenderer.invoke('planningExports:record', projectId, kind, targetPath, itemCount),
+    preflight: (projectId: number) => ipcRenderer.invoke('planningExports:preflight', projectId),
+    exportPdf: (projectId: number, fileBaseName: string) => ipcRenderer.invoke('planningExports:exportPdf', projectId, fileBaseName)
   },
   delivery: {
     export: (projectId: number, photoIds: number[], targetDir: string, folderName: string, prefix: string) => ipcRenderer.invoke('delivery:export', projectId, photoIds, targetDir, folderName, prefix),
@@ -271,6 +288,19 @@ const api: ElectronAPI = {
     }
   },
   materialBrowser: {
+    viewState: () => ipcRenderer.invoke('material-browser:view-state'),
+    navigate: (url: string) => ipcRenderer.invoke('material-browser:view-navigate', url),
+    back: () => ipcRenderer.invoke('material-browser:view-back'),
+    forward: () => ipcRenderer.invoke('material-browser:view-forward'),
+    reload: () => ipcRenderer.invoke('material-browser:view-reload'),
+    stop: () => ipcRenderer.invoke('material-browser:view-stop'),
+    setVisible: (visible: boolean) => ipcRenderer.invoke('material-browser:view-set-visible', visible),
+    setBounds: (bounds: { x: number; y: number; width: number; height: number }) => ipcRenderer.invoke('material-browser:view-set-bounds', bounds),
+    onViewState: (callback) => {
+      const wrapped = (_event: unknown, state: { url: string; title: string; canGoBack: boolean; canGoForward: boolean; loading: boolean; error?: string }) => callback(state)
+      ipcRenderer.on('material-browser:view-state', wrapped)
+      return () => ipcRenderer.removeListener('material-browser:view-state', wrapped)
+    },
     openExternal: (url: string) => ipcRenderer.invoke('material-browser:open-external', url),
     getDownloadDir: () => ipcRenderer.invoke('material-browser:get-download-dir'),
     setDownloadDir: (dir: string) => ipcRenderer.invoke('material-browser:set-download-dir', dir),

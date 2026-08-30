@@ -5,6 +5,7 @@ import { tmpdir } from 'os'
 import { closeDatabase, dbAdapter, initializeDatabase } from '../../electron/services/database'
 import { deleteProjectAndMoveContents, duplicateProject, movePhotosToProject } from '../../electron/services/projectManagement'
 import { addProjectMaterialReference } from '../../electron/services/projectReferences'
+import { createProjectShot, createShotGroup, listProjectShots, listShotGroups } from '../../electron/services/projectShots'
 
 describe('project copy and delete management', () => {
   let tempDir = ''
@@ -53,6 +54,7 @@ describe('project copy and delete management', () => {
       created_at: 1700000000,
       updated_at: 1700000000
     })
+    createShotGroup(sourceId, { name: '预留场景' })
     dbAdapter.insert('project_exports', {
       project_id: sourceId,
       kind: 'reference-package',
@@ -93,6 +95,7 @@ describe('project copy and delete management', () => {
     expect(dbAdapter.get('SELECT project_id FROM photos WHERE id = ?', [photoId])?.project_id).toBe(deleted.targetProjectId)
     expect(dbAdapter.get('SELECT project_id FROM project_selections WHERE photo_id = ?', [photoId])?.project_id).toBe(deleted.targetProjectId)
     expect(dbAdapter.get('SELECT project_id FROM project_shots WHERE photo_id = ?', [photoId])?.project_id).toBe(deleted.targetProjectId)
+    expect(listShotGroups(deleted.targetProjectId!).map(group => group.name)).toContain('预留场景')
     expect(dbAdapter.get('SELECT project_id FROM project_exports WHERE target_path = ?', ['C:/exports/reference'])?.project_id).toBe(deleted.targetProjectId)
     expect(dbAdapter.get('SELECT project_id FROM project_material_references WHERE project_id = ? AND source_item_id = ?', [deleted.targetProjectId, 'https://www.douyin.com/video/123'])?.project_id).toBe(deleted.targetProjectId)
   })
@@ -118,6 +121,39 @@ describe('project copy and delete management', () => {
     expect(result.targetProjectId).not.toBe(sourceId)
     expect(dbAdapter.get('SELECT project_id FROM photos WHERE id = ?', [photoId])?.project_id).toBe(result.targetProjectId)
     expect(dbAdapter.query('SELECT id FROM projects')).toHaveLength(1)
+  })
+
+  it('copies normalized shot groups, references and notes without copying photo files', async () => {
+    tempDir = mkdtempSync(join(tmpdir(), 'pic-project-copy-plan-'))
+    await initializeDatabase(tempDir)
+    const sourceId = dbAdapter.insert('projects', { name: '原方案', created_at: 1700000000, updated_at: 1700000000 })!
+    const photoId = dbAdapter.insert('photos', {
+      filename: 'reference.jpg',
+      filepath: 'C:/fixtures/copy-reference.jpg',
+      project_id: sourceId,
+      imported_at: 1700000000,
+      source_type: 'xiaohongshu',
+      source_url: 'https://www.xiaohongshu.com/explore/abc'
+    })!
+    const sourceShot = createProjectShot(sourceId, photoId, {
+      chapter: '主视觉',
+      title: '侧逆光半身',
+      compositionNotes: '保留左侧留白',
+      lightingGearNotes: '准备银色反光板'
+    })
+
+    const copy = duplicateProject(sourceId)
+    expect(copy.success).toBe(true)
+    expect(listShotGroups(copy.id!)).toMatchObject([{ name: '主视觉' }])
+    expect(listProjectShots(copy.id!)).toMatchObject([{
+      photo_id: photoId,
+      title: '侧逆光半身',
+      composition_notes: '保留左侧留白',
+      lighting_gear_notes: '准备银色反光板'
+    }])
+    expect(listProjectShots(copy.id!)[0].id).not.toBe(sourceShot.id)
+    expect(dbAdapter.get('SELECT COUNT(*) AS count FROM photos WHERE project_id = ?', [copy.id])?.count).toBe(0)
+    expect(dbAdapter.get('SELECT source_url FROM plan_references WHERE project_id = ? AND asset_id = ?', [copy.id, photoId])?.source_url).toBe('https://www.xiaohongshu.com/explore/abc')
   })
 
   it('moves selected photos across projects and preserves related project records', async () => {
@@ -170,6 +206,13 @@ describe('project copy and delete management', () => {
       created_at: 1700000000,
       updated_at: 1700000000
     })
+    createProjectShot(sourceId, movedPhotoId, { chapter: '构图', title: '留白主视觉', status: 'ready' })
+    dbAdapter.insert('plan_references', {
+      project_id: sourceId,
+      asset_id: untouchedPhotoId,
+      source_kind: 'screen_capture',
+      source_title: '未编排但已收集的样片'
+    })
     dbAdapter.insert('project_selections', {
       project_id: targetId,
       photo_id: duplicatePhotoId,
@@ -198,6 +241,15 @@ describe('project copy and delete management', () => {
       project_id: targetId,
       title: '留白主视觉',
       status: 'ready'
+    })
+    expect(listProjectShots(targetId)).toMatchObject([{
+      photo_id: movedPhotoId,
+      title: '留白主视觉',
+      status: 'ready'
+    }])
+    expect(dbAdapter.get('SELECT project_id, source_kind FROM plan_references WHERE asset_id = ?', [untouchedPhotoId])).toMatchObject({
+      project_id: targetId,
+      source_kind: 'screen_capture'
     })
     expect(dbAdapter.get('SELECT cover_photo_id FROM projects WHERE id = ?', [sourceId])?.cover_photo_id).toBeNull()
   })

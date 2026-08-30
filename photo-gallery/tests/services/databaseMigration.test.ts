@@ -145,6 +145,8 @@ describe('legacy project database migration', () => {
         created_at INTEGER,
         updated_at INTEGER
       );
+      INSERT INTO project_shots (project_id, photo_id, position, title, status, created_at, updated_at)
+        VALUES (1, 2, 0, '旧拍摄条目', 'planned', 1700000000, 1700000000);
     `)
     writeFileSync(join(databaseDir, 'gallery.db'), Buffer.from(legacyDb.export()))
     legacyDb.close()
@@ -159,9 +161,18 @@ describe('legacy project database migration', () => {
     expect(dbAdapter.get('SELECT chapter, note FROM project_selections WHERE id = 1')).toMatchObject({ chapter: '未分组', note: null })
     expect(dbAdapter.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_shots'")).toHaveLength(1)
     expect(dbAdapter.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_material_references'")).toHaveLength(1)
+    expect(dbAdapter.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'shot_groups'")).toHaveLength(1)
+    expect(dbAdapter.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'plan_references'")).toHaveLength(1)
+    expect(dbAdapter.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'shot_items'")).toHaveLength(1)
+    expect(dbAdapter.query('SELECT id FROM shot_groups')).toHaveLength(1)
+    expect(dbAdapter.query('SELECT id FROM plan_references')).toHaveLength(1)
+    expect(dbAdapter.query('SELECT id FROM shot_items')).toHaveLength(1)
 
     closeDatabase()
     await initializeDatabase(tempDir)
     expect(dbAdapter.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_material_references'")).toHaveLength(1)
+    expect(dbAdapter.query('SELECT id FROM shot_groups')).toHaveLength(1)
+    expect(dbAdapter.query('SELECT id FROM plan_references')).toHaveLength(1)
+    expect(dbAdapter.query('SELECT id FROM shot_items')).toHaveLength(1)
   })
 })

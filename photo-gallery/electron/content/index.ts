@@ -45,11 +45,9 @@ import { registerDeleteIpc } from '../ipc/delete'
 import { registerProjectIpc } from '../ipc/project'
 import { registerSelectionIpc } from '../ipc/selection'
 import { registerProjectShotsIpc } from '../ipc/projectShots'
-import { copyPhotosToDesktopFolder } from '../services/desktopExport'
-import { registerPdfExportIpc } from '../ipc/pdfExport'
 import { registerPlanningExportsIpc } from '../ipc/planningExports'
 import { registerDeliveryIpc } from '../ipc/delivery'
-import { registerMaterialBrowserIpc, setupDownloadHandler } from '../ipc/materialBrowser'
+import { registerMaterialBrowserIpc, setupDownloadHandler, setupMaterialBrowserView, disposeMaterialBrowserView } from '../ipc/materialBrowser'
 import { registerProjectReferencesIpc } from '../ipc/projectReferences'
 import { registerScreenCapture, disposeScreenCapture } from '../services/screenCapture'
 
@@ -60,11 +58,11 @@ import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
 import type { ChangelogEntry } from '../types'
 
 export const name = 'pic-content'
-export const version = '4.3.1'
+export const version = '5.0.0'
 
 // Content module capabilities (what the shell can rely on).
 export const capabilities = {
-  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'capture', 'projectReferences', 'projects', 'selection', 'projectShots', 'planningExports', 'delivery', 'pdfExport'],
+  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'capture', 'projectReferences', 'projects', 'selection', 'projectShots', 'planningExports', 'delivery'],
   services: ['cache', 'changelog', 'window'],
   db: true
 }
@@ -132,9 +130,8 @@ export function registerIpc(c: ContentContext): void {
   registerProjectIpc()
   registerSelectionIpc()
   registerProjectShotsIpc()
-  registerPlanningExportsIpc()
+  registerPlanningExportsIpc(c)
   registerDeliveryIpc()
-  registerPdfExportIpc(c)
   registerMaterialBrowserIpc(c.getMainWindow())
   registerProjectReferencesIpc(c.app.getPath('desktop'))
 
@@ -150,6 +147,7 @@ export function onWindowCreated(c: ContentContext): void {
   const win = c.getMainWindow()
   if (win) {
     setupDownloadHandler(win)
+    setupMaterialBrowserView(win)
     registerScreenCapture({
       getMainWindow: c.getMainWindow,
       preloadPath: c.preloadPath
@@ -192,6 +190,7 @@ export function getRendererFallback(): string {
  */
 export async function onQuit(): Promise<void> {
   try { disposeScreenCapture() } catch (e) { console.error('[content] capture dispose fail:', e) }
+  try { disposeMaterialBrowserView() } catch (e) { console.error('[content] material view dispose fail:', e) }
   try { saveDatabase() } catch (e) { console.error('[content] save fail:', e) }
   try { await closeExifTool() } catch (e) { console.error('[content] exiftool close fail:', e) }
   try { closeDatabase() } catch (e) { console.error('[content] close fail:', e) }
@@ -330,11 +329,6 @@ function registerGenericHandlers(c: ContentContext): void {
   ipcMain.handle('window:isMaximized', wrapHandler('window:isMaximized', () => c.getMainWindow()?.isMaximized() ?? false))
 
   // ─── Photo file helpers ───
-  ipcMain.handle('photos:copyToDesktopFolder', wrapAsyncHandler('photos:copyToDesktopFolder',
-    async (_e, filePaths: string[], folderName: string) =>
-      copyPhotosToDesktopFolder(filePaths, folderName, app.getPath('desktop'))
-  ))
-
   ipcMain.handle('photos:copyImageToClipboard', wrapAsyncHandler('photos:copyImageToClipboard',
     async (_e, filePath: string) => {
       if (!existsSync(filePath)) return { success: false, error: '文件不存在' }
