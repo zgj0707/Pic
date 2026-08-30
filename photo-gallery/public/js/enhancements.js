@@ -85,7 +85,7 @@ function renderProjectBrief(project = currentProjectRecord()) {
     return
   }
   const setText = (id, value) => document.getElementById(id)?.replaceChildren(document.createTextNode(value))
-  setText('currentProjectDescription', project.description || '未添加项目说明')
+  setText('currentProjectDescription', project.description || '未添加方案说明')
   setText('currentProjectClient', project.client_name || '未填写客户')
   setText('currentProjectDate', project.shoot_date || '尚未设置拍摄日期')
   setText('currentProjectLocation', project.location || '未填写场地')
@@ -132,7 +132,7 @@ function briefCoverCandidates() {
     if (coverPath) {
       candidates.unshift({
         id: Number(projectBriefDraftCoverPhotoId),
-        filename: '当前项目封面',
+        filename: '当前方案封面',
         thumbnail_path: coverPath,
         filepath: coverPath
       })
@@ -163,9 +163,9 @@ function renderBriefCoverPicker() {
   const current = candidates.find(photo => photo.id === Number(projectBriefDraftCoverPhotoId))
   status.textContent = current
     ? `保存后使用「${current.filename || '未命名样片'}」`
-    : '保存后不使用项目封面'
+    : '保存后不使用方案封面'
   if (candidates.length === 0) {
-    choices.innerHTML = '<span class="brief-cover-empty">当前项目还没有可用样片，请先导入照片</span>'
+    choices.innerHTML = '<span class="brief-cover-empty">当前方案还没有可用样片，请先导入照片</span>'
     return
   }
   choices.innerHTML = candidates.map(photo => {
@@ -226,7 +226,7 @@ async function refreshProjectAfterBriefSave(projectId) {
 
 async function saveProjectBriefPayload(input, options = {}) {
   if (currentProjectId === null || !input.name) {
-    showToast('项目名称不能为空', 'warning')
+    showToast('方案名称不能为空', 'warning')
     return false
   }
   const projectId = currentProjectId
@@ -282,7 +282,7 @@ async function saveProjectBrief(event) {
 
 async function setSelectedAsProjectCover() {
   if (selectedPhotos.size !== 1) {
-    showToast('请选择 1 张样片作为项目封面', 'warning')
+    showToast('请选择 1 张样片作为方案封面', 'warning')
     return
   }
   const project = currentProjectRecord()

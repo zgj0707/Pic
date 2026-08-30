@@ -52,7 +52,7 @@ export function sanitizePdfBaseName(value: string): string {
   return cleaned || 'Pic-样片'
 }
 
-function availablePdfPath(desktopPath: string, requestedBaseName: string): string {
+export function availablePdfPath(desktopPath: string, requestedBaseName: string): string {
   const baseName = sanitizePdfBaseName(requestedBaseName)
   const extension = extname(baseName).toLowerCase() === '.pdf' ? '' : '.pdf'
   const stem = extension ? baseName : basename(baseName, extname(baseName))

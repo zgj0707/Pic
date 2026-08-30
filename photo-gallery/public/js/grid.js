@@ -330,23 +330,8 @@ function togglePhotoSelection(photoId, item) {
 
 function updateDesktopSaveButton() {
   const count = typeof selectedPhotos !== 'undefined' ? selectedPhotos.size : 0;
-  const referenceCount = typeof browserCollectedReferences !== 'undefined' ? browserCollectedReferences.length : 0;
-  const copyButton = document.getElementById('copyToDesktopBtn');
-  const copyLabel = document.getElementById('saveDesktopLabel');
-  const pdfButton = document.getElementById('exportPdfBtn');
-  const pdfLabel = document.getElementById('exportPdfLabel');
-  if (copyButton) copyButton.disabled = count === 0 && referenceCount === 0;
-  if (pdfButton) pdfButton.disabled = count === 0;
-  if (copyLabel) {
-    copyLabel.textContent = count > 0 && referenceCount > 0
-      ? '保存已选与参考'
-      : count > 0
-        ? '保存已选'
-        : referenceCount > 0
-          ? '保存参考'
-          : '保存到桌面';
-  }
-  if (pdfLabel) pdfLabel.textContent = count > 0 ? '导出已选 PDF' : '导出 PDF';
+  const planningButton = document.getElementById('addToShotListBtn');
+  if (planningButton) planningButton.disabled = count === 0;
 }
 
 function updateSelectAllButton() {

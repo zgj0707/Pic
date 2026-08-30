@@ -81,6 +81,39 @@ export interface ProjectExport {
   item_count: number
   created_at: number
 }
+
+export interface PlanningPdfExportItem {
+  shotId: number
+  photoId: number
+  success: boolean
+  error?: string
+}
+
+export interface PlanningPdfExportResult {
+  success: boolean
+  filePath?: string
+  exported: number
+  failed: number
+  results: PlanningPdfExportItem[]
+  error?: string
+}
+
+export interface PlanningPdfPreflightItem {
+  shotId: number
+  photoId: number
+  filename: string
+  ready: boolean
+  error?: string
+}
+
+export interface PlanningPdfPreflightResult {
+  success: boolean
+  total: number
+  ready: number
+  missing: number
+  items: PlanningPdfPreflightItem[]
+  error?: string
+}
 export interface Project {
   id: number
   name: string

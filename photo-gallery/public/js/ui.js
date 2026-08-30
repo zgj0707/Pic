@@ -66,7 +66,7 @@ function rememberBrowserSourceUrl(source, rawUrl) {
 
 async function saveCurrentBrowserReference() {
   if (currentProjectId === null) {
-    showToast('请先创建或选择一个拍摄项目', 'warning');
+    showToast('请先创建或选择一个拍摄方案', 'warning');
     return;
   }
   const webview = document.getElementById('materialWebview');
@@ -93,7 +93,7 @@ async function saveCurrentBrowserReference() {
     return;
   }
   if (typeof recordBrowserReference === 'function') recordBrowserReference(result.reference);
-  showToast(result.alreadyExists ? '该页面已在当前项目中' : '远程参考已加入当前项目', result.alreadyExists ? 'info' : 'success');
+  showToast(result.alreadyExists ? '该页面已在当前方案中' : '远程参考已加入当前方案', result.alreadyExists ? 'info' : 'success');
 }
 
 function updateViewToggleButton() {

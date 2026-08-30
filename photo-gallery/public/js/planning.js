@@ -338,22 +338,30 @@ async function exportPlanningPdf() {
     showToast('请先把样片加入拍摄清单', 'warning')
     return
   }
-  const paths = planningShots.map(shot => planningPhotoForShot(shot)?.filepath).filter(Boolean)
-  if (paths.length === 0) {
-    showToast('拍摄清单中没有可导出的本地样片', 'warning')
-    return
-  }
   const project = typeof currentProjectRecord === 'function' ? currentProjectRecord() : null
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, '')
   const name = `${project?.name || currentProjectName || 'Pic-拍摄方案'}-${date}`
   try {
-    const result = await window.electronAPI?.photos?.exportToPdf?.(paths, name)
-    if (!result?.filePath) throw new Error(result?.error || 'PDF 生成失败')
-    if (window.electronAPI?.planningExports?.record) {
-      await window.electronAPI.planningExports.record(projectId, 'shot-list', result.filePath, planningShots.length)
+    if (window.electronAPI?.planningExports?.preflight) {
+      const preflight = await window.electronAPI.planningExports.preflight(projectId)
+      if (!preflight?.success && (preflight?.ready || 0) === 0) {
+        throw new Error(preflight?.error || '没有可导出的有效样片')
+      }
+      if ((preflight?.missing || 0) > 0) {
+        const missingNames = (preflight.items || [])
+          .filter(item => !item.ready)
+          .slice(0, 5)
+          .map(item => item.filename)
+          .join('、')
+        const suffix = (preflight.missing || 0) > 5 ? '等' : ''
+        const confirmed = window.confirm(`有 ${preflight.missing} 张样片无法读取，将跳过后导出。\n${missingNames}${suffix}\n\n是否继续？`)
+        if (!confirmed) return
+      }
     }
+    const result = await window.electronAPI?.planningExports?.exportPdf?.(projectId, name)
+    if (!result?.filePath) throw new Error(result?.error || 'PDF 生成失败')
     const suffix = result.failed > 0 ? `，${result.failed} 张样片失败` : ''
-    showToast(`已按拍摄顺序导出 ${result.exported} 张样片${suffix}。备注仍保存在拍摄清单中。`, result.failed > 0 ? 'warning' : 'success')
+    showToast(`已按分组和拍摄顺序导出 ${result.exported} 张样片${suffix}，备注已写入 PDF。`, result.failed > 0 ? 'warning' : 'success')
     if (window.electronAPI?.delivery?.openFolder && result.filePath) {
       const folder = result.filePath.replace(/[\\/][^\\/]+$/, '')
       void window.electronAPI.delivery.openFolder(folder)

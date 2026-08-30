@@ -43,8 +43,6 @@
             <button id="clearFilterBtn" class="filter-reset" type="button" title="清除搜索和选择"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>重置</span></button>
             <button id="selectAllBtn" class="filter-reset" type="button" title="选择当前结果" disabled><i class="fa-solid fa-check-double" aria-hidden="true"></i><span>全选</span></button>
           </div>
-          <button id="copyToDesktopBtn" class="primary-action" type="button" title="把当前选中的样片复制到桌面文件夹" disabled><i class="fa-solid fa-folder-plus" aria-hidden="true"></i><span id="saveDesktopLabel">保存到桌面</span></button>
-          <button id="exportPdfBtn" class="primary-action" type="button" title="按 A4 竖版格式将当前选中的样片导出为 PDF" disabled><i class="fa-solid fa-file-pdf" aria-hidden="true"></i><span id="exportPdfLabel">导出 PDF</span></button>
           <div class="header-overflow">
             <button id="headerMoreBtn" class="tool-button" type="button" title="更多工具" aria-label="更多工具" aria-expanded="false"><i class="fa-solid fa-ellipsis"></i></button>
             <div id="headerOverflowMenu" class="header-overflow-menu hidden" role="menu">
@@ -60,7 +58,7 @@
     </header>
 
     <div class="workspace-frame">
-      <aside class="project-sidebar" aria-label="项目导航">
+      <aside class="project-sidebar" aria-label="拍摄方案导航">
         <div class="project-sidebar-header">
           <div>
             <span class="sidebar-eyebrow">拍摄策划</span>
@@ -70,7 +68,7 @@
             <i class="fa-solid fa-folder-plus" aria-hidden="true"></i><span>新建方案</span>
           </button>
         </div>
-        <div id="projectList" class="project-list custom-scrollbar" aria-label="项目列表"></div>
+        <div id="projectList" class="project-list custom-scrollbar" aria-label="拍摄方案列表"></div>
         <div class="sidebar-auxiliary" aria-label="辅助空间">
           <span class="sidebar-section-label">辅助空间</span>
           <button id="statusPlanningBtn" type="button"><i class="fa-solid fa-list-check" aria-hidden="true"></i><span>拍摄清单</span></button>
@@ -80,18 +78,18 @@
         </div>
       </aside>
 
-      <main class="workspace-main" aria-label="项目工作区">
+      <main class="workspace-main" aria-label="拍摄方案工作区">
         <section class="project-titlebar" aria-labelledby="currentProjectTitle">
           <div class="project-brief-main">
-            <button id="projectCoverButton" class="project-cover-button" type="button" title="选择一张样片后可设为项目封面" aria-label="项目封面">
+            <button id="projectCoverButton" class="project-cover-button" type="button" title="选择一张样片后可设为方案封面" aria-label="方案封面">
               <i class="fa-regular fa-image" aria-hidden="true"></i>
-              <span>项目封面</span>
+              <span>方案封面</span>
             </button>
             <div class="project-heading">
               <div class="project-heading-title">
                 <div>
                 <span class="section-eyebrow">拍摄方案</span>
-                  <h1 id="currentProjectTitle">未选择项目</h1>
+                  <h1 id="currentProjectTitle">未选择方案</h1>
                 </div>
                 <button id="projectBriefEditBtn" class="brief-edit-button" type="button" disabled><i class="fa-solid fa-pen" aria-hidden="true"></i><span>编辑简报</span></button>
               </div>
@@ -105,7 +103,7 @@
               <p id="currentProjectGoal" class="project-goal">尚未填写交付目标</p>
             </div>
           </div>
-          <div class="project-summary" aria-label="项目统计">
+          <div class="project-summary" aria-label="方案统计">
             <div class="project-stat"><span>已收集样片</span><strong id="projectPhotoCount">0</strong></div>
           </div>
           <form id="projectBriefEditor" class="project-brief-editor hidden">
@@ -118,14 +116,14 @@
             <label class="brief-wide">交付目标<textarea id="briefGoalInput" rows="2" maxlength="500" placeholder="例如：品牌主视觉 3 张、社交媒体竖图 6 张"></textarea></label>
             <div class="brief-cover-editor brief-wide">
               <div class="brief-cover-heading">
-                <div><strong>项目封面</strong><span id="briefCoverStatus">尚未设置封面</span></div>
+                <div><strong>方案封面</strong><span id="briefCoverStatus">尚未设置封面</span></div>
                 <div class="brief-cover-actions">
                   <button id="briefUseSelectedCoverBtn" class="secondary-action" type="button"><i class="fa-solid fa-arrow-pointer" aria-hidden="true"></i><span>使用图库当前选中</span></button>
                   <button id="briefClearCoverBtn" class="secondary-action" type="button"><i class="fa-regular fa-image" aria-hidden="true"></i><span>清除封面</span></button>
                 </div>
               </div>
-              <div id="briefCoverChoices" class="brief-cover-choices" role="listbox" aria-label="选择项目封面">
-                <span class="brief-cover-empty">当前项目还没有可用样片</span>
+              <div id="briefCoverChoices" class="brief-cover-choices" role="listbox" aria-label="选择方案封面">
+                  <span class="brief-cover-empty">当前方案还没有可用样片</span>
               </div>
             </div>
             <div class="project-brief-editor-actions brief-wide">
@@ -194,7 +192,7 @@
 
         <footer class="status-bar">
           <div class="status-context">
-            <button id="statusProject" type="button"><i class="fa-solid fa-folder" aria-hidden="true"></i><span>未选择项目</span></button>
+            <button id="statusProject" type="button"><i class="fa-solid fa-folder" aria-hidden="true"></i><span>未选择方案</span></button>
             <span id="statusView">瀑布流</span>
             <span id="statusCount">0 张样片</span>
             <button id="statusBackToGallery" class="hidden" type="button"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>回到样片库</span></button>
@@ -239,7 +237,7 @@
     <div class="material-browser-header">
       <div class="material-browser-context">
         <span class="material-browser-title">素材浏览器</span>
-        <span id="browserProjectContext" class="material-browser-project">未选择项目</span>
+        <span id="browserProjectContext" class="material-browser-project">未选择方案</span>
         <span id="browserModeNotice" class="material-browser-mode-note">小红书内嵌浏览 · Alt+A 截图</span>
       </div>
       <div class="material-browser-nav">

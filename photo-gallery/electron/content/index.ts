@@ -45,8 +45,6 @@ import { registerDeleteIpc } from '../ipc/delete'
 import { registerProjectIpc } from '../ipc/project'
 import { registerSelectionIpc } from '../ipc/selection'
 import { registerProjectShotsIpc } from '../ipc/projectShots'
-import { copyPhotosToDesktopFolder } from '../services/desktopExport'
-import { registerPdfExportIpc } from '../ipc/pdfExport'
 import { registerPlanningExportsIpc } from '../ipc/planningExports'
 import { registerDeliveryIpc } from '../ipc/delivery'
 import { registerMaterialBrowserIpc, setupDownloadHandler } from '../ipc/materialBrowser'
@@ -64,7 +62,7 @@ export const version = '5.0.0'
 
 // Content module capabilities (what the shell can rely on).
 export const capabilities = {
-  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'capture', 'projectReferences', 'projects', 'selection', 'projectShots', 'planningExports', 'delivery', 'pdfExport'],
+  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'capture', 'projectReferences', 'projects', 'selection', 'projectShots', 'planningExports', 'delivery'],
   services: ['cache', 'changelog', 'window'],
   db: true
 }
@@ -132,9 +130,8 @@ export function registerIpc(c: ContentContext): void {
   registerProjectIpc()
   registerSelectionIpc()
   registerProjectShotsIpc()
-  registerPlanningExportsIpc()
+  registerPlanningExportsIpc(c)
   registerDeliveryIpc()
-  registerPdfExportIpc(c)
   registerMaterialBrowserIpc(c.getMainWindow())
   registerProjectReferencesIpc(c.app.getPath('desktop'))
 
@@ -330,11 +327,6 @@ function registerGenericHandlers(c: ContentContext): void {
   ipcMain.handle('window:isMaximized', wrapHandler('window:isMaximized', () => c.getMainWindow()?.isMaximized() ?? false))
 
   // ─── Photo file helpers ───
-  ipcMain.handle('photos:copyToDesktopFolder', wrapAsyncHandler('photos:copyToDesktopFolder',
-    async (_e, filePaths: string[], folderName: string) =>
-      copyPhotosToDesktopFolder(filePaths, folderName, app.getPath('desktop'))
-  ))
-
   ipcMain.handle('photos:copyImageToClipboard', wrapAsyncHandler('photos:copyImageToClipboard',
     async (_e, filePath: string) => {
       if (!existsSync(filePath)) return { success: false, error: '文件不存在' }

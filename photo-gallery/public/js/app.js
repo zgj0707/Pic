@@ -435,9 +435,6 @@ document.getElementById('deleteBtn').addEventListener('click', deleteSelectedPho
 document.getElementById('restoreBtn').addEventListener('click', restoreSelectedPhotos);
 document.getElementById('permanentDeleteBtn').addEventListener('click', permanentlyDeleteSelectedPhotos);
 
-// 复制选中图片到桌面文件夹
-document.getElementById('copyToDesktopBtn').addEventListener('click', copySelectedToDesktop);
-document.getElementById('exportPdfBtn').addEventListener('click', exportSelectedToPdf);
 document.getElementById('selectAllBtn')?.addEventListener('click', () => { void toggleSelectAllPhotos(); });
 
 // ─── 设置 ───
