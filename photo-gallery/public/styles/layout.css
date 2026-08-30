@@ -207,6 +207,7 @@
 .material-browser-address { min-width: 0; }
 .material-browser-address input { min-width: 0; }
 .material-browser-tools { justify-content: flex-end; }
+.material-webview-host { min-height: 0; background: #111; }
 .browser-collection-reference {
   display: inline-flex;
   align-items: center;
@@ -304,6 +305,14 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.header-selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 8px;
+  border-right: 1px solid var(--border-subtle);
 }
 
 .primary-action,
@@ -490,32 +499,8 @@
 .project-stat span { color: var(--text-muted); font-size: 10px; }
 .project-stat strong { color: var(--text-warm); font-size: 18px; font-weight: 500; }
 
-.filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 46px;
-  padding: 0 18px;
-  overflow-x: auto;
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--bg-deep);
-}
-.filter-chip-group { display: flex; align-items: center; gap: 7px; }
-.filter-spacer { flex: 1; min-width: 10px; }
-.filter-bar select {
-  height: 28px;
-  padding: 0 9px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 5px;
-  outline: none;
-  background: var(--bg-elevated);
-  color: var(--text-warm);
-  font-size: 11px;
-}
-.filter-bar select:focus { border-color: var(--accent); }
 .filter-reset { display: inline-flex; align-items: center; gap: 5px; color: var(--text-muted); font-size: 11px; white-space: nowrap; }
 .filter-reset:hover { color: var(--text-warm); }
-.photo-count-label { margin-left: 3px; color: var(--text-muted); font-size: 11px; white-space: nowrap; }
 
 .gallery-panel { display: flex; flex: 1; min-height: 0; flex-direction: column; overflow: hidden; }
 .photo-grid-container { position: relative; flex: 1; min-height: 0; overflow-y: auto; }
@@ -538,6 +523,8 @@
   .header-primary-actions span { display: none; }
   .header-primary-actions .primary-action,
   .header-primary-actions .secondary-action { width: 34px; padding: 0; }
+  .header-selection-actions .filter-reset span { display: none; }
+  .header-selection-actions .filter-reset { width: 30px; padding: 0; justify-content: center; }
 }
 
 /* Stage 5: ordered delivery workspace */

@@ -29,7 +29,7 @@ function stopImportProgressListener() {
 
 function ensureCurrentProjectForImport() {
   if (currentProjectId !== null) return true;
-  showToast('请先创建或选择一个拍摄项目，再收集参考样片', 'warning');
+  showToast('请先创建或选择一个拍摄方案，再收集参考样片', 'warning');
   createNewProject();
   return false;
 }

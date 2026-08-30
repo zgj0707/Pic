@@ -4,12 +4,17 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { addProjectSelection, updateProjectSelectionMeta } from '../../electron/services/projectSelections'
 import {
+  createShotGroup,
   createProjectShot,
   createShotsFromSelections,
+  listShotGroups,
   listProjectShots,
+  removeShotGroup,
   removeProjectShot,
-  removeShotsForPhotos,
   reorderProjectShots,
+  renameShotGroup,
+  reorderShotGroups,
+  removeShotsForPhotos,
   updateProjectShot
 } from '../../electron/services/projectShots'
 import { closeDatabase, dbAdapter, initializeDatabase } from '../../electron/services/database'
@@ -52,13 +57,14 @@ describe('project shot list', () => {
     expect(generated[0].photo.filename).toBe('a-1.jpg')
 
     const updated = updateProjectShot(projectA, generated[0].id, {
+      chapter: '窗边自然光',
       title: '站姿半身 · 窗边光',
       intent: '保持肩线自然',
       compositionNotes: '中近景，留出视线方向',
       lightingGearNotes: '大号柔光箱，银色反光板',
       status: 'ready'
     })
-    expect(updated).toMatchObject({ title: '站姿半身 · 窗边光', intent: '保持肩线自然', status: 'ready' })
+    expect(updated).toMatchObject({ chapter: '窗边自然光', title: '站姿半身 · 窗边光', intent: '保持肩线自然', status: 'ready' })
     expect(updated.composition_notes).toContain('中近景')
     expect(updated.lighting_gear_notes).toContain('柔光箱')
 
@@ -78,5 +84,31 @@ describe('project shot list', () => {
     expect(listProjectShots(projectA)).toHaveLength(1)
     removeShotsForPhotos([photoA1])
     expect(listProjectShots(projectA)).toHaveLength(0)
+  })
+
+  it('supports empty groups and reusing one reference in multiple groups', async () => {
+    await setupDatabase()
+    const empty = createShotGroup(projectA, { name: '空分组' })
+    const first = createProjectShot(projectA, photoA1, { chapter: '窗边光' })
+    const second = createProjectShot(projectA, photoA1, { chapter: '夜景闪光' })
+    expect(first.photo_id).toBe(second.photo_id)
+    expect(listProjectShots(projectA)).toHaveLength(2)
+    expect(listShotGroups(projectA).map(group => group.name)).toEqual(['空分组', '窗边光', '夜景闪光'])
+
+    const renamed = renameShotGroup(projectA, empty.id, '准备区')
+    expect(renamed.name).toBe('准备区')
+    const groups = listShotGroups(projectA)
+    const reordered = reorderShotGroups(projectA, [groups[2].id, groups[0].id, groups[1].id])
+    expect(reordered.map(group => group.name)).toEqual(['夜景闪光', '准备区', '窗边光'])
+
+    const nightGroup = reordered.find(group => group.name === '夜景闪光')!
+    expect(removeShotGroup(projectA, nightGroup.id)).toBe(true)
+    expect(listProjectShots(projectA)).toHaveLength(1)
+    expect(listProjectShots(projectA)[0].chapter).toBe('窗边光')
+    expect(dbAdapter.get('SELECT id FROM project_shots WHERE project_id = ? AND photo_id = ?', [projectA, photoA1])).not.toBeNull()
+    expect(listShotGroups(projectA).map(group => group.name)).toContain('准备区')
+    const prepGroup = listShotGroups(projectA).find(group => group.name === '准备区')!
+    expect(removeShotGroup(projectA, prepGroup.id)).toBe(true)
+    expect(listShotGroups(projectA).map(group => group.name)).not.toContain('准备区')
   })
 })

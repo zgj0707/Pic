@@ -1,6 +1,6 @@
 import { dbAdapter, saveDatabase } from './database'
 import { moveProjectSelections, moveProjectSelectionsForPhotos } from './projectSelections'
-import { moveProjectShots, moveProjectShotsForPhotos } from './projectShots'
+import { copyProjectShots, moveProjectShots, moveProjectShotsForPhotos } from './projectShots'
 import { moveProjectExports } from './planningExports'
 import { copyProjectMaterialReferences, moveProjectMaterialReferences } from './projectReferences'
 
@@ -58,6 +58,7 @@ export function duplicateProject(sourceProjectId: number): DuplicateProjectResul
   })
   if (id === null) return { success: false, error: '复制项目失败' }
   copyProjectMaterialReferences(sourceProjectId, id)
+  copyProjectShots(sourceProjectId, id)
   saveDatabase()
   return { success: true, id, name }
 }

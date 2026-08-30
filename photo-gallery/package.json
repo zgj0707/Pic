@@ -1,6 +1,6 @@
 {
   "name": "photo-gallery",
-  "version": "4.3.1",
+  "version": "5.0.0",
   "description": "拍摄前参考样片收集与整理工具",
   "main": "./dist-app/main/main.js",
   "author": "",

@@ -62,6 +62,7 @@ export interface ProjectShot {
   project_id: number
   photo_id: number
   position: number
+  group_id?: number
   chapter: string
   title: string
   intent: string | null
@@ -73,6 +74,15 @@ export interface ProjectShot {
   photo: Photo
 }
 
+export interface ShotGroup {
+  id: number
+  project_id: number
+  name: string
+  position: number
+  created_at: number
+  updated_at: number
+}
+
 export interface ProjectExport {
   id: number
   project_id: number
@@ -80,6 +90,39 @@ export interface ProjectExport {
   target_path: string
   item_count: number
   created_at: number
+}
+
+export interface PlanningPdfExportItem {
+  shotId: number
+  photoId: number
+  success: boolean
+  error?: string
+}
+
+export interface PlanningPdfExportResult {
+  success: boolean
+  filePath?: string
+  exported: number
+  failed: number
+  results: PlanningPdfExportItem[]
+  error?: string
+}
+
+export interface PlanningPdfPreflightItem {
+  shotId: number
+  photoId: number
+  filename: string
+  ready: boolean
+  error?: string
+}
+
+export interface PlanningPdfPreflightResult {
+  success: boolean
+  total: number
+  ready: number
+  missing: number
+  items: PlanningPdfPreflightItem[]
+  error?: string
 }
 export interface Project {
   id: number

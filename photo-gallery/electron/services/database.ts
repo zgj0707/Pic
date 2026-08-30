@@ -11,10 +11,12 @@ let SQL: any = null
 // 避免每次写操作都全量序列化。退出时由 saveDatabase() 强制同步落盘。
 let dirty = false
 let saveTimer: ReturnType<typeof setTimeout> | null = null
+let autoSaveSuspended = false
 const SAVE_DEBOUNCE_MS = 500
 
 function markDirty(): void {
   dirty = true
+  if (autoSaveSuspended) return
   if (saveTimer) return
   saveTimer = setTimeout(() => {
     saveTimer = null
@@ -100,6 +102,44 @@ CREATE TABLE IF NOT EXISTS project_shots (
 );
 CREATE INDEX IF NOT EXISTS idx_project_shots_project_position ON project_shots(project_id, position);
 CREATE INDEX IF NOT EXISTS idx_project_shots_photo ON project_shots(photo_id);
+CREATE TABLE IF NOT EXISTS shot_groups (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER DEFAULT (strftime('%s', 'now')),
+  updated_at INTEGER DEFAULT (strftime('%s', 'now')),
+  UNIQUE (project_id, name)
+);
+CREATE INDEX IF NOT EXISTS idx_shot_groups_project_position ON shot_groups(project_id, position);
+CREATE TABLE IF NOT EXISTS plan_references (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL,
+  asset_id INTEGER NOT NULL,
+  source_kind TEXT NOT NULL DEFAULT 'unknown',
+  source_url TEXT,
+  source_title TEXT,
+  captured_at INTEGER,
+  created_at INTEGER DEFAULT (strftime('%s', 'now')),
+  UNIQUE (project_id, asset_id)
+);
+CREATE INDEX IF NOT EXISTS idx_plan_references_project_created ON plan_references(project_id, created_at);
+CREATE TABLE IF NOT EXISTS shot_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  group_id INTEGER NOT NULL,
+  reference_id INTEGER NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0,
+  title TEXT NOT NULL,
+  intent TEXT,
+  composition_notes TEXT,
+  lighting_gear_notes TEXT,
+  status TEXT NOT NULL DEFAULT 'planned',
+  created_at INTEGER DEFAULT (strftime('%s', 'now')),
+  updated_at INTEGER DEFAULT (strftime('%s', 'now')),
+  UNIQUE (group_id, reference_id)
+);
+CREATE INDEX IF NOT EXISTS idx_shot_items_group_position ON shot_items(group_id, position);
+CREATE INDEX IF NOT EXISTS idx_shot_items_reference ON shot_items(reference_id);
 CREATE TABLE IF NOT EXISTS project_exports (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   project_id INTEGER NOT NULL,
@@ -362,8 +402,102 @@ export async function initializeDatabase(appDataPath: string): Promise<void> {
     db.exec("ALTER TABLE project_shots ADD COLUMN chapter TEXT NOT NULL DEFAULT '未分组'")
   }
   dbAdapter.run("UPDATE project_shots SET chapter = '未分组' WHERE chapter IS NULL OR chapter = ''")
-  db.exec('CREATE INDEX IF NOT EXISTS idx_project_shots_project_position ON project_shots(project_id, position)')
-  db.exec('CREATE INDEX IF NOT EXISTS idx_project_shots_photo ON project_shots(photo_id)')
+
+  // Migration: normalize the chapter-based shot list into independent
+  // groups, references and shot items. The legacy table remains available to
+  // older callers, while v5 services read the normalized tables.
+  autoSaveSuspended = true
+  try {
+    db.exec('BEGIN TRANSACTION')
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS shot_groups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER DEFAULT (strftime('%s', 'now')),
+      updated_at INTEGER DEFAULT (strftime('%s', 'now')),
+      UNIQUE (project_id, name)
+    );
+    CREATE INDEX IF NOT EXISTS idx_shot_groups_project_position ON shot_groups(project_id, position);
+    CREATE TABLE IF NOT EXISTS plan_references (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      asset_id INTEGER NOT NULL,
+      source_kind TEXT NOT NULL DEFAULT 'unknown',
+      source_url TEXT,
+      source_title TEXT,
+      captured_at INTEGER,
+      created_at INTEGER DEFAULT (strftime('%s', 'now')),
+      UNIQUE (project_id, asset_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_plan_references_project_created ON plan_references(project_id, created_at);
+    CREATE TABLE IF NOT EXISTS shot_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      group_id INTEGER NOT NULL,
+      reference_id INTEGER NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0,
+      title TEXT NOT NULL,
+      intent TEXT,
+      composition_notes TEXT,
+      lighting_gear_notes TEXT,
+      status TEXT NOT NULL DEFAULT 'planned',
+      created_at INTEGER DEFAULT (strftime('%s', 'now')),
+      updated_at INTEGER DEFAULT (strftime('%s', 'now')),
+      UNIQUE (group_id, reference_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_shot_items_group_position ON shot_items(group_id, position);
+    CREATE INDEX IF NOT EXISTS idx_shot_items_reference ON shot_items(reference_id);
+    `)
+    const legacyShots = dbAdapter.query('SELECT * FROM project_shots ORDER BY project_id, position, id')
+    for (const shot of legacyShots) {
+    const projectId = Number(shot.project_id)
+    const photoId = Number(shot.photo_id)
+    const chapter = String(shot.chapter || '未分组').trim() || '未分组'
+    let group = dbAdapter.get('SELECT id FROM shot_groups WHERE project_id = ? AND name = ?', [projectId, chapter])
+    if (!group) {
+      const next = dbAdapter.get('SELECT COALESCE(MAX(position), -1) + 1 AS position FROM shot_groups WHERE project_id = ?', [projectId])
+      const groupId = dbAdapter.insert('shot_groups', { project_id: projectId, name: chapter, position: Number(next?.position || 0) })
+      group = groupId ? { id: groupId } : null
+    }
+    if (!group) continue
+    let reference = dbAdapter.get('SELECT id FROM plan_references WHERE project_id = ? AND asset_id = ?', [projectId, photoId])
+    if (!reference) {
+      const referenceId = dbAdapter.insert('plan_references', { project_id: projectId, asset_id: photoId, source_kind: 'legacy' })
+      reference = referenceId ? { id: referenceId } : null
+    }
+    if (!reference) continue
+    const existingItem = dbAdapter.get('SELECT id FROM shot_items WHERE id = ?', [Number(shot.id)])
+    if (!existingItem) {
+      dbAdapter.run(`
+        INSERT OR IGNORE INTO shot_items
+          (id, group_id, reference_id, position, title, intent, composition_notes, lighting_gear_notes, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        Number(shot.id), Number(group.id), Number(reference.id), Number(shot.position || 0),
+        String(shot.title || '未命名拍摄项'), shot.intent ?? null, shot.composition_notes ?? null,
+        shot.lighting_gear_notes ?? null, String(shot.status || 'planned'), Number(shot.created_at || 0), Number(shot.updated_at || 0)
+      ])
+    }
+    }
+    const projectPhotos = dbAdapter.query('SELECT id, project_id, source_type, source_url, filename, imported_at FROM photos WHERE project_id IS NOT NULL')
+    for (const photo of projectPhotos) {
+    dbAdapter.run(`
+      INSERT OR IGNORE INTO plan_references (project_id, asset_id, source_kind, source_url, source_title, captured_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [Number(photo.project_id), Number(photo.id), String(photo.source_type || 'unknown'), photo.source_url ?? null, photo.filename ?? null, photo.imported_at ?? null])
+    }
+    db.exec('CREATE INDEX IF NOT EXISTS idx_project_shots_project_position ON project_shots(project_id, position)')
+    db.exec('CREATE INDEX IF NOT EXISTS idx_project_shots_photo ON project_shots(photo_id)')
+    db.exec('COMMIT')
+    autoSaveSuspended = false
+    markDirty()
+  } catch (error) {
+    try { db.exec('ROLLBACK') } catch { /* Preserve the original migration error. */ }
+    autoSaveSuspended = false
+    markDirty()
+    throw error
+  }
 
   // Migration: early project tables used client_id/date/album_id and did not
   // have the timestamps required by the current create/update handlers.
@@ -500,6 +634,7 @@ export function closeDatabase(): void {
     db.close()
     db = null
   }
+  autoSaveSuspended = false
 }
 
 export const dbAdapter: DbAdapter = {

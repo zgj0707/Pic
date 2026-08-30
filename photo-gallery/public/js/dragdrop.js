@@ -57,7 +57,7 @@ function clearDropTargetStates() {
 
 async function importDroppedPaths(paths, projectId) {
   if (!window.electronAPI?.import?.fromDroppedPaths || projectId === null || projectId === undefined) {
-    showToast('请先创建或选择一个拍摄项目', 'warning');
+    showToast('请先创建或选择一个拍摄方案', 'warning');
     return;
   }
   if (paths.length === 0) {
@@ -93,11 +93,11 @@ async function refreshAfterPhotoMove(projectId) {
 
 async function movePicPhotosToProject(payload, targetProjectId) {
   if (!payload || targetProjectId === payload.sourceProjectId) {
-    if (payload) showToast('样片已经在这个项目中', 'info');
+    if (payload) showToast('样片已经在这个方案中', 'info');
     return;
   }
   if (!window.electronAPI?.projects?.movePhotos) {
-    showToast('跨项目移动功能当前不可用，请重启应用后重试', 'error');
+    showToast('跨方案移动功能当前不可用，请重启应用后重试', 'error');
     return;
   }
 
@@ -110,7 +110,7 @@ async function movePicPhotosToProject(payload, targetProjectId) {
     if (!result?.success) throw new Error(result?.error || '移动样片失败');
     const movedIds = Array.isArray(result.movedPhotoIds) ? result.movedPhotoIds.map(Number) : [];
     if (movedIds.length === 0) {
-      showToast('没有可移动的样片，可能已被删除或已移入其他项目', 'info');
+      showToast('没有可移动的样片，可能已被删除或已移入其他方案', 'info');
       return;
     }
 
@@ -118,7 +118,7 @@ async function movePicPhotosToProject(payload, targetProjectId) {
     updateSelectedCount();
     updateContextPanel();
     await refreshAfterPhotoMove(targetProjectId);
-    showToast('已将 ' + movedIds.length + ' 张样片移动到「' + (currentProjectName || '目标项目') + '」', 'success');
+    showToast('已将 ' + movedIds.length + ' 张样片移动到「' + (currentProjectName || '目标方案') + '」', 'success');
 
     if (typeof pushAppUndo === 'function') {
       pushAppUndo('移动 ' + movedIds.length + ' 张样片', async () => {
