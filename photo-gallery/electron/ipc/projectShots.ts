@@ -3,14 +3,39 @@ import { wrapHandler } from '../utils/ipcHandler'
 import {
   createProjectShot,
   createShotsFromSelections,
+  createShotGroup,
   listProjectShots,
+  listShotGroups,
+  removeShotGroup,
   removeProjectShot,
+  renameShotGroup,
+  reorderShotGroups,
   reorderProjectShots,
   updateProjectShot
 } from '../services/projectShots'
 import type { ProjectShotInput } from '../services/projectShots'
 
 export function registerProjectShotsIpc(): void {
+  ipcMain.handle('shotGroups:getAll', wrapHandler('shotGroups:getAll', (_event, projectId: number) => {
+    return listShotGroups(projectId)
+  }))
+
+  ipcMain.handle('shotGroups:create', wrapHandler('shotGroups:create', (_event, projectId: number, input: { name: string }) => {
+    return { success: true, group: createShotGroup(projectId, input) }
+  }))
+
+  ipcMain.handle('shotGroups:rename', wrapHandler('shotGroups:rename', (_event, projectId: number, groupId: number, name: string) => {
+    return { success: true, group: renameShotGroup(projectId, groupId, name) }
+  }))
+
+  ipcMain.handle('shotGroups:reorder', wrapHandler('shotGroups:reorder', (_event, projectId: number, groupIds: number[]) => {
+    return { success: true, groups: reorderShotGroups(projectId, groupIds) }
+  }))
+
+  ipcMain.handle('shotGroups:remove', wrapHandler('shotGroups:remove', (_event, projectId: number, groupId: number) => {
+    return { success: removeShotGroup(projectId, groupId) }
+  }))
+
   ipcMain.handle('shots:getAll', wrapHandler('shots:getAll', (_event, projectId: number) => {
     return listProjectShots(projectId)
   }))

@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type {
-  Photo, PhotoQueryOptions, PhotoFilter, ReviewState, Tag, ExifData, Project, ProjectBriefInput, ProjectSelection, ProjectShot, ProjectExport,
+  Photo, PhotoQueryOptions, PhotoFilter, ReviewState, Tag, ExifData, Project, ProjectBriefInput, ProjectSelection, ProjectShot, ShotGroup, ProjectExport,
   ImportResult, ImportProgress, ProjectMaterialReference,
   CacheStats, CacheCleanResult, IpcResponse, ChangelogEntry, PlanningPdfExportResult, PlanningPdfPreflightResult
 } from './types'
@@ -43,6 +43,11 @@ export interface ElectronAPI {
     updateMeta: (projectId: number, photoId: number, chapter: string, note: string) => Promise<{ success: boolean; selection?: ProjectSelection; error?: string }>
   },
   shots: {
+    getGroups: (projectId: number) => Promise<ShotGroup[]>
+    createGroup: (projectId: number, name: string) => Promise<{ success: boolean; group?: ShotGroup; error?: string }>
+    renameGroup: (projectId: number, groupId: number, name: string) => Promise<{ success: boolean; group?: ShotGroup; error?: string }>
+    reorderGroups: (projectId: number, groupIds: number[]) => Promise<{ success: boolean; groups?: ShotGroup[]; error?: string }>
+    removeGroup: (projectId: number, groupId: number) => Promise<{ success: boolean; error?: string }>
     getAll: (projectId: number) => Promise<ProjectShot[]>
     create: (projectId: number, photoId: number, input?: { chapter?: string; title?: string; intent?: string | null; compositionNotes?: string | null; lightingGearNotes?: string | null; status?: 'planned' | 'ready' | 'done' }) => Promise<{ success: boolean; shot?: ProjectShot; error?: string }>
     generateFromSelections: (projectId: number) => Promise<{ success: boolean; shots?: ProjectShot[]; error?: string }>
@@ -193,6 +198,11 @@ const api: ElectronAPI = {
     updateMeta: (projectId: number, photoId: number, chapter: string, note: string) => ipcRenderer.invoke('selections:updateMeta', projectId, photoId, chapter, note)
   },
   shots: {
+    getGroups: (projectId: number) => ipcRenderer.invoke('shotGroups:getAll', projectId),
+    createGroup: (projectId: number, name: string) => ipcRenderer.invoke('shotGroups:create', projectId, { name }),
+    renameGroup: (projectId: number, groupId: number, name: string) => ipcRenderer.invoke('shotGroups:rename', projectId, groupId, name),
+    reorderGroups: (projectId: number, groupIds: number[]) => ipcRenderer.invoke('shotGroups:reorder', projectId, groupIds),
+    removeGroup: (projectId: number, groupId: number) => ipcRenderer.invoke('shotGroups:remove', projectId, groupId),
     getAll: (projectId: number) => ipcRenderer.invoke('shots:getAll', projectId),
     create: (projectId: number, photoId: number, input?: unknown) => ipcRenderer.invoke('shots:create', projectId, photoId, input),
     generateFromSelections: (projectId: number) => ipcRenderer.invoke('shots:generateFromSelections', projectId),

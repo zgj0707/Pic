@@ -62,6 +62,7 @@ export interface ProjectShot {
   project_id: number
   photo_id: number
   position: number
+  group_id?: number
   chapter: string
   title: string
   intent: string | null
@@ -71,6 +72,15 @@ export interface ProjectShot {
   created_at: number
   updated_at: number
   photo: Photo
+}
+
+export interface ShotGroup {
+  id: number
+  project_id: number
+  name: string
+  position: number
+  created_at: number
+  updated_at: number
 }
 
 export interface ProjectExport {

@@ -22,6 +22,8 @@ const enhancementsSource = readFileSync(join(publicRoot, 'js', 'enhancements.js'
 const planningSource = readFileSync(join(publicRoot, 'js', 'planning.js'), 'utf8')
 const projectIpcSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'project.ts'), 'utf8')
 const projectManagementSource = readFileSync(join(process.cwd(), 'electron', 'services', 'projectManagement.ts'), 'utf8')
+const projectShotsSource = readFileSync(join(process.cwd(), 'electron', 'services', 'projectShots.ts'), 'utf8')
+const projectShotsIpcSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'projectShots.ts'), 'utf8')
 const projectsSource = readFileSync(join(publicRoot, 'js', 'projects.js'), 'utf8')
 const photoIpcSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'photo.ts'), 'utf8')
 
@@ -110,6 +112,19 @@ describe('UI/UX refactor guardrails', () => {
     expect(htmlSource).not.toContain('shotListWorkspace')
     expect(htmlSource).not.toContain('deliveryWorkspace')
     expect(htmlSource).not.toContain('planningExport.js')
+  })
+
+  it('keeps normalized groups and shot items behind semantic IPC', () => {
+    expect(projectShotsSource).toContain('shot_items')
+    expect(projectShotsSource).toContain('plan_references')
+    expect(projectShotsSource).toContain('ensureNormalizedShots')
+    expect(projectShotsIpcSource).toContain("'shotGroups:getAll'")
+    expect(projectShotsIpcSource).toContain("'shotGroups:reorder'")
+    expect(planningSource).toContain('planningAddGroupBtn')
+    expect(planningSource).toContain('planning-delete-group')
+    expect(planningSource).toContain('planning-rename-group')
+    expect(planningSource).toContain('movePlanningGroup')
+    expect(htmlSource).toContain('id="planningGroupList"')
   })
 
   it('opens material browsing as a project-scoped full workspace and freezes source metadata', () => {

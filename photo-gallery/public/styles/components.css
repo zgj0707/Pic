@@ -355,6 +355,11 @@
 .planning-groups-heading { display: flex; justify-content: space-between; align-items: center; color: var(--text-muted, #9c9388); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; margin: 0 8px 10px; }
 .planning-groups-heading strong { color: var(--accent, #c9955a); font-size: 12px; }
 .planning-group-list { display: flex; flex-direction: column; gap: 5px; }
+.planning-group-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px; }
+.planning-group-row .planning-group-item { min-width: 0; }
+.planning-group-row-actions { display: flex; gap: 1px; }
+.planning-group-row-actions .planning-icon-button { width: 22px; height: 22px; font-size: 10px; }
+.planning-group-row-actions .planning-icon-button:disabled { cursor: default; opacity: .25; }
 .planning-group-item { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid transparent; border-radius: 7px; padding: 10px 11px; background: transparent; color: var(--text-secondary, #bbb1a5); text-align: left; cursor: pointer; }
 .planning-group-item span { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .planning-group-item strong { color: var(--text-muted, #9c9388); font-size: 12px; }
