@@ -1684,6 +1684,7 @@ PIC v5.0.0 的最终形态应当非常明确：
 - 为旧数据库增加显式事务迁移、幂等回归测试和惰性兼容迁移；旧调用方在启动后直接写入 `project_shots` 时，读取路径也会自动补齐规范化关系。
 - 项目复制、完整删除迁移和选中样片跨项目移动会保留分组、参考来源、备注及空分组；目标项目不复制底层图片文件。
 - 分组新增了创建、重命名、删除、上下移动的语义化 IPC 和空分组可操作入口；UI 静态守护测试覆盖这些入口。
+- 小红书浏览器已改为主进程托管的 `WebContentsView`：独立持久化 partition、sandbox/contextIsolation、HTTPS 域名 allowlist、导航/重定向/弹窗/权限拦截、加载错误状态、下载转发、renderer bounds/visibility IPC；旧 `<webview>` 与 `webviewTag` 已删除。
 
 ### 当前提交
 
@@ -1694,11 +1695,12 @@ PIC v5.0.0 的最终形态应当非常明确：
 | `13b8b98` | 带备注的拍摄方案 PDF、预检、旧选择型导出入口清理 |
 | `bd38629` | preload 暴露 `chapter` 更新字段 |
 | `dc57dc4` | 规范化 `ShotGroup / Reference / ShotItem`、迁移兼容、分组 UI 与复制/移动回归 |
+| `04178dd` | 小红书 `WebContentsView`、独立 session、安全导航和 bounds/visibility IPC |
 
 ### 尚未完成，接续时必须处理
 
-1. 小红书仍使用现有安全 `<webview>` 路径；`WebContentsView` 迁移、独立 session、bounds 同步和真实登录/崩溃回归尚未完成。不得把当前源码构建结果描述成已完成该阶段。
-2. 本机 Electron 二进制安装不完整（`node_modules/electron` 缺少可执行文件，安装缓存写入返回 `EPERM`），因此本轮只能完成源码构建和服务层测试，未完成真实窗口、截图、剪贴板、小红书页面和 PDF 实际打开走查。
+1. `WebContentsView` 源码迁移已完成，但本机 Electron 二进制安装不完整（`node_modules/electron` 缺少可执行文件，安装缓存写入返回 `EPERM`），尚未完成真实窗口中的登录 session、bounds、缩放、焦点、崩溃恢复和 Alt+A 走查；不得把源码构建描述成完整运行验收。
+2. 同一 Electron 环境阻塞了真实截图、剪贴板、小红书页面和 PDF 实际打开走查。
 3. PDF HTML 模型和缺失文件预检已有自动测试；真实 Chromium `printToPDF` 输出、中文字体、长备注分页、横竖图视觉质量仍需在 Electron 可启动环境中验收。
 
 ### 本轮验证证据
@@ -1709,5 +1711,5 @@ PIC v5.0.0 的最终形态应当非常明确：
 - `npm.cmd test -- tests/services/projectShots.test.ts tests/services/databaseMigration.test.ts tests/services/projectManagement.test.ts`：10/10 通过（规范化模型、旧 schema、复制/删除/移动）。
 - `npm.cmd test -- tests/uiux/performance.static.test.ts`：18/18 通过。
 - `npm.cmd test -- tests/services/planningPdfExport.test.ts tests/services/databaseMigration.test.ts`：5/5 通过。
-- `npm.cmd test`：19 个测试文件通过，133 个测试通过；`cacheManager.test.ts` 和 `import.test.ts` 因 `node_modules/electron` 缺少可执行文件而无法收集（2 个环境阻塞 suite），没有断言失败。
+- `npm.cmd test`：19 个测试文件通过，134 个测试通过；`cacheManager.test.ts` 和 `import.test.ts` 因 `node_modules/electron` 缺少可执行文件而无法收集（2 个环境阻塞 suite），没有断言失败。
 - 未运行 `electron-builder` / `build:win`，未生成 `.exe`，未 push 远程仓库。
