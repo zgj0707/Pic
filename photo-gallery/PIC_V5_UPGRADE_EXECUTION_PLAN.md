@@ -1663,3 +1663,45 @@ PIC v5.0.0 的最终形态应当非常明确：
 > 打开一个拍摄方案，快速搜集样片，把样片排成拍摄清单，写下要模仿的重点，然后导出一份可以照着拍的 PDF。
 
 除此之外，不扩张。
+
+---
+
+## 17. 当前执行记录（2026-08-30）
+
+本工作区已经按本计划落地一轮可运行的 v5 核心闭环，供后续执行者直接接续。以下状态是源码实际状态，不等同于“所有 Phase 已完成”。
+
+### 已落地
+
+- 用户界面主要术语已收束为“拍摄方案 / 样片池 / 拍摄清单”。
+- 新增拍摄清单工作台：按 `chapter` 分组、组内上下移动和拖动排序、分组重命名、拍摄备注 debounce 保存、从清单移除但保留样片。
+- 选中样片的主要入口改为“加入拍摄清单”，图库顶部重复的选择型“复制到桌面 / 导出 PDF”入口已删除。
+- 修复 `project_shots` 更新时 `chapter` 未持久化的问题；从选择生成拍摄条目时会带入原有备注。
+- 增加主进程拍摄方案 PDF 导出：主进程读取方案数据，按分组和顺序生成 A4 打印页面，包含样片、文件名、拍摄意图、构图/动作、灯光/器材、现场勾选框。
+- 增加导出前文件预检、缺失文件确认、部分失败结果和导出记录；PDF 输出后仍可打开所在文件夹。
+- 删除旧的 `photos:exportToPdf` renderer IPC 入口，避免与拍摄方案 PDF 形成两套主要导出路径。
+- 版本已统一为 `5.0.0`，并更新 `electron/changelog.json`。
+
+### 当前提交
+
+| Commit | 内容 |
+|---|---|
+| `7e38a35` | 拍摄方案主流程、工作台 UI、旧术语收束 |
+| `87de62f` | v5.0.0 版本号、锁文件和变更日志 |
+| `13b8b98` | 带备注的拍摄方案 PDF、预检、旧选择型导出入口清理 |
+| `bd38629` | preload 暴露 `chapter` 更新字段 |
+
+### 尚未完成，接续时必须处理
+
+1. 当前拍摄条目仍复用 `project_shots`：`chapter` 是分组名，同一方案同一张照片仍受旧 `UNIQUE(project_id, photo_id)` 约束。因此“空分组”和“同一 Reference 出现在多个分组”尚未达到第 4 节目标模型。后续应先设计兼容迁移，再建立真正的 `ShotGroup / ShotItem` 关系，不能继续堆叠 renderer 特判。
+2. 小红书仍使用现有安全 `<webview>` 路径；`WebContentsView` 迁移、独立 session、bounds 同步和真实登录/崩溃回归尚未完成。不得把当前源码构建结果描述成已完成该阶段。
+3. 本机 Electron 二进制安装不完整（`node_modules/electron` 缺少可执行文件，安装缓存写入返回 `EPERM`），因此本轮只能完成源码构建和服务层测试，未完成真实窗口、截图、剪贴板、小红书页面和 PDF 实际打开走查。
+4. PDF HTML 模型和缺失文件预检已有自动测试；真实 Chromium `printToPDF` 输出、中文字体、长备注分页、横竖图视觉质量仍需在 Electron 可启动环境中验收。
+
+### 本轮验证证据
+
+- `npm.cmd run typecheck`：通过。
+- `npm.cmd run lint`：通过，保留仓库原有 11 条 `no-explicit-any` warning，无 error。
+- `npm.cmd run build`：通过；经典脚本缺少 `type="module"` 的 Vite 提示属于既有兼容策略。
+- `npm.cmd test -- tests/uiux/performance.static.test.ts tests/services/planningPdfExport.test.ts`：19/19 通过。
+- `npm.cmd test`：21 个测试文件中 19 个通过，130 个测试通过；`cacheManager.test.ts` 和 `import.test.ts` 因 Electron 二进制缺失而无法收集，属于环境阻塞，不是断言失败。
+- 未运行 `electron-builder` / `build:win`，未生成 `.exe`，未 push 远程仓库。
