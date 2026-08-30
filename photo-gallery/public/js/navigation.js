@@ -7,6 +7,8 @@ function navigateToWorkspace(workspace) {
       return switchToRecycleBin();
     case 'browser':
       return openMaterialBrowserPanel();
+    case 'planning':
+      return openPlanningPanel();
     case 'settings':
       currentPanel = 'settings';
       document.getElementById('settingsBtn')?.click();
@@ -66,7 +68,7 @@ function initializeWebview() {
 
   window.electronAPI?.materialBrowser?.onDownloadComplete?.(async data => {
     if (currentProjectId === null) {
-      showToast('样片已下载，请先创建或选择项目后再导入', 'warning');
+      showToast('样片已下载，请先创建或选择拍摄方案后再导入', 'warning');
       return;
     }
     const sourceUrl = data.sourceUrl || webview.getURL();
@@ -76,7 +78,7 @@ function initializeWebview() {
         recordBrowserCollection(result, { fileName: data.fileName, filePath: data.filePath, sourceUrl });
       }
       await loadPhotos(true);
-      showToast('网页样片已加入当前项目', 'success');
+      showToast('网页样片已加入当前拍摄方案', 'success');
     } else {
       showToast('网页样片导入失败: ' + (result.error || '未知错误'), 'warning');
     }
@@ -86,7 +88,7 @@ function openMaterialBrowserPanel() {
   if (typeof ensureCurrentProjectForImport === 'function' && !ensureCurrentProjectForImport()) return;
   const panel = document.getElementById('materialBrowserPanel');
   const projectContext = document.getElementById('browserProjectContext');
-  if (projectContext) projectContext.textContent = currentProjectName ? '保存到：' + currentProjectName : '当前项目';
+  if (projectContext) projectContext.textContent = currentProjectName ? '保存到：' + currentProjectName : '当前拍摄方案';
   if (panel) panel.classList.add('open');
   ensureEmbeddedWebviewLoaded();
   if (typeof updateBrowserModeUI === 'function') updateBrowserModeUI();
@@ -128,14 +130,14 @@ function setEmptyStateForGallery() {
   const noProject = currentProjectId === null;
 
   if (noProject) {
-    if (title) title.textContent = '还没有项目';
-    if (subtitle) subtitle.textContent = '创建一个项目开始收集和整理样片';
+    if (title) title.textContent = '还没有拍摄方案';
+    if (subtitle) subtitle.textContent = '创建一个拍摄方案开始搜集样片';
   } else if (hasFilter) {
     if (title) title.textContent = '没有符合条件的样片';
     if (subtitle) subtitle.textContent = '尝试清除筛选条件，或换一个关键词继续查找';
   } else {
-    if (title) title.textContent = '项目里还没有样片';
-    if (subtitle) subtitle.textContent = '导入文件夹或文件，开始建立当前项目的素材收件箱';
+    if (title) title.textContent = '方案里还没有样片';
+    if (subtitle) subtitle.textContent = '导入文件夹或文件，开始搜集本次拍摄的样片';
   }
 
   createButton?.classList.toggle('hidden', !noProject);
@@ -153,6 +155,9 @@ function setEmptyStateForRecycleBin() {
 
 function switchToGallery() {
   closeMaterialBrowserPanel();
+  if (typeof closePlanningPanel === 'function') {
+    document.getElementById('planningPanel')?.classList.add('hidden');
+  }
   const settingsModal = document.getElementById('settingsModal');
   if (settingsModal) settingsModal.classList.add('hidden');
   isRecycleBinView = false;
@@ -225,6 +230,7 @@ function bindNavigationEvents() {
     if (panel?.classList.contains('open')) closeMaterialBrowserPanel();
     else navigateToWorkspace('browser');
   });
+  document.getElementById('statusPlanningBtn')?.addEventListener('click', () => navigateToWorkspace('planning'));
   document.getElementById('statusRecycleBtn')?.addEventListener('click', () => navigateToWorkspace('recycle'));
   document.getElementById('statusSettingsBtn')?.addEventListener('click', () => {
     const modal = document.getElementById('settingsModal');
@@ -232,7 +238,7 @@ function bindNavigationEvents() {
     else document.getElementById('closeSettingsBtn')?.click();
   });
   document.getElementById('statusProject')?.addEventListener('click', () => {
-    if (isRecycleBinView) navigateToWorkspace('gallery');
+    if (isRecycleBinView || currentPanel === 'planning') navigateToWorkspace('gallery');
   });
   document.getElementById('statusBackToGallery')?.addEventListener('click', returnToGallery);
   document.getElementById('backToGalleryFromBrowser')?.addEventListener('click', returnToGallery);

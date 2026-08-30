@@ -22,11 +22,14 @@
         <span class="brand-context">摄影工作台</span>
       </div>
       <div class="header-project-context">
-        <span class="header-project-label">当前项目</span>
-        <strong id="headerProjectName">未选择项目</strong>
+        <span class="header-project-label">当前拍摄方案</span>
+        <strong id="headerProjectName">未选择方案</strong>
       </div>
       <div class="header-actions">
         <div class="header-primary-actions">
+          <button id="openPlanningBtn" class="secondary-action" type="button" title="打开拍摄清单">
+            <i class="fa-solid fa-list-check" aria-hidden="true"></i><span>拍摄清单</span>
+          </button>
           <button id="importFolderBtn" class="primary-action" type="button">
             <i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>导入文件夹</span>
           </button>
@@ -60,16 +63,17 @@
       <aside class="project-sidebar" aria-label="项目导航">
         <div class="project-sidebar-header">
           <div>
-            <span class="sidebar-eyebrow">工作项目</span>
-            <h2 class="sidebar-title">项目</h2>
+            <span class="sidebar-eyebrow">拍摄策划</span>
+            <h2 class="sidebar-title">拍摄方案</h2>
           </div>
-          <button id="createProjectBtn" class="create-project-btn" type="button" title="新建项目">
-            <i class="fa-solid fa-folder-plus" aria-hidden="true"></i><span>新建项目</span>
+          <button id="createProjectBtn" class="create-project-btn" type="button" title="新建拍摄方案">
+            <i class="fa-solid fa-folder-plus" aria-hidden="true"></i><span>新建方案</span>
           </button>
         </div>
         <div id="projectList" class="project-list custom-scrollbar" aria-label="项目列表"></div>
         <div class="sidebar-auxiliary" aria-label="辅助空间">
           <span class="sidebar-section-label">辅助空间</span>
+          <button id="statusPlanningBtn" type="button"><i class="fa-solid fa-list-check" aria-hidden="true"></i><span>拍摄清单</span></button>
           <button id="statusRecycleBtn" type="button"><i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>回收站</span><span id="recycleCount" class="auxiliary-count"></span></button>
           <button id="statusBrowserBtn" type="button"><i class="fa-solid fa-photo-film" aria-hidden="true"></i><span>素材浏览器</span></button>
           <button id="statusSettingsBtn" type="button"><i class="fa-solid fa-gear" aria-hidden="true"></i><span>设置</span></button>
@@ -86,12 +90,12 @@
             <div class="project-heading">
               <div class="project-heading-title">
                 <div>
-                  <span class="section-eyebrow">拍摄简报</span>
+                <span class="section-eyebrow">拍摄方案</span>
                   <h1 id="currentProjectTitle">未选择项目</h1>
                 </div>
                 <button id="projectBriefEditBtn" class="brief-edit-button" type="button" disabled><i class="fa-solid fa-pen" aria-hidden="true"></i><span>编辑简报</span></button>
               </div>
-              <p id="currentProjectDescription">创建或选择一个项目开始整理参考样片</p>
+              <p id="currentProjectDescription">创建或选择一个拍摄方案，开始搜集样片</p>
               <div id="currentProjectBriefMeta" class="project-brief-meta">
                 <span id="currentProjectClient"><i class="fa-regular fa-building" aria-hidden="true"></i>未填写客户</span>
                 <span id="currentProjectDate"><i class="fa-regular fa-calendar" aria-hidden="true"></i>尚未设置拍摄日期</span>
@@ -102,15 +106,15 @@
             </div>
           </div>
           <div class="project-summary" aria-label="项目统计">
-            <div class="project-stat"><span>参考样片</span><strong id="projectPhotoCount">0</strong></div>
+            <div class="project-stat"><span>已收集样片</span><strong id="projectPhotoCount">0</strong></div>
           </div>
           <form id="projectBriefEditor" class="project-brief-editor hidden">
-            <label>项目名称<input id="briefNameInput" type="text" maxlength="100" required></label>
+            <label>方案名称<input id="briefNameInput" type="text" maxlength="100" required></label>
             <label>客户 / 品牌<input id="briefClientInput" type="text" maxlength="100"></label>
             <label>拍摄日期<input id="briefShootDateInput" type="date"></label>
             <label>场地<input id="briefLocationInput" type="text" maxlength="120"></label>
             <label>负责人<input id="briefOwnerInput" type="text" maxlength="100"></label>
-            <label class="brief-wide">项目说明<textarea id="briefDescriptionInput" rows="2" maxlength="500"></textarea></label>
+            <label class="brief-wide">方案说明<textarea id="briefDescriptionInput" rows="2" maxlength="500"></textarea></label>
             <label class="brief-wide">交付目标<textarea id="briefGoalInput" rows="2" maxlength="500" placeholder="例如：品牌主视觉 3 张、社交媒体竖图 6 张"></textarea></label>
             <div class="brief-cover-editor brief-wide">
               <div class="brief-cover-heading">
@@ -132,14 +136,14 @@
           </form>
         </section>
 
-        <section id="galleryPanel" class="gallery-panel" aria-label="样片浏览器">
+        <section id="galleryPanel" class="gallery-panel" aria-label="样片池">
           <div class="photo-grid-container custom-scrollbar" id="photoGridContainer">
             <div id="emptyState" class="empty-state hidden" role="status">
               <div class="empty-state-icon"><i class="fa-regular fa-images" aria-hidden="true"></i></div>
-              <p id="emptyStateTitle" class="empty-state-title">还没有项目</p>
-              <p id="emptyStateSubtitle" class="empty-state-subtitle">创建一个项目开始收集和整理样片</p>
+              <p id="emptyStateTitle" class="empty-state-title">还没有拍摄方案</p>
+              <p id="emptyStateSubtitle" class="empty-state-subtitle">创建一个方案开始搜集样片</p>
               <div id="emptyStateActions" class="empty-state-actions">
-                <button id="emptyCreateProjectBtn" class="primary-action" type="button"><i class="fa-solid fa-folder-plus" aria-hidden="true"></i><span>新建项目</span></button>
+                <button id="emptyCreateProjectBtn" class="primary-action" type="button"><i class="fa-solid fa-folder-plus" aria-hidden="true"></i><span>新建方案</span></button>
                 <button id="emptyImportFolderBtn2" class="secondary-action" type="button"><i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>导入文件夹</span></button>
                 <button id="emptyClearFilterBtn" class="secondary-action hidden" type="button"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>清除筛选</span></button>
               </div>
@@ -148,9 +152,39 @@
           </div>
         </section>
 
+        <section id="planningPanel" class="planning-panel hidden" aria-label="拍摄清单">
+          <div class="planning-header">
+            <div>
+              <span class="section-eyebrow">拍摄执行顺序</span>
+              <h2>拍摄清单</h2>
+              <p id="planningSummary" class="planning-summary">把样片编排成可以照着拍的顺序</p>
+            </div>
+            <div class="planning-header-actions">
+              <button id="planningBackBtn" class="secondary-action" type="button"><i class="fa-solid fa-images" aria-hidden="true"></i><span>回到样片池</span></button>
+              <button id="planningAddGroupBtn" class="secondary-action" type="button"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span>新建分组</span></button>
+              <button id="planningExportBtn" class="primary-action" type="button"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i><span>导出方案 PDF</span></button>
+            </div>
+          </div>
+          <div class="planning-layout">
+            <aside class="planning-groups" aria-label="拍摄分组">
+              <div class="planning-groups-heading"><span>拍摄分组</span><strong id="planningGroupCount">0</strong></div>
+              <div id="planningGroupList" class="planning-group-list"></div>
+            </aside>
+            <div class="planning-content">
+              <div id="planningEmpty" class="planning-empty hidden">
+                <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+                <h3>还没有拍摄条目</h3>
+                <p>回到样片池，选择样片后点击“加入拍摄清单”。</p>
+              </div>
+              <div id="planningItems" class="planning-items"></div>
+            </div>
+          </div>
+        </section>
+
         <div id="selectionActionBar" class="selection-actionbar hidden" role="toolbar" aria-label="选中样片操作">
           <strong id="selectionActionCount">已选 0 张</strong>
           <span class="selection-action-hint">金色描边表示已选样片</span>
+          <button id="addToShotListBtn" class="secondary-action" type="button"><i class="fa-solid fa-list-check" aria-hidden="true"></i><span>加入拍摄清单</span></button>
           <button id="selectionActionCoverBtn" class="secondary-action" type="button"><i class="fa-regular fa-image" aria-hidden="true"></i><span>设为封面</span></button>
           <button id="deleteBtn" class="selection-action-danger" type="button" disabled><i class="fa-solid fa-trash" aria-hidden="true"></i><span>移入回收站</span></button>
           <button id="restoreBtn" class="secondary-action hidden" type="button" disabled><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>恢复</span></button>
@@ -420,26 +454,26 @@
     </div>
   </div>
 
-  <div id="projectContextMenu" class="context-menu project-context-menu hidden" role="menu" aria-label="项目操作">
-    <div class="project-context-title" id="projectContextTitle">项目操作</div>
+  <div id="projectContextMenu" class="context-menu project-context-menu hidden" role="menu" aria-label="拍摄方案操作">
+    <div class="project-context-title" id="projectContextTitle">方案操作</div>
     <button id="projectDuplicateBtn" class="context-menu-item" type="button" role="menuitem">
-      <i class="fa-regular fa-copy" aria-hidden="true"></i><span>复制项目</span>
+      <i class="fa-regular fa-copy" aria-hidden="true"></i><span>复制拍摄方案</span>
     </button>
     <button id="projectDeleteBtn" class="context-menu-item context-menu-danger" type="button" role="menuitem">
-      <i class="fa-regular fa-trash-can" aria-hidden="true"></i><span>删除项目</span>
+      <i class="fa-regular fa-trash-can" aria-hidden="true"></i><span>删除拍摄方案</span>
     </button>
   </div>
   
   <div id="projectInputModal" class="modal-overlay hidden">
     <div class="modal-content max-w-sm">
-      <h3 class="text-lg font-semibold mb-4">新建项目</h3>
+      <h3 class="text-lg font-semibold mb-4">新建拍摄方案</h3>
       <div class="mb-4">
-        <label class="text-sm text-textSecondary block mb-2">项目名称</label>
-        <input type="text" id="projectInputField" placeholder="请输入项目名称" class="w-full h-10 bg-bgPrimary border border-borderColor rounded px-3 text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent" autocomplete="off">
+        <label class="text-sm text-textSecondary block mb-2">方案名称</label>
+        <input type="text" id="projectInputField" placeholder="例如：林小姐室内肖像" class="w-full h-10 bg-bgPrimary border border-borderColor rounded px-3 text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent" autocomplete="off">
       </div>
       <div class="mb-4">
-        <label class="text-sm text-textSecondary block mb-2">项目描述（可选）</label>
-        <input type="text" id="projectDescField" placeholder="请输入项目描述" class="w-full h-10 bg-bgPrimary border border-borderColor rounded px-3 text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent" autocomplete="off">
+        <label class="text-sm text-textSecondary block mb-2">方案说明（可选）</label>
+        <input type="text" id="projectDescField" placeholder="例如：室内肖像，重点参考姿势和窗光" class="w-full h-10 bg-bgPrimary border border-borderColor rounded px-3 text-textPrimary placeholder-textDisabled focus:outline-none focus:border-accent" autocomplete="off">
       </div>
       <div class="flex justify-end gap-3">
         <button id="projectInputCancel" class="px-4 py-2 text-textSecondary hover:text-textPrimary hover:bg-bgPrimary rounded">取消</button>
@@ -458,6 +492,7 @@
   <script src="js/import.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/enhancements.js"></script>
+  <script src="js/planning.js"></script>
   <script src="js/dragdrop.js"></script>
   <script src="js/app.js"></script>
 </body>

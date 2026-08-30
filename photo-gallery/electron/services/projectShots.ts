@@ -130,10 +130,13 @@ export function createProjectShot(projectId: number, photoId: number, input: Pro
 
 export function createShotsFromSelections(projectId: number): ProjectShot[] {
   const selections = dbAdapter.query(
-    'SELECT photo_id, chapter FROM project_selections WHERE project_id = ? ORDER BY position, id',
+    'SELECT photo_id, chapter, note FROM project_selections WHERE project_id = ? ORDER BY position, id',
     [projectId]
   )
-  selections.forEach(selection => createProjectShot(projectId, Number(selection.photo_id), { chapter: String(selection.chapter || '未分组') }))
+  selections.forEach(selection => createProjectShot(projectId, Number(selection.photo_id), {
+    chapter: String(selection.chapter || '未分组'),
+    compositionNotes: selection.note == null ? null : String(selection.note)
+  }))
   return listProjectShots(projectId)
 }
 
@@ -142,13 +145,15 @@ export function updateProjectShot(projectId: number, shotId: number, input: Proj
   if (!current) throw new Error('拍摄清单项目不存在')
   const status = input.status && SHOT_STATUSES.includes(input.status) ? input.status : String(current.status) as ShotStatus
   const title = input.title?.trim() || String(current.title || '未命名拍摄项')
+  const chapter = typeof input.chapter === 'string' ? input.chapter.trim() || '未分组' : String(current.chapter || '未分组')
   const now = Math.floor(Date.now() / 1000)
   dbAdapter.run(`
     UPDATE project_shots
-    SET title = ?, intent = ?, composition_notes = ?, lighting_gear_notes = ?, status = ?, updated_at = ?
+    SET title = ?, chapter = ?, intent = ?, composition_notes = ?, lighting_gear_notes = ?, status = ?, updated_at = ?
     WHERE id = ? AND project_id = ?
   `, [
     title,
+    chapter,
     normalizeOptional(input.intent),
     normalizeOptional(input.compositionNotes),
     normalizeOptional(input.lightingGearNotes),

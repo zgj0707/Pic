@@ -56,6 +56,8 @@ function updateSelectionActionBar() {
   const visibleWorkspace = currentPanel === 'gallery' || isRecycleBinView
   bar.classList.toggle('hidden', count === 0 || !visibleWorkspace)
   document.getElementById('selectionActionCount')?.replaceChildren(document.createTextNode(`已选 ${count} 张`))
+  const addToShotList = document.getElementById('addToShotListBtn')
+  if (addToShotList) addToShotList.disabled = count === 0 || currentProjectId === null || isRecycleBinView
   const coverButton = document.getElementById('selectionActionCoverBtn')
   if (coverButton) coverButton.disabled = count !== 1 || currentProjectId === null || isRecycleBinView
   if (!document.getElementById('projectBriefEditor')?.classList.contains('hidden')) renderBriefCoverPicker()

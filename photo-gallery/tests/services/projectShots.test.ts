@@ -52,13 +52,14 @@ describe('project shot list', () => {
     expect(generated[0].photo.filename).toBe('a-1.jpg')
 
     const updated = updateProjectShot(projectA, generated[0].id, {
+      chapter: '窗边自然光',
       title: '站姿半身 · 窗边光',
       intent: '保持肩线自然',
       compositionNotes: '中近景，留出视线方向',
       lightingGearNotes: '大号柔光箱，银色反光板',
       status: 'ready'
     })
-    expect(updated).toMatchObject({ title: '站姿半身 · 窗边光', intent: '保持肩线自然', status: 'ready' })
+    expect(updated).toMatchObject({ chapter: '窗边自然光', title: '站姿半身 · 窗边光', intent: '保持肩线自然', status: 'ready' })
     expect(updated.composition_notes).toContain('中近景')
     expect(updated.lighting_gear_notes).toContain('柔光箱')
 

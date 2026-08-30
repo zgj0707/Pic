@@ -212,7 +212,7 @@ function updateStatusBar() {
   const countEl = document.getElementById('statusCount');
   const backBtn = document.getElementById('statusBackToGallery');
   const project = projects.find(candidate => candidate.id === currentProjectId);
-  const projectName = project?.name || currentProjectName || '未选择项目';
+  const projectName = project?.name || currentProjectName || '未选择方案';
   const projectPhotoCount = project?.photo_count ?? (isRecycleBinView ? 0 : photoTotalCount);
   if (projectEl) {
     const span = projectEl.querySelector('span');
@@ -598,9 +598,9 @@ function bindCaptureEvents() {
       renderProjectSidebar();
       updateStatusBar();
       if (data?.clipboardCopied === false) {
-        showToast('截图已保存到当前项目样片库，但复制到剪贴板失败', 'warning');
+        showToast('截图已保存到当前拍摄方案，但复制到剪贴板失败', 'warning');
       } else {
-        showToast('截图已导入当前项目样片库并复制到剪贴板', 'success');
+        showToast('截图已加入当前拍摄方案并复制到剪贴板', 'success');
       }
     })();
   });
