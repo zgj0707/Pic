@@ -1696,6 +1696,7 @@ PIC v5.0.0 的最终形态应当非常明确：
 | `bd38629` | preload 暴露 `chapter` 更新字段 |
 | `dc57dc4` | 规范化 `ShotGroup / Reference / ShotItem`、迁移兼容、分组 UI 与复制/移动回归 |
 | `04178dd` | 小红书 `WebContentsView`、独立 session、安全导航和 bounds/visibility IPC |
+| `9dd4c1b` | 清理 renderer 端遗留的 webview 命名，统一为 MaterialBrowserView |
 
 ### 尚未完成，接续时必须处理
 
