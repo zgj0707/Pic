@@ -1709,5 +1709,5 @@ PIC v5.0.0 的最终形态应当非常明确：
 - `npm.cmd test -- tests/services/projectShots.test.ts tests/services/databaseMigration.test.ts tests/services/projectManagement.test.ts`：10/10 通过（规范化模型、旧 schema、复制/删除/移动）。
 - `npm.cmd test -- tests/uiux/performance.static.test.ts`：18/18 通过。
 - `npm.cmd test -- tests/services/planningPdfExport.test.ts tests/services/databaseMigration.test.ts`：5/5 通过。
-- `npm.cmd test`：Electron 二进制缺失前的旧全套曾为 21 个测试文件中 19 个通过；本轮新增规范化测试后需在 Electron 依赖恢复后重新取得完整总数。当前已知 `cacheManager.test.ts` 和 `import.test.ts` 因 `node_modules/electron` 缺少可执行文件而无法收集，属于环境阻塞，不是断言失败。
+- `npm.cmd test`：19 个测试文件通过，133 个测试通过；`cacheManager.test.ts` 和 `import.test.ts` 因 `node_modules/electron` 缺少可执行文件而无法收集（2 个环境阻塞 suite），没有断言失败。
 - 未运行 `electron-builder` / `build:win`，未生成 `.exe`，未 push 远程仓库。
