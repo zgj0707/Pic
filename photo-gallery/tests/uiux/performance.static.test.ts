@@ -24,6 +24,8 @@ const projectIpcSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'pr
 const projectManagementSource = readFileSync(join(process.cwd(), 'electron', 'services', 'projectManagement.ts'), 'utf8')
 const projectShotsSource = readFileSync(join(process.cwd(), 'electron', 'services', 'projectShots.ts'), 'utf8')
 const projectShotsIpcSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'projectShots.ts'), 'utf8')
+const mainSource = readFileSync(join(process.cwd(), 'electron', 'main.ts'), 'utf8')
+const contentSource = readFileSync(join(process.cwd(), 'electron', 'content', 'index.ts'), 'utf8')
 const projectsSource = readFileSync(join(publicRoot, 'js', 'projects.js'), 'utf8')
 const photoIpcSource = readFileSync(join(process.cwd(), 'electron', 'ipc', 'photo.ts'), 'utf8')
 
@@ -137,7 +139,8 @@ describe('UI/UX refactor guardrails', () => {
 
   it('keeps the material browser embedded on Xiaohongshu and opens Douyin externally', () => {
     expect(htmlSource).toContain('小红书内嵌浏览')
-    expect(htmlSource).toContain('id="materialWebview" src="https://www.xiaohongshu.com"')
+    expect(htmlSource).toContain('id="materialWebview" class="material-webview-host')
+    expect(htmlSource).not.toContain('<webview')
     expect(htmlSource).toContain('id="openDouyinBtn"')
     expect(htmlSource).not.toContain('browserSourceXhs')
     expect(htmlSource).not.toContain('browserSourceDouyin')
@@ -151,6 +154,21 @@ describe('UI/UX refactor guardrails', () => {
     expect(uiSource).toContain("const DOUYIN_URL = 'https://www.douyin.com/'")
     expect(uiSource).toContain('materialBrowser.openExternal(DOUYIN_URL)')
     expect(uiSource).not.toContain("browserSource === 'douyin'")
+  })
+
+  it('hosts Xiaohongshu in an isolated main-process WebContentsView', () => {
+    expect(mainSource).not.toContain('webviewTag')
+    expect(materialBrowserSource).toContain('WebContentsView')
+    expect(materialBrowserSource).toContain("persist:pic-xiaohongshu-v5")
+    expect(materialBrowserSource).toContain('setPermissionRequestHandler')
+    expect(materialBrowserSource).toContain('view-set-bounds')
+    expect(materialBrowserSource).toContain('isAllowedXiaohongshuUrl')
+    expect(contentSource).toContain('setupMaterialBrowserView')
+    expect(contentSource).toContain('disposeMaterialBrowserView')
+    expect(preloadSource).toContain("material-browser:view-state")
+    expect(preloadSource).toContain("material-browser:view-set-visible")
+    expect(navigationSource).toContain('syncMaterialBrowserViewBounds')
+    expect(navigationSource).toContain('setVisible')
   })
 
   it('uses one global Alt+A screenshot flow and copies the result to the clipboard', () => {

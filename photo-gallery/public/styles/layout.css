@@ -207,6 +207,7 @@
 .material-browser-address { min-width: 0; }
 .material-browser-address input { min-width: 0; }
 .material-browser-tools { justify-content: flex-end; }
+.material-webview-host { min-height: 0; background: #111; }
 .browser-collection-reference {
   display: inline-flex;
   align-items: center;

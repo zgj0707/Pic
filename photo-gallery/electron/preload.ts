@@ -108,6 +108,15 @@ export interface ElectronAPI {
     onError: (callback: (data: { error: string }) => void) => () => void
   },
   materialBrowser: {
+    viewState: () => Promise<{ url: string; title: string; canGoBack: boolean; canGoForward: boolean; loading: boolean; error?: string }>
+    navigate: (url: string) => Promise<{ success: boolean; state?: { url: string; title: string; canGoBack: boolean; canGoForward: boolean; loading: boolean; error?: string }; error?: string }>
+    back: () => Promise<{ success: boolean; state?: unknown }>
+    forward: () => Promise<{ success: boolean; state?: unknown }>
+    reload: () => Promise<{ success: boolean }>
+    stop: () => Promise<{ success: boolean }>
+    setVisible: (visible: boolean) => Promise<{ success: boolean }>
+    setBounds: (bounds: { x: number; y: number; width: number; height: number }) => Promise<{ success: boolean; error?: string }>
+    onViewState: (callback: (state: { url: string; title: string; canGoBack: boolean; canGoForward: boolean; loading: boolean; error?: string }) => void) => () => void
     openExternal: (url: string) => Promise<{ success: boolean; error?: string }>
     getDownloadDir: () => Promise<string>
     setDownloadDir: (dir: string) => Promise<{ success: boolean }>
@@ -279,6 +288,19 @@ const api: ElectronAPI = {
     }
   },
   materialBrowser: {
+    viewState: () => ipcRenderer.invoke('material-browser:view-state'),
+    navigate: (url: string) => ipcRenderer.invoke('material-browser:view-navigate', url),
+    back: () => ipcRenderer.invoke('material-browser:view-back'),
+    forward: () => ipcRenderer.invoke('material-browser:view-forward'),
+    reload: () => ipcRenderer.invoke('material-browser:view-reload'),
+    stop: () => ipcRenderer.invoke('material-browser:view-stop'),
+    setVisible: (visible: boolean) => ipcRenderer.invoke('material-browser:view-set-visible', visible),
+    setBounds: (bounds: { x: number; y: number; width: number; height: number }) => ipcRenderer.invoke('material-browser:view-set-bounds', bounds),
+    onViewState: (callback) => {
+      const wrapped = (_event: unknown, state: { url: string; title: string; canGoBack: boolean; canGoForward: boolean; loading: boolean; error?: string }) => callback(state)
+      ipcRenderer.on('material-browser:view-state', wrapped)
+      return () => ipcRenderer.removeListener('material-browser:view-state', wrapped)
+    },
     openExternal: (url: string) => ipcRenderer.invoke('material-browser:open-external', url),
     getDownloadDir: () => ipcRenderer.invoke('material-browser:get-download-dir'),
     setDownloadDir: (dir: string) => ipcRenderer.invoke('material-browser:set-download-dir', dir),

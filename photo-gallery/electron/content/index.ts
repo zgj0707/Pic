@@ -47,7 +47,7 @@ import { registerSelectionIpc } from '../ipc/selection'
 import { registerProjectShotsIpc } from '../ipc/projectShots'
 import { registerPlanningExportsIpc } from '../ipc/planningExports'
 import { registerDeliveryIpc } from '../ipc/delivery'
-import { registerMaterialBrowserIpc, setupDownloadHandler } from '../ipc/materialBrowser'
+import { registerMaterialBrowserIpc, setupDownloadHandler, setupMaterialBrowserView, disposeMaterialBrowserView } from '../ipc/materialBrowser'
 import { registerProjectReferencesIpc } from '../ipc/projectReferences'
 import { registerScreenCapture, disposeScreenCapture } from '../services/screenCapture'
 
@@ -147,6 +147,7 @@ export function onWindowCreated(c: ContentContext): void {
   const win = c.getMainWindow()
   if (win) {
     setupDownloadHandler(win)
+    setupMaterialBrowserView(win)
     registerScreenCapture({
       getMainWindow: c.getMainWindow,
       preloadPath: c.preloadPath
@@ -189,6 +190,7 @@ export function getRendererFallback(): string {
  */
 export async function onQuit(): Promise<void> {
   try { disposeScreenCapture() } catch (e) { console.error('[content] capture dispose fail:', e) }
+  try { disposeMaterialBrowserView() } catch (e) { console.error('[content] material view dispose fail:', e) }
   try { saveDatabase() } catch (e) { console.error('[content] save fail:', e) }
   try { await closeExifTool() } catch (e) { console.error('[content] exiftool close fail:', e) }
   try { closeDatabase() } catch (e) { console.error('[content] close fail:', e) }

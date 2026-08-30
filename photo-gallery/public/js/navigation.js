@@ -23,55 +23,73 @@ function getSavedXiaohongshuUrl() {
   return isAllowedMaterialSourceUrl('xiaohongshu', savedUrl) ? savedUrl : XHS_URL;
 }
 
-function ensureEmbeddedWebviewLoaded() {
-  const webview = document.getElementById('materialWebview');
-  if (!webview || typeof webview.loadURL !== 'function') return;
+let materialBrowserViewState = {
+  url: XHS_URL,
+  title: '',
+  canGoBack: false,
+  canGoForward: false,
+  loading: false,
+  error: ''
+};
 
-  const currentUrl = webview.getURL?.() || '';
-  if (isAllowedMaterialSourceUrl('xiaohongshu', currentUrl)) return;
+function materialBrowserViewApi() {
+  return window.electronAPI?.materialBrowser;
+}
 
-  try {
-    if (typeof webview.setUserAgent === 'function') webview.setUserAgent(XHS_USER_AGENT);
-    webview.loadURL(getSavedXiaohongshuUrl());
-  } catch (error) {
-    console.error('[material-browser] Failed to load Xiaohongshu:', error);
+function applyMaterialBrowserViewState(state) {
+  if (!state || typeof state !== 'object') return;
+  materialBrowserViewState = { ...materialBrowserViewState, ...state };
+  const urlInput = document.getElementById('browserUrl');
+  if (urlInput && materialBrowserViewState.url) urlInput.value = materialBrowserViewState.url;
+  if (isAllowedMaterialSourceUrl('xiaohongshu', materialBrowserViewState.url) && typeof rememberBrowserSourceUrl === 'function') {
+    rememberBrowserSourceUrl('xiaohongshu', materialBrowserViewState.url);
   }
+  const back = document.getElementById('browserBack');
+  const forward = document.getElementById('browserForward');
+  if (back) back.disabled = !materialBrowserViewState.canGoBack;
+  if (forward) forward.disabled = !materialBrowserViewState.canGoForward;
+  if (materialBrowserViewState.error) showToast(`小红书页面加载失败：${materialBrowserViewState.error}`, 'warning');
+}
+
+function syncMaterialBrowserViewBounds() {
+  const host = document.getElementById('materialWebview');
+  const api = materialBrowserViewApi();
+  if (!host || !api?.setBounds) return;
+  const rect = host.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return;
+  void api.setBounds({ x: rect.left, y: rect.top, width: rect.width, height: rect.height });
+}
+
+function ensureEmbeddedWebviewLoaded() {
+  const api = materialBrowserViewApi();
+  if (!api?.navigate) return;
+  const currentUrl = materialBrowserViewState.url || '';
+  const targetUrl = getSavedXiaohongshuUrl();
+  const isBaseUrl = currentUrl.replace(/\/+$/, '') === XHS_URL.replace(/\/+$/, '');
+  if (currentUrl === targetUrl || (isBaseUrl && targetUrl.replace(/\/+$/, '') === XHS_URL.replace(/\/+$/, ''))) return;
+  if (isAllowedMaterialSourceUrl('xiaohongshu', currentUrl) && !isBaseUrl) return;
+
+  void api.navigate(targetUrl).then(result => {
+    if (result?.state) applyMaterialBrowserViewState(result.state);
+    if (!result?.success) showToast(result?.error || '无法打开小红书', 'warning');
+  });
 }
 
 function initializeWebview() {
-  const webview = document.getElementById('materialWebview');
-  if (!webview) return;
-
-  webview.addEventListener('did-attach', () => {
-    if (typeof webview.setUserAgent === 'function') webview.setUserAgent(XHS_USER_AGENT);
-    ensureEmbeddedWebviewLoaded();
-  });
-  webview.addEventListener('did-finish-load', () => {
-    if (typeof webview.setUserAgent === 'function') {
-      webview.setUserAgent(XHS_USER_AGENT);
-    }
-    if (typeof updateBrowserModeUI === 'function') updateBrowserModeUI();
-  });
-  webview.addEventListener('did-navigate', () => {
-    const urlInput = document.getElementById('browserUrl');
-    if (urlInput) urlInput.value = webview.getURL();
-    if (typeof rememberBrowserSourceUrl === 'function') rememberBrowserSourceUrl('xiaohongshu', webview.getURL());
-  });
-  webview.addEventListener('did-navigate-in-page', () => {
-    const urlInput = document.getElementById('browserUrl');
-    if (urlInput) urlInput.value = webview.getURL();
-    if (typeof rememberBrowserSourceUrl === 'function') rememberBrowserSourceUrl('xiaohongshu', webview.getURL());
-  });
-
-  if (typeof webview.setUserAgent === 'function') webview.setUserAgent(XHS_USER_AGENT);
+  const api = materialBrowserViewApi();
+  if (!api) return;
+  const unsubscribe = api.onViewState?.(applyMaterialBrowserViewState);
+  window.addEventListener('beforeunload', () => unsubscribe?.(), { once: true });
+  void api.viewState?.().then(applyMaterialBrowserViewState);
   ensureEmbeddedWebviewLoaded();
+  window.addEventListener('resize', syncMaterialBrowserViewBounds);
 
   window.electronAPI?.materialBrowser?.onDownloadComplete?.(async data => {
     if (currentProjectId === null) {
       showToast('样片已下载，请先创建或选择拍摄方案后再导入', 'warning');
       return;
     }
-    const sourceUrl = data.sourceUrl || webview.getURL();
+    const sourceUrl = data.sourceUrl || materialBrowserViewState.url;
     const result = await window.electronAPI.materialBrowser.importToLibrary(data.filePath, sourceUrl, [], currentProjectId);
     if (result.success) {
       if (typeof recordBrowserCollection === 'function') {
@@ -90,6 +108,9 @@ function openMaterialBrowserPanel() {
   const projectContext = document.getElementById('browserProjectContext');
   if (projectContext) projectContext.textContent = currentProjectName ? '保存到：' + currentProjectName : '当前拍摄方案';
   if (panel) panel.classList.add('open');
+  void materialBrowserViewApi()?.setVisible?.(true);
+  syncMaterialBrowserViewBounds();
+  window.setTimeout(syncMaterialBrowserViewBounds, 320);
   ensureEmbeddedWebviewLoaded();
   if (typeof updateBrowserModeUI === 'function') updateBrowserModeUI();
   if (typeof renderBrowserCollection === 'function') renderBrowserCollection();
@@ -100,7 +121,7 @@ function openMaterialBrowserPanel() {
 function closeMaterialBrowserPanel() {
   const panel = document.getElementById('materialBrowserPanel');
   if (panel) panel.classList.remove('open');
-  clearEmbeddedWebview();
+  void materialBrowserViewApi()?.setVisible?.(false);
   updateStatusBar();
 }
 
@@ -211,14 +232,20 @@ function switchToRecycleBin() {
 
 function navigateBrowserToUrl() {
   const rawUrl = document.getElementById('browserUrl')?.value.trim();
-  const webview = document.getElementById('materialWebview');
-  if (!rawUrl || !webview) return;
+  const api = materialBrowserViewApi();
+  if (!rawUrl || !api?.navigate) return;
   let url = rawUrl;
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
   try {
     const parsed = new URL(url);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return;
-    webview.loadURL(parsed.toString());
+    if (!isAllowedMaterialSourceUrl('xiaohongshu', parsed.toString())) {
+      showToast('素材浏览器只允许打开小红书地址', 'warning');
+      return;
+    }
+    void api.navigate(parsed.toString()).then(result => {
+      if (result?.state) applyMaterialBrowserViewState(result.state);
+      if (!result?.success) showToast(result?.error || '无法打开地址', 'warning');
+    });
   } catch {
     // Invalid URL — keep the current page.
   }
@@ -245,15 +272,13 @@ function bindNavigationEvents() {
   document.getElementById('backToGalleryFromSettings')?.addEventListener('click', returnToGallery);
   document.getElementById('closeMaterialBrowserBtn')?.addEventListener('click', closeMaterialBrowserPanel);
   document.getElementById('browserBack')?.addEventListener('click', () => {
-    const webview = document.getElementById('materialWebview');
-    if (webview?.canGoBack) webview.goBack();
+    void materialBrowserViewApi()?.back?.();
   });
   document.getElementById('browserForward')?.addEventListener('click', () => {
-    const webview = document.getElementById('materialWebview');
-    if (webview?.canGoForward) webview.goForward();
+    void materialBrowserViewApi()?.forward?.();
   });
   document.getElementById('browserRefresh')?.addEventListener('click', () => {
-    document.getElementById('materialWebview')?.reload();
+    void materialBrowserViewApi()?.reload?.();
   });
   document.getElementById('browserGo')?.addEventListener('click', navigateBrowserToUrl);
   document.getElementById('browserUrl')?.addEventListener('keydown', event => {

@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, DownloadItem, shell } from 'electron'
+import { ipcMain, BrowserWindow, DownloadItem, WebContents, WebContentsView, shell } from 'electron'
 import { join, resolve } from 'path'
 import { existsSync, statSync, promises as fsPromises } from 'fs'
 import { dbAdapter, saveDatabase } from '../services/database'
@@ -11,8 +11,185 @@ import type { IpcResponse } from '../types'
 
 const activeDownloads: Map<string, DownloadItem> = new Map()
 const DOUYIN_EXTERNAL_URL = 'https://www.douyin.com/'
+const XIAOHONGSHU_URL = 'https://www.xiaohongshu.com/'
+const XIAOHONGSHU_PARTITION = 'persist:pic-xiaohongshu-v5'
+
+type MaterialViewBounds = { x: number; y: number; width: number; height: number }
+type MaterialViewState = {
+  url: string
+  title: string
+  canGoBack: boolean
+  canGoForward: boolean
+  loading: boolean
+  error?: string
+}
+
+let materialView: WebContentsView | null = null
+let materialViewWindow: BrowserWindow | null = null
+let materialViewState: MaterialViewState = {
+  url: XIAOHONGSHU_URL,
+  title: '',
+  canGoBack: false,
+  canGoForward: false,
+  loading: false
+}
+
+function isAllowedXiaohongshuUrl(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl)
+    if (parsed.protocol !== 'https:') return false
+    const host = parsed.hostname.toLowerCase()
+    return host === 'xiaohongshu.com' || host.endsWith('.xiaohongshu.com') || host === 'xhslink.com' || host.endsWith('.xhslink.com')
+  } catch {
+    return false
+  }
+}
+
+function currentMaterialViewState(): MaterialViewState {
+  const webContents = materialView?.webContents
+  if (!webContents || webContents.isDestroyed()) return { ...materialViewState }
+  return {
+    ...materialViewState,
+    url: webContents.getURL() || materialViewState.url,
+    title: webContents.getTitle() || materialViewState.title,
+    canGoBack: webContents.canGoBack(),
+    canGoForward: webContents.canGoForward()
+  }
+}
+
+function publishMaterialViewState(patch: Partial<MaterialViewState> = {}): MaterialViewState {
+  materialViewState = { ...currentMaterialViewState(), ...patch }
+  if (materialViewWindow && !materialViewWindow.isDestroyed()) {
+    materialViewWindow.webContents.send('material-browser:view-state', materialViewState)
+  }
+  return materialViewState
+}
+
+function rejectMaterialNavigation(url: string): void {
+  publishMaterialViewState({ error: `已阻止非小红书地址：${url}` })
+}
+
+export function setupMaterialBrowserView(mainWindow: BrowserWindow): void {
+  if (materialView && materialViewWindow === mainWindow && !materialView.webContents.isDestroyed()) return
+  if (materialView && materialViewWindow && !materialViewWindow.isDestroyed()) {
+    try { materialViewWindow.contentView.removeChildView(materialView) } catch { /* best effort */ }
+  }
+
+  materialViewWindow = mainWindow
+  materialView = new WebContentsView({
+    webPreferences: {
+      partition: XIAOHONGSHU_PARTITION,
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
+      spellcheck: false
+    }
+  })
+  materialView.setVisible(false)
+  mainWindow.contentView.addChildView(materialView)
+
+  const view = materialView
+  const emitState = (patch: Partial<MaterialViewState> = {}) => publishMaterialViewState(patch)
+  view.webContents.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+  view.webContents.on('will-navigate', (event, url) => {
+    if (!isAllowedXiaohongshuUrl(url)) {
+      event.preventDefault()
+      rejectMaterialNavigation(url)
+    }
+  })
+  view.webContents.on('will-redirect', (event, url) => {
+    if (!isAllowedXiaohongshuUrl(url)) {
+      event.preventDefault()
+      rejectMaterialNavigation(url)
+    }
+  })
+  view.webContents.setWindowOpenHandler(({ url }) => {
+    if (isAllowedXiaohongshuUrl(url)) void view.webContents.loadURL(url)
+    else rejectMaterialNavigation(url)
+    return { action: 'deny' }
+  })
+  view.webContents.on('did-start-loading', () => emitState({ loading: true, error: undefined }))
+  view.webContents.on('did-stop-loading', () => emitState({ loading: false }))
+  view.webContents.on('did-navigate', (_event, url) => emitState({ url, title: view.webContents.getTitle(), error: undefined }))
+  view.webContents.on('did-navigate-in-page', (_event, url) => emitState({ url, title: view.webContents.getTitle(), error: undefined }))
+  view.webContents.on('did-finish-load', () => emitState({ url: view.webContents.getURL(), title: view.webContents.getTitle(), loading: false, error: undefined }))
+  view.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    if (errorCode === -3) return
+    emitState({ url: validatedURL || materialViewState.url, loading: false, error: `${errorDescription} (${errorCode})` })
+  })
+  view.webContents.on('render-process-gone', (_event, details) => {
+    emitState({ loading: false, error: `小红书页面进程已退出：${details.reason}` })
+  })
+  view.webContents.session.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false))
+
+  setupDownloadHandler(mainWindow, view.webContents)
+  void view.webContents.loadURL(XIAOHONGSHU_URL).catch(error => {
+    emitState({ loading: false, error: error instanceof Error ? error.message : String(error) })
+  })
+}
+
+export function disposeMaterialBrowserView(): void {
+  if (materialView && materialViewWindow && !materialViewWindow.isDestroyed()) {
+    try { materialViewWindow.contentView.removeChildView(materialView) } catch { /* best effort */ }
+  }
+  materialView = null
+  materialViewWindow = null
+}
 
 export function registerMaterialBrowserIpc(_mainWindow: BrowserWindow | null) {
+  ipcMain.handle('material-browser:view-state', wrapHandler('material-browser:view-state', () => currentMaterialViewState()))
+
+  ipcMain.handle('material-browser:view-navigate', wrapAsyncHandler('material-browser:view-navigate', async (_event, rawUrl: string) => {
+    if (!isAllowedXiaohongshuUrl(rawUrl)) return { success: false, error: '素材浏览器只允许打开小红书地址' }
+    if (!materialView || materialView.webContents.isDestroyed()) return { success: false, error: '素材浏览器尚未就绪' }
+    try {
+      await materialView.webContents.loadURL(rawUrl)
+      return { success: true, state: currentMaterialViewState() }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  }))
+
+  ipcMain.handle('material-browser:view-back', wrapHandler('material-browser:view-back', () => {
+    if (materialView?.webContents.canGoBack()) materialView.webContents.goBack()
+    return { success: true, state: currentMaterialViewState() }
+  }))
+
+  ipcMain.handle('material-browser:view-forward', wrapHandler('material-browser:view-forward', () => {
+    if (materialView?.webContents.canGoForward()) materialView.webContents.goForward()
+    return { success: true, state: currentMaterialViewState() }
+  }))
+
+  ipcMain.handle('material-browser:view-reload', wrapHandler('material-browser:view-reload', () => {
+    if (materialView && !materialView.webContents.isDestroyed()) materialView.webContents.reload()
+    return { success: true }
+  }))
+
+  ipcMain.handle('material-browser:view-stop', wrapHandler('material-browser:view-stop', () => {
+    if (materialView && !materialView.webContents.isDestroyed()) materialView.webContents.stop()
+    return { success: true }
+  }))
+
+  ipcMain.handle('material-browser:view-set-visible', wrapHandler('material-browser:view-set-visible', (_event, visible: boolean) => {
+    if (materialView) materialView.setVisible(Boolean(visible))
+    return { success: true }
+  }))
+
+  ipcMain.handle('material-browser:view-set-bounds', wrapHandler('material-browser:view-set-bounds', (_event, bounds: MaterialViewBounds) => {
+    if (!materialView || !bounds || ![bounds.x, bounds.y, bounds.width, bounds.height].every(value => Number.isFinite(value))) {
+      return { success: false, error: '素材浏览器边界无效' }
+    }
+    const normalized = {
+      x: Math.max(0, Math.round(bounds.x)),
+      y: Math.max(0, Math.round(bounds.y)),
+      width: Math.max(1, Math.round(bounds.width)),
+      height: Math.max(1, Math.round(bounds.height))
+    }
+    materialView.setBounds(normalized)
+    return { success: true }
+  }))
+
   ipcMain.handle('material-browser:open-external', wrapAsyncHandler('material-browser:open-external',
     async (_event, url: string) => {
       if (url !== DOUYIN_EXTERNAL_URL) {
@@ -136,12 +313,12 @@ export function registerMaterialBrowserIpc(_mainWindow: BrowserWindow | null) {
   ))
 }
 
-export function setupDownloadHandler(mainWindow: BrowserWindow) {
-  const webContents = mainWindow.webContents
+export function setupDownloadHandler(mainWindow: BrowserWindow, downloadContents: WebContents = mainWindow.webContents) {
+  const downloadSession = downloadContents.session
 
-  webContents.session.on('will-download', (event, item, _webContents) => {
+  downloadSession.on('will-download', (event, item, _webContents) => {
     const fileName = item.getFilename()
-    // Freeze the source at download start; the webview may navigate before completion.
+    // Freeze the source at download start; the remote view may navigate before completion.
     const sourceUrl = item.getURL() || _webContents?.getURL() || ''
 
     // Check if the download is an image file

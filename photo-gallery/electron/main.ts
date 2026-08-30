@@ -88,8 +88,7 @@ function createWindow(): void {
       sandbox: false,
       webSecurity: true,
       devTools: true,
-      spellcheck: false,
-      webviewTag: true
+      spellcheck: false
     }
   })
 

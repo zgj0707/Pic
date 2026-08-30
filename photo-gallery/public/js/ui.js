@@ -27,29 +27,16 @@ async function openDouyinExternal() {
   return true;
 }
 
-function clearEmbeddedWebview() {
-  const webview = document.getElementById('materialWebview');
-  if (!webview) return;
-  try {
-    webview.stop?.();
-    if (typeof webview.loadURL === 'function' && webview.getURL?.() !== 'about:blank') {
-      webview.loadURL('about:blank');
-    }
-  } catch { /* best effort */ }
-}
-
 function updateBrowserModeUI() {
   const notice = document.getElementById('browserModeNotice');
-  const webview = document.getElementById('materialWebview');
   if (notice) notice.textContent = '小红书内嵌浏览 · Alt+A 截图';
-  webview?.classList.remove('hidden');
 }
 
 function isAllowedMaterialSourceUrl(source, rawUrl) {
   if (source !== 'xiaohongshu') return false;
   try {
     const parsed = new URL(rawUrl);
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+    if (parsed.protocol !== 'https:') return false;
     const host = parsed.hostname.toLowerCase();
     return host === 'xiaohongshu.com' || host.endsWith('.xiaohongshu.com') || host === 'xhslink.com' || host.endsWith('.xhslink.com');
   } catch {
@@ -69,8 +56,7 @@ async function saveCurrentBrowserReference() {
     showToast('请先创建或选择一个拍摄方案', 'warning');
     return;
   }
-  const webview = document.getElementById('materialWebview');
-  const url = webview?.getURL?.() || '';
+  const url = materialBrowserViewState?.url || '';
   if (!isAllowedMaterialSourceUrl('xiaohongshu', url)) {
     showToast('请先打开小红书内容页面', 'warning');
     return;
@@ -79,7 +65,7 @@ async function saveCurrentBrowserReference() {
     showToast('当前版本不支持保存远程参考', 'error');
     return;
   }
-  const title = typeof webview.getTitle === 'function' ? webview.getTitle() : '';
+  const title = materialBrowserViewState?.title || '';
   const result = await window.electronAPI.projectReferences.add({
     projectId: currentProjectId,
     source: 'xiaohongshu',
