@@ -150,6 +150,10 @@ describe('UI/UX refactor guardrails', () => {
     expect(navigationSource).toContain("getElementById('openDouyinBtn')")
     expect(navigationSource).toContain('function ensureEmbeddedWebviewLoaded()')
     expect(navigationSource).toContain('getSavedXiaohongshuUrl()')
+    // navigation.js loads before ui.js and must own the URL constant used by
+    // its top-level state initializer.
+    expect(navigationSource).toContain("const XHS_URL = 'https://www.xiaohongshu.com';")
+    expect(uiSource).not.toContain("const XHS_URL = 'https://www.xiaohongshu.com';")
     expect(navigationSource).not.toContain("setBrowserSource('douyin')")
     expect(uiSource).toContain("const DOUYIN_URL = 'https://www.douyin.com/'")
     expect(uiSource).toContain('materialBrowser.openExternal(DOUYIN_URL)')

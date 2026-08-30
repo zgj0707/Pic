@@ -1,4 +1,10 @@
 // Workspace and auxiliary-page navigation.
+// navigation.js is loaded before ui.js in index.html, so keep the material
+// browser base URL next to the code that uses it. Defining it in ui.js caused
+// a top-level ReferenceError during startup and prevented loadProjects() from
+// ever running.
+const XHS_URL = 'https://www.xiaohongshu.com';
+
 function navigateToWorkspace(workspace) {
   switch (workspace) {
     case 'gallery':

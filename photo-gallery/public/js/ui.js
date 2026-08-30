@@ -2,7 +2,6 @@
 // 与 app.js 共享全局状态变量
 
 const XHS_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-const XHS_URL = 'https://www.xiaohongshu.com';
 const DOUYIN_URL = 'https://www.douyin.com/';
 
 const CHANGELOG_COLOR_MAP = {
