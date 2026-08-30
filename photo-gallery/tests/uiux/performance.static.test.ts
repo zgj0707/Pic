@@ -169,6 +169,8 @@ describe('UI/UX refactor guardrails', () => {
     expect(preloadSource).toContain("material-browser:view-set-visible")
     expect(navigationSource).toContain('syncMaterialBrowserViewBounds')
     expect(navigationSource).toContain('setVisible')
+    expect(navigationSource).not.toContain('initializeWebview')
+    expect(navigationSource).not.toContain('webview.loadURL')
   })
 
   it('uses one global Alt+A screenshot flow and copies the result to the clipboard', () => {

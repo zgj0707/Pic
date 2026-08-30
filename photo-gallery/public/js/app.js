@@ -617,7 +617,7 @@ async function initializeApp() {
   localStorage.setItem('browserSource', browserSource);
   localStorage.setItem('browserMode', browserMode);
   updateBrowserModeUI();
-  initializeWebview();
+  initializeMaterialBrowserView();
   await loadVersionInfo();
   await loadProjects();
 

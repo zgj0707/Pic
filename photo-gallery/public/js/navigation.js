@@ -75,7 +75,7 @@ function ensureEmbeddedWebviewLoaded() {
   });
 }
 
-function initializeWebview() {
+function initializeMaterialBrowserView() {
   const api = materialBrowserViewApi();
   if (!api) return;
   const unsubscribe = api.onViewState?.(applyMaterialBrowserViewState);
