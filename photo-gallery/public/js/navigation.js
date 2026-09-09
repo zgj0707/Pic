@@ -144,6 +144,7 @@ function resetToolbarForGallery() {
   document.getElementById('permanentDeleteBtn').classList.add('hidden');
   document.getElementById('importFolderBtn').classList.remove('hidden');
   document.getElementById('importFilesBtn').classList.remove('hidden');
+  document.getElementById('galleryExportBtn')?.classList.remove('hidden');
   document.getElementById('searchInput').parentElement.classList.remove('hidden');
 }
 
@@ -195,6 +196,7 @@ function switchToGallery() {
   if (searchWrap) searchWrap.classList.remove('hidden');
 
   resetToolbarForGallery();
+  if (typeof updateToolbarForGallery === 'function') updateToolbarForGallery();
   setEmptyStateForGallery();
   updateStatusBar();
   updateSelectedCount();
@@ -226,6 +228,7 @@ function switchToRecycleBin() {
   }
   if (importFolderBtn) importFolderBtn.classList.add('hidden');
   if (importFilesBtn) importFilesBtn.classList.add('hidden');
+  document.getElementById('galleryExportBtn')?.classList.add('hidden');
   const searchWrap = document.getElementById('searchInput')?.parentElement;
   if (searchWrap) searchWrap.classList.add('hidden');
   setEmptyStateForRecycleBin();

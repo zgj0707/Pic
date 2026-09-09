@@ -46,6 +46,7 @@ import { registerProjectIpc } from '../ipc/project'
 import { registerSelectionIpc } from '../ipc/selection'
 import { registerProjectShotsIpc } from '../ipc/projectShots'
 import { registerPlanningExportsIpc } from '../ipc/planningExports'
+import { registerPdfExportIpc } from '../ipc/pdfExport'
 import { registerDeliveryIpc } from '../ipc/delivery'
 import { registerMaterialBrowserIpc, setupDownloadHandler, setupMaterialBrowserView, disposeMaterialBrowserView } from '../ipc/materialBrowser'
 import { registerProjectReferencesIpc } from '../ipc/projectReferences'
@@ -62,7 +63,7 @@ export const version = '5.0.0'
 
 // Content module capabilities (what the shell can rely on).
 export const capabilities = {
-  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'capture', 'projectReferences', 'projects', 'selection', 'projectShots', 'planningExports', 'delivery'],
+  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'capture', 'projectReferences', 'projects', 'selection', 'projectShots', 'planningExports', 'pdfExport', 'delivery'],
   services: ['cache', 'changelog', 'window'],
   db: true
 }
@@ -131,6 +132,7 @@ export function registerIpc(c: ContentContext): void {
   registerSelectionIpc()
   registerProjectShotsIpc()
   registerPlanningExportsIpc(c)
+  registerPdfExportIpc(c)
   registerDeliveryIpc()
   registerMaterialBrowserIpc(c.getMainWindow())
   registerProjectReferencesIpc(c.app.getPath('desktop'))

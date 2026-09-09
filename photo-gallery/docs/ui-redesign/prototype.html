@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="0DRVGcc0no7lu82xDcihkD">
+<head data-page-node-id="60cuIUSNizNhh8kEAYJ0Au">
+<meta charset="UTF-8" data-page-node-id="xjxerTh3fBTdueeZTZWeBl">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="Z1CSXGGJ9QUTDW6Abx88SB">
+<title>Pic v6 UI 重设计 · 交互原型</title>
+<style>
+/* ============================================================
+   Pic 全新界面原型 · 设计令牌（Design Tokens）
+   保留暖金摄影气质，提升表面分层与对比度
+   ============================================================ */
+:root {
+  /* 色彩 · 品牌与语义 */
+  --accent: #D9A05B;            /* 主强调 · 暖金（延续 v5 #c9955a，提亮 8%）*/
+  --accent-strong: #E8B878;     /* 悬停 / 焦点 */
+  --accent-glow: rgba(217, 160, 91, .28);
+  --accent-ink: #221607;        /* 金色上的深色文字 */
+  --danger: #E07A7E;
+  --success: #6FD8A2;
+  --info: #7FB5E8;
+
+  /* 色彩 · 表面（四级分层）*/
+  --bg-deep: #0B0C0E;           /* 窗口最底层 */
+  --bg-primary: #111315;        /* 工作区 */
+  --bg-surface: #17191C;        /* 卡片 / 面板 */
+  --bg-elevated: #1E2126;       /* 浮层 / 悬停态 */
+
+  /* 色彩 · 文字 */
+  --text-primary: #F3F0EA;
+  --text-secondary: #B8B4AC;
+  --text-muted: #8B8880;
+
+  /* 色彩 · 描边 */
+  --border-subtle: #26292E;
+  --border-color: #363A40;
+
+  /* 字体 */
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-body: 'DM Sans', -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+
+  /* 间距 · 4pt 网格 */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+
+  /* 圆角与动效 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --motion-fast: 140ms;
+  --motion-standard: 240ms;
+
+  /* 布局尺寸 */
+  --header-h: 56px;
+  --sidebar-w: 264px;
+  --statusbar-h: 34px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { color-scheme: dark; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  height: 100vh;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.5;
+  user-select: none;
+}
+button { font-family: inherit; font-size: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--accent-strong); outline-offset: 2px;
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 5px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ============================================================
+   整体框架 · Header / Sidebar / Main / StatusBar
+   ============================================================ */
+.app-shell { display: grid; grid-template-rows: var(--header-h) 1fr var(--statusbar-h); height: 100vh; }
+.workspace-frame { display: grid; grid-template-columns: var(--sidebar-w) 1fr; min-height: 0; }
+
+/* ---------- 顶栏 ---------- */
+.app-header {
+  display: flex; align-items: center; gap: var(--sp-5);
+  padding: 0 var(--sp-5);
+  background: linear-gradient(180deg, #131518, var(--bg-primary));
+  border-bottom: 1px solid var(--border-subtle);
+  z-index: 30;
+}
+.brand-lockup { display: flex; align-items: baseline; gap: var(--sp-2); flex-shrink: 0; }
+.brand-mark {
+  font-family: var(--font-display); font-size: 22px; letter-spacing: .5px;
+  background: linear-gradient(120deg, #F0D9B8, var(--accent));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.brand-context { font-size: 12px; color: var(--text-muted); letter-spacing: 2px; }
+
+.header-project-context {
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: 5px 12px; border-radius: 999px;
+  background: var(--bg-surface); border: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.header-project-label { font-size: 12px; color: var(--text-muted); }
+.header-project-context strong { font-weight: 600; font-size: 13px; }
+
+.header-actions { display: flex; align-items: center; gap: var(--sp-3); flex: 1; justify-content: flex-end; min-width: 0; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 32px; padding: 0 13px; border-radius: var(--radius-sm);
+  font-weight: 500; white-space: nowrap;
+  transition: background var(--motion-fast), border-color var(--motion-fast), transform var(--motion-fast), box-shadow var(--motion-fast);
+}
+.btn:active { transform: translateY(1px); }
+.btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+.btn-secondary { background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-secondary); }
+.btn-secondary:hover { background: var(--bg-elevated); border-color: var(--border-color); color: var(--text-primary); }
+.btn-primary {
+  background: linear-gradient(135deg, #E4AC6C, var(--accent));
+  color: var(--accent-ink); border: 1px solid transparent; font-weight: 600;
+}
+.btn-primary:hover { box-shadow: 0 2px 12px var(--accent-glow); background: linear-gradient(135deg, #EBB67B, var(--accent-strong)); }
+.btn-ghost { color: var(--text-muted); padding: 0 8px; }
+.btn-ghost:hover { color: var(--text-primary); background: var(--bg-elevated); }
+
+.header-search {
+  position: relative; width: 220px; flex-shrink: 1;
+}
+.header-search input {
+  width: 100%; height: 32px; padding: 0 12px 0 32px;
+  background: var(--bg-surface); border: 1px solid var(--border-subtle);
+  border-radius: 999px; color: var(--text-primary); font-size: 13px;
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
+}
+.header-search input::placeholder { color: var(--text-muted); }
+.header-search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); outline: none; }
+.header-search svg {
+  position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  width: 13px; height: 13px; color: var(--text-muted); pointer-events: none;
+}
+
+/* ---------- 左侧方案栏 ---------- */
+.project-sidebar {
+  display: flex; flex-direction: column;
+  background: var(--bg-primary);
+  border-right: 1px solid var(--border-subtle);
+  min-height: 0;
+}
+.sidebar-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--sp-4) var(--sp-4) var(--sp-2);
+}
+.sidebar-eyebrow { font-size: 11px; letter-spacing: 2.5px; color: var(--text-muted); display: block; }
+.sidebar-title { font-family: var(--font-display); font-size: 18px; font-weight: 400; }
+.new-project-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 28px; padding: 0 10px; border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-color); color: var(--text-secondary); font-size: 12px;
+}
+.new-project-btn:hover { border-color: var(--accent); color: var(--accent-strong); }
+
+.project-list { flex: 1; overflow-y: auto; padding: var(--sp-2) var(--sp-3); display: flex; flex-direction: column; gap: 4px; }
+.project-card {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: 8px; border-radius: var(--radius-md);
+  border: 1px solid transparent; text-align: left; width: 100%;
+  transition: background var(--motion-fast), border-color var(--motion-fast);
+}
+.project-card:hover { background: var(--bg-surface); }
+.project-card.active {
+  background: var(--bg-surface);
+  border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-glow);
+}
+.project-thumb {
+  width: 44px; height: 33px; border-radius: var(--radius-sm); flex-shrink: 0;
+  background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+  overflow: hidden; position: relative;
+}
+.project-meta { min-width: 0; flex: 1; }
+.project-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.project-sub { font-size: 11.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.project-count {
+  font-size: 11px; color: var(--text-muted);
+  background: var(--bg-elevated); border-radius: 999px; padding: 2px 8px; flex-shrink: 0;
+}
+.project-card.active .project-count { color: var(--accent-strong); background: rgba(217,160,91,.12); }
+
+.sidebar-aux { border-top: 1px solid var(--border-subtle); padding: var(--sp-3); display: flex; flex-direction: column; gap: 2px; }
+.sidebar-section-label { font-size: 11px; letter-spacing: 2px; color: var(--text-muted); padding: 0 8px 6px; }
+.aux-btn {
+  display: flex; align-items: center; gap: 10px;
+  height: 34px; padding: 0 10px; border-radius: var(--radius-sm);
+  color: var(--text-secondary); width: 100%; text-align: left;
+}
+.aux-btn:hover { background: var(--bg-surface); color: var(--text-primary); }
+.aux-btn.active { background: var(--bg-surface); color: var(--accent-strong); }
+.aux-btn svg { width: 15px; height: 15px; }
+.aux-badge { margin-left: auto; font-size: 11px; color: var(--text-muted); background: var(--bg-elevated); border-radius: 999px; padding: 1px 7px; }
+
+/* ---------- 主工作区 ---------- */
+.workspace-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg-primary); }
+
+/* 方案简报条 */
+.project-titlebar {
+  display: flex; align-items: center; gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid var(--border-subtle);
+  background: linear-gradient(180deg, rgba(217,160,91,.04), transparent 60%);
+}
+.project-cover {
+  width: 64px; height: 48px; border-radius: var(--radius-md); flex-shrink: 0;
+  border: 1px solid var(--border-color); overflow: hidden; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); font-size: 11px; cursor: pointer;
+  transition: border-color var(--motion-fast);
+}
+.project-cover:hover { border-color: var(--accent); }
+.project-cover .cover-img { position: absolute; inset: 0; }
+.project-cover span { position: relative; z-index: 1; background: rgba(11,12,14,.65); padding: 2px 6px; border-radius: 4px; }
+.project-heading { flex: 1; min-width: 0; }
+.project-heading-top { display: flex; align-items: center; gap: var(--sp-3); }
+.project-titlebar h1 { font-family: var(--font-display); font-size: 21px; font-weight: 400; letter-spacing: .3px; }
+.brief-meta { display: flex; gap: var(--sp-4); margin-top: 3px; flex-wrap: wrap; }
+.brief-meta span { font-size: 12px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 5px; }
+.brief-meta svg { width: 12px; height: 12px; }
+.project-stats { display: flex; gap: var(--sp-3); flex-shrink: 0; }
+.stat-chip {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 8px 16px; border-radius: var(--radius-md);
+  background: var(--bg-surface); border: 1px solid var(--border-subtle); min-width: 76px;
+}
+.stat-chip strong { font-size: 18px; font-weight: 600; color: var(--accent-strong); font-family: var(--font-display); }
+.stat-chip span { font-size: 11px; color: var(--text-muted); }
+
+/* 工具行 */
+.toolbar {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-5); border-bottom: 1px solid var(--border-subtle);
+}
+.view-switch { display: flex; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 2px; }
+.view-switch button {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 26px; padding: 0 12px; border-radius: 5px;
+  color: var(--text-muted); font-size: 12.5px;
+}
+.view-switch button.active { background: var(--bg-elevated); color: var(--accent-strong); font-weight: 600; }
+.view-switch svg { width: 13px; height: 13px; }
+.filter-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 12px; border-radius: 999px;
+  border: 1px solid var(--border-subtle); color: var(--text-secondary); font-size: 12.5px;
+}
+.filter-chip:hover { border-color: var(--border-color); color: var(--text-primary); }
+.filter-chip.on { border-color: var(--accent); color: var(--accent-strong); background: rgba(217,160,91,.08); }
+.toolbar-spacer { flex: 1; }
+.zoom-group { display: flex; align-items: center; gap: 2px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 2px; }
+.zoom-group button { width: 26px; height: 26px; border-radius: 4px; color: var(--text-muted); display: grid; place-items: center; }
+.zoom-group button:hover { background: var(--bg-elevated); color: var(--text-primary); }
+
+/* ---------- 样片网格 ---------- */
+.view-panel { flex: 1; min-height: 0; overflow-y: auto; padding: var(--sp-5); }
+.photo-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--sp-3);
+}
+.photo-card {
+  position: relative; aspect-ratio: 3 / 2; border-radius: var(--radius-md);
+  overflow: hidden; cursor: pointer; border: 2px solid transparent;
+  transition: transform var(--motion-standard), box-shadow var(--motion-standard), border-color var(--motion-fast);
+}
+.photo-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.45); }
+.photo-card.selected { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.photo-card .ph { position: absolute; inset: 0; }
+/* 渐变占位（模拟样片）*/
+.ph-1 { background: linear-gradient(135deg,#3d2f22,#8a6a45 55%,#c9a06d); }
+.ph-2 { background: linear-gradient(160deg,#22303c,#5b7285 60%,#9db4c4); }
+.ph-3 { background: linear-gradient(120deg,#2c2320,#7a4a33 55%,#d78e5a); }
+.ph-4 { background: linear-gradient(150deg,#1f2a24,#4e6e58 55%,#a8c9a8); }
+.ph-5 { background: linear-gradient(140deg,#241d2e,#5d4a7a 55%,#a48ec2); }
+.ph-6 { background: linear-gradient(130deg,#2e2620,#9c7a4e 60%,#e3c493); }
+.ph-7 { background: linear-gradient(155deg,#20303a,#3f6272 50%,#8fb7c9); }
+.ph-8 { background: linear-gradient(125deg,#32222a,#8a4a5c 55%,#d38ba0); }
+.ph-9 { background: linear-gradient(145deg,#2a2a20,#6e6e3e 55%,#c2c28a); }
+.ph-10 { background: linear-gradient(135deg,#26221e,#5f5348 55%,#b0a08c); }
+.ph-11 { background: linear-gradient(150deg,#1e2a30,#48626e 55%,#9dbcc9); }
+.ph-12 { background: linear-gradient(140deg,#2c2430,#7a5a78 55%,#c9a3c4); }
+.photo-card .shine { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,.06), transparent 30%); }
+
+.photo-hover-bar {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  display: flex; justify-content: center; gap: 6px; padding: 8px;
+  background: linear-gradient(0deg, rgba(11,12,14,.82), transparent);
+  opacity: 0; transition: opacity var(--motion-fast);
+}
+.photo-card:hover .photo-hover-bar { opacity: 1; }
+.hover-btn {
+  width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+  background: rgba(30,33,38,.9); border: 1px solid var(--border-color); color: var(--text-secondary);
+}
+.hover-btn:hover { color: var(--accent-strong); border-color: var(--accent); }
+.hover-btn svg { width: 14px; height: 14px; }
+.fav-dot { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: rgba(11,12,14,.55); color: var(--accent-strong); }
+.fav-dot svg { width: 12px; height: 12px; }
+.check-mark {
+  position: absolute; top: 8px; left: 8px; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink); display: none; place-items: center;
+}
+.photo-card.selected .check-mark { display: grid; }
+.check-mark svg { width: 12px; height: 12px; }
+
+/* ---------- 拍摄清单视图 ---------- */
+.planning-layout { display: grid; grid-template-columns: 232px 1fr; gap: var(--sp-5); height: 100%; }
+.planning-groups {
+  background: var(--bg-surface); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg); padding: var(--sp-3);
+  display: flex; flex-direction: column; gap: 4px; height: fit-content;
+}
+.planning-groups-heading { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px 10px; }
+.planning-groups-heading span { font-size: 11px; letter-spacing: 2px; color: var(--text-muted); }
+.planning-groups-heading strong { color: var(--accent-strong); font-family: var(--font-display); font-size: 15px; }
+.group-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 9px 10px; border-radius: var(--radius-md); text-align: left;
+  color: var(--text-secondary); border: 1px solid transparent;
+}
+.group-item:hover { background: var(--bg-elevated); }
+.group-item.active { background: var(--bg-elevated); border-color: var(--accent); color: var(--text-primary); }
+.group-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.group-item .g-count { margin-left: auto; font-size: 11px; color: var(--text-muted); }
+.group-add { border: 1px dashed var(--border-color); justify-content: center; color: var(--text-muted); }
+.group-add:hover { border-color: var(--accent); color: var(--accent-strong); background: transparent; }
+
+.planning-items { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+.planning-group-block h3 {
+  font-family: var(--font-display); font-size: 16px; font-weight: 400;
+  display: flex; align-items: center; gap: 10px; margin-bottom: var(--sp-3);
+}
+.planning-group-block h3::after { content: ""; flex: 1; height: 1px; background: var(--border-subtle); }
+.shot-card {
+  display: flex; gap: var(--sp-4); align-items: stretch;
+  background: var(--bg-surface); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md); padding: var(--sp-3);
+  transition: border-color var(--motion-fast), transform var(--motion-fast);
+}
+.shot-card:hover { border-color: var(--border-color); transform: translateX(2px); }
+.shot-order {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center; align-self: center;
+  background: var(--bg-elevated); border: 1px solid var(--border-color);
+  color: var(--accent-strong); font-weight: 600; font-size: 13px;
+}
+.shot-thumb { width: 96px; aspect-ratio: 3/2; border-radius: var(--radius-sm); overflow: hidden; flex-shrink: 0; position: relative; }
+.shot-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.shot-name { font-weight: 600; font-size: 13.5px; }
+.shot-note {
+  background: var(--bg-primary); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm); padding: 6px 10px; font-size: 12.5px; color: var(--text-secondary);
+  resize: none; font-family: inherit; line-height: 1.5;
+}
+.shot-note:focus { border-color: var(--accent); outline: none; }
+.shot-tags { display: flex; gap: 6px; }
+.shot-tag { font-size: 11px; color: var(--text-muted); border: 1px solid var(--border-subtle); border-radius: 999px; padding: 1px 8px; }
+.shot-actions { display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
+.drag-handle { color: var(--text-muted); cursor: grab; }
+.drag-handle svg { width: 14px; height: 14px; }
+
+/* ---------- 底部选中操作栏 ---------- */
+.selection-bar {
+  position: absolute; left: 50%; bottom: calc(var(--statusbar-h) + 16px);
+  transform: translateX(-50%) translateY(6px);
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: 10px 16px; border-radius: 14px;
+  background: rgba(30, 33, 38, .96); border: 1px solid var(--border-color);
+  box-shadow: 0 12px 36px rgba(0,0,0,.5), 0 0 0 1px rgba(217,160,91,.08);
+  backdrop-filter: blur(8px);
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--motion-standard), transform var(--motion-standard);
+  z-index: 40;
+}
+.selection-bar.show { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+.selection-count strong { color: var(--accent-strong); font-size: 15px; }
+.selection-hint { font-size: 12px; color: var(--text-muted); padding-right: var(--sp-2); border-right: 1px solid var(--border-subtle); }
+.btn-danger { background: rgba(224,122,126,.12); border: 1px solid rgba(224,122,126,.35); color: var(--danger); }
+.btn-danger:hover { background: rgba(224,122,126,.2); }
+
+/* ---------- 状态栏 ---------- */
+.status-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 var(--sp-5);
+  background: var(--bg-deep); border-top: 1px solid var(--border-subtle);
+  font-size: 12px; color: var(--text-muted);
+}
+.status-context { display: flex; align-items: center; gap: var(--sp-4); }
+.status-context button { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); height: 24px; padding: 0 6px; border-radius: 4px; }
+.status-context button:hover { color: var(--text-primary); background: var(--bg-surface); }
+.status-context svg { width: 12px; height: 12px; }
+.status-undo:disabled { opacity: .45; cursor: default; }
+
+/* ---------- 设计说明抽屉 ---------- */
+.spec-fab {
+  position: fixed; right: 20px; bottom: 54px; z-index: 60;
+  height: 34px; padding: 0 14px; border-radius: 999px;
+  background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 12.5px;
+  box-shadow: 0 6px 20px var(--accent-glow);
+}
+.spec-panel {
+  position: fixed; right: 20px; bottom: 96px; z-index: 60; width: 320px; max-height: 62vh; overflow-y: auto;
+  background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-lg);
+  padding: var(--sp-5); box-shadow: 0 16px 48px rgba(0,0,0,.5);
+  display: none;
+}
+.spec-panel.show { display: block; }
+.spec-panel h3 { font-family: var(--font-display); font-weight: 400; font-size: 17px; margin-bottom: var(--sp-3); }
+.spec-panel h4 { font-size: 12px; letter-spacing: 1.5px; color: var(--text-muted); margin: var(--sp-4) 0 var(--sp-2); }
+.spec-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 12.5px; }
+.spec-swatch { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--border-color); flex-shrink: 0; }
+.spec-row code { margin-left: auto; color: var(--text-muted); font-size: 11.5px; }
+.spec-panel ul { padding-left: 18px; color: var(--text-secondary); font-size: 12.5px; display: flex; flex-direction: column; gap: 5px; }
+</style>
+</head>
+<body data-page-node-id="nNsbmIJoMfrkymFGUggVgL">
+<div class="app-shell" data-page-node-id="Jy4fSQHWcxDjNVoDxrQPVE">
+
+  <!-- ===================== 顶栏 ===================== -->
+  <header class="app-header" data-page-node-id="YistAEAk5Ab2Ja4oxpIKkc">
+    <div class="brand-lockup" data-page-node-id="7GQEDpiKyP4J97gCNNSpQa">
+      <span class="brand-mark" data-page-node-id="UjIO9sbjtO6gB5vwnPkABJ">Pic</span>
+      <span class="brand-context" data-page-node-id="buaUomEKcZB3iraarwgBLQ">摄影工作台</span>
+    </div>
+
+    <div class="header-project-context" data-page-node-id="HaDBVGvMrdR7Z0OBhlh088">
+      <span class="header-project-label" data-page-node-id="6cIiO3EAhrepIBkAO8yw4f">当前方案</span>
+      <strong data-page-node-id="kcFMydE7oAw8PGuESuD285">春季新品 · 女装 lookbook</strong>
+    </div>
+
+    <div class="header-actions" data-page-node-id="6FGRWhOLgM7NzB2Rc5zhcQ">
+      <button class="btn btn-secondary" data-page-node-id="mexJrTbiNpaJ9XRquPWcbR">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="peD98N0B6mrWUEuKibutwn"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" data-page-node-id="ZYRF5jNQWSUkC6jl2RV0jG"/></svg>
+        <span data-page-node-id="p5Dxew2OUmSjMrB2PFikU5">拍摄清单</span>
+      </button>
+      <button class="btn btn-secondary" data-page-node-id="mhiVtHcnhaRGek3VWbNJWt">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="Hx6P0w88NuuxxKKflPEymE"><path d="M14 3v5h5M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" data-page-node-id="kbxolFeXXTID3f7ZYH1r8e"/></svg>
+        <span data-page-node-id="tAd3BCXHL3gmfYC3p2RCuW">导出 PDF</span>
+      </button>
+      <button class="btn btn-primary" data-page-node-id="SLMTOqE3VHqGUD2GUA1nkl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="p6h7uFQwUKqNtYPi1TWwkZ"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" data-page-node-id="2jSrjdF3FTKlZsKkaoxv1a"/></svg>
+        <span data-page-node-id="FpQK0pWvuiFvXFXG50D4DI">导入文件夹</span>
+      </button>
+      <div class="header-search" data-page-node-id="GYQr1bTSBXwNM2ePFAdO9w">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="jyArLtHdtvOoD7lTbhbwCg"><circle cx="11" cy="11" r="7" data-page-node-id="puZYUEGkGXs1zApszgc2jh"/><path d="m20 20-3.5-3.5" data-page-node-id="oaFB7zSVzWfGcduVtC9ZBv"/></svg>
+        <input type="text" placeholder="搜索文件名或路径…" data-page-node-id="MuSOUv4VLwDjVGq1Js15kC">
+      </div>
+      <button class="btn btn-ghost" title="更多工具" data-page-node-id="BRvNJM3YwEk5JXj0XetUlg">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" data-page-node-id="Dx4RuDFhrgidKzQEoeYlDh"><circle cx="5" cy="12" r="1.6" data-page-node-id="BkmMKgedQEJU3Vea233thD"/><circle cx="12" cy="12" r="1.6" data-page-node-id="8xD5Bz6NXDpfQms7dzP7ut"/><circle cx="19" cy="12" r="1.6" data-page-node-id="Kr13gBBZNlCfVBOiQqcbCX"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===================== 工作区 ===================== -->
+  <div class="workspace-frame" data-page-node-id="iVRVrYAAhpCsNO92OXdzc5">
+
+    <!-- 左侧 · 拍摄方案 -->
+    <aside class="project-sidebar" data-page-node-id="wrgjI2pyomCZ63As8XNwbO">
+      <div class="sidebar-header" data-page-node-id="iUAUFOdLlVLrn7LCOUVllk">
+        <div data-page-node-id="8CP7KjClbDikRmGILaGX9z">
+          <span class="sidebar-eyebrow" data-page-node-id="tP5vCAOM9P5LkJF92YajpH">拍摄策划</span>
+          <h2 class="sidebar-title" data-page-node-id="qNn3T3mTQ6rqbqrb2aocAr">拍摄方案</h2>
+        </div>
+        <button class="new-project-btn" data-page-node-id="wmJw5twIhU7tdEudiOkDdR">＋ 新建</button>
+      </div>
+      <div class="project-list" data-page-node-id="yo8IgXizSYJW9PtNru8O4N">
+        <button class="project-card active" data-page-node-id="ywjnUu4mgq4lY5fGETq7iD">
+          <span class="project-thumb" data-page-node-id="o3VCxN1C6yygIuScQsViWu"><span class="ph ph-1" style="position:absolute;inset:0" data-page-node-id="4dafQxr9I3dbdMMrHaiUCX"></span></span>
+          <span class="project-meta" data-page-node-id="LjWt8ywD8YdB9kQWvtfQ0r">
+            <span class="project-name" data-page-node-id="XriBfrZ6mKlfrAQ7goYPHV">春季新品 · 女装 lookbook</span>
+            <span class="project-sub" data-page-node-id="cAICgdx2qZPhOUbm7q8Ufo">客户：LANMU · 03-15 拍摄</span>
+          </span>
+          <span class="project-count" data-page-node-id="J4tuBRoYIVJ1sM8Zci9UwO">128</span>
+        </button>
+        <button class="project-card" data-page-node-id="pGb2DY4BzqE0zwrvfVt0re">
+          <span class="project-thumb" data-page-node-id="2ACHUQkFuIkK0yUfRFBQxh"><span class="ph ph-5" style="position:absolute;inset:0" data-page-node-id="yEWPGSYCC0eA0vFpWFkpw6"></span></span>
+          <span class="project-meta" data-page-node-id="BzBv8WbVRrj4gdA9nD5U7E">
+            <span class="project-name" data-page-node-id="pzimcBTjMjUNzLBx3k4uB5">山系露营装备 · 场景片</span>
+            <span class="project-sub" data-page-node-id="IirtLHgkdCIztxMpEnfvqE">客户：野径 · 03-28 拍摄</span>
+          </span>
+          <span class="project-count" data-page-node-id="ZS821W5sP1pL9tdEVdCt2e">64</span>
+        </button>
+        <button class="project-card" data-page-node-id="L8vWhUqYGqUwfzvxBU4yEl">
+          <span class="project-thumb" data-page-node-id="ium23GWnLw1G8D2Ia9C7Ue"><span class="ph ph-8" style="position:absolute;inset:0" data-page-node-id="Af9D3WoO5wlYwxS1jPyp5W"></span></span>
+          <span class="project-meta" data-page-node-id="86ms5HlaM0zbC9ukH3wZxg">
+            <span class="project-name" data-page-node-id="HnV33hJKOfPTmByni4SPm4">咖啡品牌 · 门头与器物</span>
+            <span class="project-sub" data-page-node-id="Yob4vVnZ72AxG4tGNJviOY">客户：山下咖啡 · 已交付</span>
+          </span>
+          <span class="project-count" data-page-node-id="oDBR0ZafeC3YC5zhYm8K2c">41</span>
+        </button>
+        <button class="project-card" data-page-node-id="iRrthldx706uIhlLm52XNJ">
+          <span class="project-thumb" data-page-node-id="oFeCmuwbjatNg6rTidcGj2"></span>
+          <span class="project-meta" data-page-node-id="iE8LaIMKhbXz87mxf3ZB9a">
+            <span class="project-name" data-page-node-id="Ui8NHsypfnj0JutwiehEkl">未分类</span>
+            <span class="project-sub" data-page-node-id="M9fpm5T70RZ2ngpFUj6hiR">暂存与截图落点</span>
+          </span>
+          <span class="project-count" data-page-node-id="ukjk9WyFNrggXcvtLhEXgA">12</span>
+        </button>
+      </div>
+      <div class="sidebar-aux" data-page-node-id="bJlpNaQ3zyTaWyd76O3YY3">
+        <span class="sidebar-section-label" data-page-node-id="0MwBLYLVr7Gx0u2cEbD4So">辅助空间</span>
+        <button class="aux-btn" data-goto="planning" data-page-node-id="ynCGTGfO6lnyiHH8ilCalg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="GwOhGXMdI5M6fh3F04pBoc"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" data-page-node-id="HYG7eipBsJGJLO4kcKTAyy"/></svg>
+          <span data-page-node-id="PssTW8VEpUmXG3SGFKzZ0N">拍摄清单</span>
+        </button>
+        <button class="aux-btn" data-page-node-id="owUHJ9HfM7Bi14U3qXtmgg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="AAey0tLCci4ubjdEGVvE95"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14" data-page-node-id="7V0lzd5H0vGCdEjVBtL4E4"/></svg>
+          <span data-page-node-id="sYTlporEjxGlcFhHeLKMeV">回收站</span><span class="aux-badge" data-page-node-id="kipjs8kludUS7YhGyH9Bt9">3</span>
+        </button>
+        <button class="aux-btn" data-page-node-id="QGPdtREiPvoYrHG72jX3G1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="fqCksztFxZtNiqg3ny5yGb"><rect x="3" y="5" width="18" height="14" rx="2" data-page-node-id="Yq9JtA3KyRKJiG5m9OCEzP"/><path d="m7 15 3-4 3 3 2-2 2 3" data-page-node-id="bKaeQ0p8OF0AE2bNGjaVGk"/></svg>
+          <span data-page-node-id="XFTWnukrDH6UkEro9sRkGB">素材浏览器</span>
+        </button>
+        <button class="aux-btn" data-page-node-id="53HXynqMkwoLUjcqgG0i6Z">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="YOEMBiJI5Yfb2Je4GuVtvZ"><circle cx="12" cy="12" r="3" data-page-node-id="3YUyodaYCeMgJEo2OTqeJ8"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.06-.4.1-.8.1-1.2z" data-page-node-id="T8Y1RDIzeuc8oZBeoJx590"/></svg>
+          <span data-page-node-id="LNAndLIkOyNdGwMMDMfaRf">设置</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- 主区 -->
+    <main class="workspace-main" style="position:relative" data-page-node-id="PUQJSGGBWAneaCEh1dGQTj">
+
+      <!-- 方案简报条 -->
+      <section class="project-titlebar" data-page-node-id="ReSx9GLuRQ7LJAgXEWwKc4">
+        <button class="project-cover" title="选择一张样片后可设为方案封面" data-page-node-id="ahGnU9M71YqzneoSnfQo4O">
+          <span class="ph ph-1 cover-img" data-page-node-id="aCJVGga1rpPonWjzPpKNe4"></span><span data-page-node-id="fkP9yAv0r01kopBxDcdIW0">更换封面</span>
+        </button>
+        <div class="project-heading" data-page-node-id="bFEtDxpnhXr2OCuR96CD60">
+          <div class="project-heading-top" data-page-node-id="UuxyWASlyrFEP28nFHNjXg">
+            <h1 data-page-node-id="5DadDEFQdYlXxVXyiaeoDb">春季新品 · 女装 lookbook</h1>
+            <button class="btn btn-secondary" style="height:26px;font-size:12px" data-page-node-id="GHY56QK64y7CwKratG38nl">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" data-page-node-id="ssE8K4hwl13nbVhOD2rDWM"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" data-page-node-id="hiE4MMX2GfD6gYiwxh0N5X"/></svg>
+              <span data-page-node-id="PQpDIpPDezMlAvlBz6B4W4">编辑简报</span>
+            </button>
+          </div>
+          <div class="brief-meta" data-page-node-id="cTkuvhGG7g0rNfWjfR5piR">
+            <span data-page-node-id="0Yca6mMiQX1IHeYPu2EmyQ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="ICxcFCcuW8S9ovaKaENzRZ"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4" data-page-node-id="nxbj9nR5MdTTUYETtCjp2n"/></svg>客户：LANMU 服饰</span>
+            <span data-page-node-id="NVNDwmTrlgEQgOhnzyUmT1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="oEogQ9iPzGa4WGdDTS1M6q"><rect x="3" y="4" width="18" height="18" rx="2" data-page-node-id="ORx7lJBfdbtUKAbIszfEmF"/><path d="M16 2v4M8 2v4M3 10h18" data-page-node-id="FUlFr0kUrtmSjSvC1TW15o"/></svg>03-15 拍摄</span>
+            <span data-page-node-id="53rlAva8BR4TrvpA42Svup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="DvIkhsVVfH6zYI7EnUciER"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z" data-page-node-id="lRQMmV3rIi33C8bNEvSG7L"/><circle cx="12" cy="10" r="2.5" data-page-node-id="hzHIL5HaqvzCJU4wwN9Zct"/></svg>滨江摄影基地 · 3F</span>
+            <span data-page-node-id="yRM7CGOTvTMbolZQG6ci2L"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="6NGS2RcoeXKLKVK1Q0PFQR"><circle cx="12" cy="8" r="4" data-page-node-id="KFPRdLxZiGaGEBLErNagct"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6" data-page-node-id="zqnrve95LuCV5KYpDBluUX"/></svg>负责人：阿真</span>
+          </div>
+        </div>
+        <div class="project-stats" data-page-node-id="DA0Lmw5PIFAN0YKKBohp05">
+          <div class="stat-chip" data-page-node-id="oVIW8md4HA0gADqLs7dxZA"><strong data-page-node-id="X8RMja8yACEaxEHLvaYRBC">128</strong><span data-page-node-id="zPgTk29c54jSmZFAc8AyWQ">已收集样片</span></div>
+          <div class="stat-chip" data-page-node-id="ZVQwoaydkUokkIeEoNPYfV"><strong data-page-node-id="5pbN9pJCeXauVoPKaeT98s">18</strong><span data-page-node-id="duB796E1IWA3GKepj39ecy">拍摄清单条目</span></div>
+        </div>
+      </section>
+
+      <!-- 工具行 -->
+      <div class="toolbar" data-page-node-id="XvITSgCCFoV9MeZwJusVtD">
+        <div class="view-switch" data-page-node-id="SUprHwh9RyrvgJIbBIfSec">
+          <button class="active" data-goto="gallery" data-page-node-id="8u07Rp8kHIDSo41eqwY292">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="UVP8pkotzKJpAcO6HGATS5"><rect x="3" y="3" width="7" height="7" rx="1" data-page-node-id="K47uRH2pwdFZJJvOoDBfL7"/><rect x="14" y="3" width="7" height="7" rx="1" data-page-node-id="k79DHmPKG1C3tH0V7PBPIC"/><rect x="3" y="14" width="7" height="7" rx="1" data-page-node-id="8SpBVKtvehub7Dw1XzQdT4"/><rect x="14" y="14" width="7" height="7" rx="1" data-page-node-id="XFm4C6TiD9CFUAcLC4RyBT"/></svg>
+            样片库
+          </button>
+          <button data-goto="planning" data-page-node-id="cK8Sgr6i3tBXU7QfiI2af3">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="Abao28V2Y0a4vRB23PreIP"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" data-page-node-id="hZAbU3vR9PQYc8uG7J2pAO"/></svg>
+            拍摄清单
+          </button>
+        </div>
+        <button class="filter-chip on" data-page-node-id="BhfheFGw6hj9Mpp3b2LSG3">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" data-page-node-id="Ps4ColtuMlSLrCVvy91yIs"><path d="M12 21s-7-4.5-7-10a7 7 0 1 1 14 0c0 5.5-7 10-7 10z" data-page-node-id="g9LoA9RxvkLd1Fpw9he9LK"/></svg>
+          收藏 24
+        </button>
+        <button class="filter-chip" data-page-node-id="pa09NFENuyXaNQHMNTsbAs">本次收集 12</button>
+        <button class="filter-chip" data-page-node-id="GzRJ2hDcogburz5SV06M3t">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" data-page-node-id="6oRvLFgISWqxRoJBgmUJRY"><path d="M3 6h18M6 12h12M10 18h4" data-page-node-id="FJXWZkYgdBzpgqFyqy6JVR"/></svg>
+          筛选
+        </button>
+        <span class="toolbar-spacer" data-page-node-id="JMz4djl1LLWRIfg0fVfl7s"></span>
+        <div class="zoom-group" data-page-node-id="jFGHjACgDMoRwSTNw9gSwi">
+          <button title="缩小" data-page-node-id="Ux9d9Q5jocI2LAzd4jwUe5">−</button>
+          <span style="font-size:11px;color:var(--text-muted);padding:0 4px" data-page-node-id="UwpJg1hJmZsjpJZTrEw1HP">100%</span>
+          <button title="放大" data-page-node-id="ImNRSOS1Qo3hAt8PVAolw9">＋</button>
+        </div>
+      </div>
+
+      <!-- ===================== 视图 A · 样片库 ===================== -->
+      <section class="view-panel" id="viewGallery" data-page-node-id="e8KpjhuHuyTYE4C6M8frgD">
+        <div class="photo-grid" data-page-node-id="kGEBI2WXNEbCzHE5AHW7nJ">
+          <!-- 12 张占位样片 -->
+          <div class="photo-card selected" data-page-node-id="p9MDDeX3NvdwQlmI1kgcV0"><span class="ph ph-1" data-page-node-id="VmseqTnytvn691E3aXHDCD"></span><span class="shine" data-page-node-id="eZrevcW4XVnMjUFFmJdw1C"></span><span class="check-mark" data-page-node-id="O2WVNiJJi8aOTDmL5ft00Y">✓</span><span class="fav-dot" data-page-node-id="Ns644A6lojd67gdgh0cz5V">♥</span>
+            <div class="photo-hover-bar" data-page-node-id="rZPbQRonDvc59U2funHrJl"><button class="hover-btn" title="收藏" data-page-node-id="ByB5RRfjFeuFZ7QtwkkStG">♥</button><button class="hover-btn" title="加入拍摄清单" data-page-node-id="FtZuFMM2Fg10NlD1TkTqcZ">☰＋</button><button class="hover-btn" title="设为封面" data-page-node-id="G6cR6v5ILI5WZ6vyA6kZ0E">▣</button><button class="hover-btn" title="更多" data-page-node-id="AjqzRjbjTV4CJ1aTPFKvHi">⋯</button></div>
+          </div>
+          <div class="photo-card" data-page-node-id="PwE2VgDS6sHBmFS9sMFqSy"><span class="ph ph-2" data-page-node-id="EL4DeqRGKpJKDWNgJK4Ens"></span><span class="shine" data-page-node-id="Jft4ReXyAXc5gAXf7qv6VL"></span><span class="check-mark" data-page-node-id="agSnRTDwpNXmvbcijMYObP">✓</span>
+            <div class="photo-hover-bar" data-page-node-id="Zmu6TGnvFWUUisQAkOI8b7"><button class="hover-btn" data-page-node-id="hfXWWhhOPiguPZYYw75EyF">♥</button><button class="hover-btn" data-page-node-id="xgagm1AmhFMS5mIklxAlsD">☰＋</button><button class="hover-btn" data-page-node-id="jkj06wbAqcsyvqTsvzMcvv">▣</button><button class="hover-btn" data-page-node-id="MYv8yoItX95GmN95dVAyc1">⋯</button></div>
+          </div>
+          <div class="photo-card selected" data-page-node-id="HvylhtEjZBvSJBWKut5pHY"><span class="ph ph-3" data-page-node-id="qzMmGDgzf8gDQwWJw7DMxt"></span><span class="shine" data-page-node-id="odUFI6hZZm7u2aosIdBbCd"></span><span class="check-mark" data-page-node-id="fhrcGxSlYvIHSfZ2k0PpAP">✓</span>
+            <div class="photo-hover-bar" data-page-node-id="IeBwz3o4uQoPkB9MUxupdP"><button class="hover-btn" data-page-node-id="LXFdeaumEF6UhTaAFgGXWT">♥</button><button class="hover-btn" data-page-node-id="C1KGpthmGHG1SBYk8CySe8">☰＋</button><button class="hover-btn" data-page-node-id="LqHTk5wFlt7e3MGwHCoGgN">▣</button><button class="hover-btn" data-page-node-id="Vs5WeBoXbca8YPxWWQMN31">⋯</button></div>
+          </div>
+          <div class="photo-card" data-page-node-id="JB6CtMtfUZbjkFclfjB0Zv"><span class="ph ph-4" data-page-node-id="ZbCYBD5jkE0Ru1fcVTImjH"></span><span class="shine" data-page-node-id="iq6nWSBdblJSG6GY0lrrcL"></span><span class="check-mark" data-page-node-id="uczZrRGEaxiuoYrpNsOwyz">✓</span><span class="fav-dot" data-page-node-id="FsG1AMBpqxlWA1Bfckg9Vy">♥</span>
+            <div class="photo-hover-bar" data-page-node-id="NLDw6mL3Ot9Ncrpk4OKOa6"><button class="hover-btn" data-page-node-id="KyPFPRu0yz59UwAVJPRXyI">♥</button><button class="hover-btn" data-page-node-id="uKNFv8lXCVdtG8MdLVtsOJ">☰＋</button><button class="hover-btn" data-page-node-id="1sQl7nzNxaIVmyZweXXcCE">▣</button><button class="hover-btn" data-page-node-id="wXsgYXVpK74cBDHBzKBtSg">⋯</button></div>
+          </div>
+          <div class="photo-card" data-page-node-id="GUlX5MClpyiiEjDhpI2JLP"><span class="ph ph-5" data-page-node-id="4Es5FtGtAJIuB7XmiocTKT"></span><span class="shine" data-page-node-id="A3p4wsouCiWyfMHP2NOEnh"></span><span class="check-mark" data-page-node-id="WA0Nb6E627edC0HgbIGCWw">✓</span>
+            <div class="photo-hover-bar" data-page-node-id="pTCssdjACF0EFW8Ydq446z"><button class="hover-btn" data-page-node-id="kkEyLKb7ln5DodDXKYxChO">♥</button><button class="hover-btn" data-page-node-id="TdW0eyNkIEsPU2UP8w7F46">☰＋</button><button class="hover-btn" data-page-node-id="g9V0H8huBMJjfJDSSXbPKX">▣</button><button class="hover-btn" data-page-node-id="jmD6G83SSSdJSBm3Y68xRH">⋯</button></div>
+          </div>
+          <div class="photo-card" data-page-node-id="Gs88H53GhZKmCHyjb7mDbn"><span class="ph ph-6" data-page-node-id="kbV1nauI3OUtc9F8VWxKYI"></span><span class="shine" data-page-node-id="3DdK4q3G7yAsteTjE8iZ3f"></span><span class="check-mark" data-page-node-id="AzUWQO80zMB8RTasm1h7N1">✓</span><span class="fav-dot" data-page-node-id="yrkGBRCO3diCrHDePD7j1c">♥</span>
+            <div class="photo-hover-bar" data-page-node-id="GpSi7EBtcXTWCj3A8c9ylZ"><button class="hover-btn" data-page-node-id="eMuypWo2zFVFVsetmo3B1S">♥</button><button class="hover-btn" data-page-node-id="ibO1l226xk3HiRkacYCJf8">☰＋</button><button class="hover-btn" data-page-node-id="fbLlw5WSxlHMzZq2vaFir0">▣</button><button class="hover-btn" data-page-node-id="ISwQAqy4AlCynhdEdHgMfq">⋯</button></div>
+          </div>
+          <div class="photo-card" data-page-node-id="EsiDUQ515wAX3e3g6Pxuke"><span class="ph ph-7" data-page-node-id="3vNFBXlqqPW5vjuUhD3FDw"></span><span class="shine" data-page-node-id="1lZQkCyvUGzzfQ202XwFx3"></span><span class="check-mark" data-page-node-id="ZDXFbX15VKFatRlaoGh0mU">✓</span>
+            <div class="photo-hover-bar" data-page-node-id="vmrtOtNqtwC6CceL1GFy39"><button class="hover-btn" data-page-node-id="reIB7sqelA1KWEIhpk1z6p">♥</button><button class="hover-btn" data-page-node-id="fBGg2hVToJ7drDGE6tdryv">☰＋</button><button class="hover-btn" data-page-node-id="YfmDFODAiI5Eff0P3FI6FL">▣</button><button class="hover-btn" data-page-node-id="rRnmiItn1ZTJsXBrsrDEqV">⋯</button></div>
+          </div>
+          <div class="photo-card selected" data-page-node-id="n75rN8i7bnXwogBNeFAjGP"><span class="ph ph-8" data-page-node-id="6sZSelRDeZHxCbIe4Ji541"></span><span class="shine" data-page-node-id="QUlEL4S5DYdkDnuIPMrTCB"></span><span class="check-mark" data-page-node-id="ma669ULvEIACzq4ceeR4SH">✓</span>
+            <div class="photo-hover-bar" data-page-node-id="dft95CTUnFAT9CJ4E7j77p"><button class="hover-btn" data-page-node-id="wH71hzFfBfnIfbLO092wEB">♥</button><button class="hover-btn" data-page-node-id="Iofe1HLi8vf3BCqHv2OqvL">☰＋</button><button class="hover-btn" data-page-node-id="PjDpRx0F2kRDFGHCYvACke">▣</button><button class="hover-btn" data-page-node-id="0zqvwxj3KXsFrhNymhvD0L">⋯</button></div>
+          </div>
+          <div class="photo-card" data-page-node-id="NuVGv7Vggt0GQPv6ZHBAvL"><span class="ph ph-9" data-page-node-id="pfsDaSgKA0hDhJGJRg1fUS"></span><span class="shine" data-page-node-id="p61e35NksqJSLgi2cOgNIl"></span><span class="check-mark" data-page-node-id="1uigLcIHHwnqcr6C3aMirY">✓</span>
+            <div class="photo-hover-bar" data-page-node-id="5i3eRl8APfyVNQizPQ3V4G"><button class="hover-btn" data-page-node-id="cocvMFLp3vn1ZTPeZqZWfn">♥</button><button class="hover-btn" data-page-node-id="1vq3UV1xi5dVCqhEKrRTm9">☰＋</button><button class="hover-btn" data-page-node-id="xzC6X6zhE0gT8o1MCuPLjX">▣</button><button class="hover-btn" data-page-node-id="B7Rrd1STjBy4iYCzGr8aFH">⋯</button></div>
+          </div>
+          <div class="photo-card" data-page-node-id="WqZpYH8wzjtr5kjOoAepFK"><span class="ph ph-10" data-page-node-id="JJvODao6ovwVjxV7eAjdWB"></span><span class="shine" data-page-node-id="5Wah440ik6CxcpWWHVNIWf"></span><span class="check-mark" data-page-node-id="AoXsqRfVveshRg6vRzoI3q">✓</span><span class="fav-dot" data-page-node-id="EIj31EYoiD8jbwicOLXwMU">♥</span>
+            <div class="photo-hover-bar" data-page-node-id="HYCya3K0a4FnObKEgAGn7k"><button class="hover-btn" data-page-node-id="6pdQYZ9qljBnYr7dva57DY">♥</button><button class="hover-btn" data-page-node-id="YqGBkwcKcpCWD0x2Y8gpoM">☰＋</button><button class="hover-btn" data-page-node-id="uRtavrzWn1haDTn6aTF7mH">▣</button><button class="hover-btn" data-page-node-id="wGS8tCk0SDoUxE7pgqZuQR">⋯</button></div>
+          </div>
+          <div class="photo-card" data-page-node-id="C6itvNFy0tMwXyCDiGDiFZ"><span class="ph ph-11" data-page-node-id="XIOUeZFITmG6pPV8ZE4ESa"></span><span class="shine" data-page-node-id="iRnVLNhzcWDExcpVVx2M2I"></span><span class="check-mark" data-page-node-id="2nnIRc09kq81RrJPNjFapV">✓</span>
+            <div class="photo-hover-bar" data-page-node-id="gtNwQ2EulkAsYe7ly0jPkf"><button class="hover-btn" data-page-node-id="ZgwHf4oioyUgW81M1MVpoo">♥</button><button class="hover-btn" data-page-node-id="qP17ZWIOzXVOWDRbLd2Z3t">☰＋</button><button class="hover-btn" data-page-node-id="8D4pP4YR4fzwBi31bhYoFY">▣</button><button class="hover-btn" data-page-node-id="Gp1BcqQCrNp2roKttWAm6Z">⋯</button></div>
+          </div>
+          <div class="photo-card" data-page-node-id="mCHDoBjHTDLtcaLHc2qw7t"><span class="ph ph-12" data-page-node-id="9WnHyG7yt1EV3C42FtcwJw"></span><span class="shine" data-page-node-id="xHrGusNf4HMQdsrWLek2CF"></span><span class="check-mark" data-page-node-id="SGE3RW1DAJVJ33yoxhPizk">✓</span>
+            <div class="photo-hover-bar" data-page-node-id="xj4NzDytGbBxLKuT8kYXRo"><button class="hover-btn" data-page-node-id="K3atVGj4EoDCMiJXvprHz4">♥</button><button class="hover-btn" data-page-node-id="r9lKWLkg61TY7dCYGoPZX5">☰＋</button><button class="hover-btn" data-page-node-id="IIrVFWePaEIB8C17jejlBd">▣</button><button class="hover-btn" data-page-node-id="TKkOXMCjGhtVIifLtFOiS0">⋯</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 视图 B · 拍摄清单 ===================== -->
+      <section class="view-panel" id="viewPlanning" style="display:none" data-page-node-id="AbUEwvpJWHoBOvsuWnQuTj">
+        <div class="planning-layout" data-page-node-id="GEipI4pskEFmP0Mlyu4oCg">
+          <aside class="planning-groups" data-page-node-id="lk9lL8BtoMfkfdp8MZHVrp">
+            <div class="planning-groups-heading" data-page-node-id="1MUbEcKaofGkfTisla1f1W"><span data-page-node-id="cMMB07HttPssyEMoJiZJsG">拍摄分组</span><strong data-page-node-id="ga2vJZo3bYlpGrSj14BwEF">4</strong></div>
+            <button class="group-item active" data-page-node-id="oeBrlNw4zc0j0CPg0s63fX"><span class="group-dot" style="background:#D9A05B" data-page-node-id="SVjc3DR4OpSxIOLFNyuZ8c"></span>开场 · 氛围与场景<span class="g-count" data-page-node-id="eqgIiEfhYGpSioXbrJuNFG">5</span></button>
+            <button class="group-item" data-page-node-id="SD3M24uTHHU5oXHLUuRqUC"><span class="group-dot" style="background:#7FB5E8" data-page-node-id="32M5BS3DsdtOYew5ZP3ztM"></span>产品 · 平铺与特写<span class="g-count" data-page-node-id="HtJLc3GGo5Ksl3vdhMFujO">6</span></button>
+            <button class="group-item" data-page-node-id="GvIBOpTUIfmuJ6tIHU0OBE"><span class="group-dot" style="background:#6FD8A2" data-page-node-id="c7JhCZmLcCRLlIBTS4YGEN"></span>人物 · 穿搭互动<span class="g-count" data-page-node-id="6YSoz3ghbzkLetnBmk5hjY">4</span></button>
+            <button class="group-item" data-page-node-id="Cz2EgkzcR7suPJUrPmzRUi"><span class="group-dot" style="background:#E07A7E" data-page-node-id="E5PZnvWJhs45465ciaJDxW"></span>收尾 · 细节补充<span class="g-count" data-page-node-id="UhuhCs4a3EtxbF5EfO8C4v">3</span></button>
+            <button class="group-item group-add" data-page-node-id="susVvBXeTyO0HuwWZyvxGC">＋ 新建分组</button>
+          </aside>
+
+          <div class="planning-items" data-page-node-id="ZQA5yEjuwpk0frp8CrS9ZS">
+            <div class="planning-group-block" data-page-node-id="nQeYxCZA2fsNKw8Z6xZPi1">
+              <h3 data-page-node-id="LF0BS1wrnFkpob358wctvt">开场 · 氛围与场景</h3>
+              <div class="shot-card" data-page-node-id="PGvCDExsJOFo8D9SQTCFhy">
+                <span class="shot-order" data-page-node-id="PxZFsv3dQMhMiy5we9gdxu">1</span>
+                <span class="shot-thumb" data-page-node-id="LHKYv73R6zsn2waB3TsO5A"><span class="ph ph-2" style="position:absolute;inset:0" data-page-node-id="mRCGyDpq29lWh7yT87P09A"></span></span>
+                <div class="shot-body" data-page-node-id="kCMHTiVvrq8GBDM6Xpgsj9">
+                  <span class="shot-name" data-page-node-id="YkUiAC6EdAXtdjd8erUrje">基地外景 · 晨光橱窗</span>
+                  <textarea class="shot-note" rows="2" placeholder="拍摄备注…">利用东侧晨光，模特背对橱窗回眸；35mm，光圈 f/2.0。</textarea>
+                  <div class="shot-tags" data-page-node-id="vIoCI10wbK06jG07PRUktf"><span class="shot-tag" data-page-node-id="hgSSPY83wZ7j5HYyvWnKQZ">自然光</span><span class="shot-tag" data-page-node-id="quvFpjF7ymOzUA1GKOxQCI">横构图</span></div>
+                </div>
+                <div class="shot-actions" data-page-node-id="2Hv2clJM8ZdglDZE8eFR8F">
+                  <span class="drag-handle" data-page-node-id="C6Mcdrt20vXzlUEkFUZWoO">⋮⋮</span>
+                  <button class="btn-ghost" title="移除" data-page-node-id="lxMb8rl0xZhCq8jlbo9li2">✕</button>
+                </div>
+              </div>
+              <div class="shot-card" data-page-node-id="mBMD7D8pHTMfXMiLB7qoAg">
+                <span class="shot-order" data-page-node-id="C096Py4VMNtEeiU4ReNatS">2</span>
+                <span class="shot-thumb" data-page-node-id="WbiOmqIhSlhQAEQaBC698r"><span class="ph ph-6" style="position:absolute;inset:0" data-page-node-id="PLMS7CW0KMDqdHxZCB7JaW"></span></span>
+                <div class="shot-body" data-page-node-id="WRp6T4Esbth2skCS5wZmSs">
+                  <span class="shot-name" data-page-node-id="d7p3dGHt6EUyRH1gP5uV3F">主视觉 · 米色背景棚拍</span>
+                  <textarea class="shot-note" rows="2">主 KV 机位，Softbox 双灯；产出品牌主视觉 3 张备选。</textarea>
+                  <div class="shot-tags" data-page-node-id="OWXo3ONT4wNkfYF7FFG77I"><span class="shot-tag" data-page-node-id="VBSI4iaL4kLlRutKlqAfuU">棚拍</span><span class="shot-tag" data-page-node-id="ZHnRNdhEVrWGDJWPMmTZXb">主 KV</span></div>
+                </div>
+                <div class="shot-actions" data-page-node-id="MFCYqGdrHKZmd1S4jPj0QG">
+                  <span class="drag-handle" data-page-node-id="KOBFlmyPgw6KeyUvCgVSHm">⋮⋮</span>
+                  <button class="btn-ghost" title="移除" data-page-node-id="utZrI7mhph5MPjD6hf5krF">✕</button>
+                </div>
+              </div>
+              <div class="shot-card" data-page-node-id="AxoE62UPWlhYJ7KkcDuejc">
+                <span class="shot-order" data-page-node-id="A4V9HgFXtCh955GE4r6tFv">3</span>
+                <span class="shot-thumb" data-page-node-id="j7ws5TOpkqeVERjhBFMQ9H"><span class="ph ph-9" style="position:absolute;inset:0" data-page-node-id="yqGu2elX8arugZ8saokFuV"></span></span>
+                <div class="shot-body" data-page-node-id="QdbnCODYEU7RB4W4P6xseH">
+                  <span class="shot-name" data-page-node-id="pfPjoZDe2KRZkMaGqCo4cG">场景空镜 · 道具组合</span>
+                  <textarea class="shot-note" rows="2" placeholder="拍摄备注…"></textarea>
+                  <div class="shot-tags" data-page-node-id="0SHtMh2xm6vJuDROBuqUaU"><span class="shot-tag" data-page-node-id="KZb4QigPdJyyPEY1GwzzOR">空镜</span></div>
+                </div>
+                <div class="shot-actions" data-page-node-id="7wYX0hEuqmQaLrZvqCJMCS">
+                  <span class="drag-handle" data-page-node-id="k6Z4o6FAkCIuKRAWSHmeux">⋮⋮</span>
+                  <button class="btn-ghost" title="移除" data-page-node-id="h2tswX6nrrWBBrB0bAcxTW">✕</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="planning-group-block" data-page-node-id="2rL8IOLzKVAUjeHG6GcOub">
+              <h3 data-page-node-id="799a8cXb7JP3NaOr4FnR2q">产品 · 平铺与特写</h3>
+              <div class="shot-card" data-page-node-id="FhXVWX4KLAyXIwRA2VcR8U">
+                <span class="shot-order" data-page-node-id="oA445BVn0zbDTkYWqPFxQP">4</span>
+                <span class="shot-thumb" data-page-node-id="Z0tt0oo04B8wFOPcFOrhhm"><span class="ph ph-4" style="position:absolute;inset:0" data-page-node-id="bvBJlijbBENglYULrBZFmu"></span></span>
+                <div class="shot-body" data-page-node-id="Hc8Rs3xv8AzSQimOrAtBKW">
+                  <span class="shot-name" data-page-node-id="p7BdD3aQ3vNQkG4VoYCmPa">连衣裙平铺 · 全身正面</span>
+                  <textarea class="shot-note" rows="2" placeholder="拍摄备注…">垂直俯拍，注意褶皱整理与吊牌收纳。</textarea>
+                  <div class="shot-tags" data-page-node-id="yEM8oXrNGYGITbbKEvfNah"><span class="shot-tag" data-page-node-id="RwemRhMaX9QjSxSsJPCiHb">平铺</span></div>
+                </div>
+                <div class="shot-actions" data-page-node-id="8WXPWSpJBDlZfkAkbYDNFM">
+                  <span class="drag-handle" data-page-node-id="p9IsGwlC2DpYDUH36YNZiG">⋮⋮</span>
+                  <button class="btn-ghost" title="移除" data-page-node-id="A7bVQGnPNvCMywuftm3ID0">✕</button>
+                </div>
+              </div>
+              <div class="shot-card" data-page-node-id="jLlIShmChw8lVnwckdzFIx">
+                <span class="shot-order" data-page-node-id="2RUQuQE2Xmp5VPmSNTVhyg">5</span>
+                <span class="shot-thumb" data-page-node-id="HBDM6XplIHV3FUyNbjmAfD"><span class="ph ph-11" style="position:absolute;inset:0" data-page-node-id="87iCuT3IKfYWun4KfPqQkG"></span></span>
+                <div class="shot-body" data-page-node-id="eJ4vT3Fns01dE8rUCB6Png">
+                  <span class="shot-name" data-page-node-id="GEEBAWSMKvZPAxigOYgIZD">面料纹理 · 微距特写</span>
+                  <textarea class="shot-note" rows="2" placeholder="拍摄备注…"></textarea>
+                  <div class="shot-tags" data-page-node-id="BrltxyEVFdvxk8ycIekiFn"><span class="shot-tag" data-page-node-id="EXClPZTMLa2lLAG8AAQoEH">微距</span><span class="shot-tag" data-page-node-id="Xgq0lhfWEPeCmIwPcfhAKy">竖构图</span></div>
+                </div>
+                <div class="shot-actions" data-page-node-id="doX5ZZTeFHo8iLerW2BLPV">
+                  <span class="drag-handle" data-page-node-id="dCySiXTjJfCq3YwGxfxAJY">⋮⋮</span>
+                  <button class="btn-ghost" title="移除" data-page-node-id="ic4V293XoT02srT6hCG2P1">✕</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 底部选中操作栏（悬停习惯延续：金色描边=已选） -->
+      <div class="selection-bar show" id="selectionBar" data-page-node-id="yzXGcjPW3aouDnrYkTuWm8">
+        <span class="selection-count" data-page-node-id="DsEL0JBo9Fj7aV5laCXqyl">已选 <strong data-page-node-id="Gd78HLa4jdRbNZS6LpTVMv">3</strong> 张</span>
+        <span class="selection-hint" data-page-node-id="uJjaK4mHIEeSvLLv1H1Ie7">金色描边表示已选样片</span>
+        <button class="btn btn-secondary" data-page-node-id="UqBNdRt3t06Z1hj1HNo7GC">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" data-page-node-id="rbpchUjA90Vx2pI1VHcZtu"><path d="M9 6h11M9 12h11M9 18h11" data-page-node-id="HKVWcbDtkm8AtW8lHiFOjU"/></svg>
+          <span data-page-node-id="wFhy05XjrwFjRouSItvKCC">加入拍摄清单</span>
+        </button>
+        <button class="btn btn-secondary" data-page-node-id="o56qepNgEbMk07igNHSNQ1"><span data-page-node-id="CTrCWFGsijeYZdC4CNJyTv">设为封面</span></button>
+        <button class="btn btn-danger" data-page-node-id="nc6GJz7glcZJbQPYE56YdA">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" data-page-node-id="xRZE8ISWQ66dFJ9xOYwFV7"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14" data-page-node-id="XoDzjuBwxTYwbXGyLUJDN7"/></svg>
+          <span data-page-node-id="YkRABdnm7KDUXk1E61mNes">移入回收站</span>
+        </button>
+        <button class="btn btn-ghost" title="取消选择" data-page-node-id="qO3jFhobYukmFH0muhjxvH">✕</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- ===================== 状态栏 ===================== -->
+  <footer class="status-bar" data-page-node-id="W2Qb8ZXQBuCmJMsDm9bM5K">
+    <div class="status-context" data-page-node-id="NRSHZKwCGSYDUmEkCJydlU">
+      <button data-page-node-id="cvHL3CLCkTNDIipgpx01fw"><span data-page-node-id="pHnEa3doGeIKgiivlV1x4F">📁</span><span data-page-node-id="5DgWGojKFFS4NLXAFCIecH">春季新品 · 女装 lookbook</span></button>
+      <span data-page-node-id="sm4VOEeVAP8DawZQzodzU4">样片库 · 128 张</span>
+      <span data-page-node-id="k9i3HrUni82EJsCQIjYcRT">瀑布流</span>
+    </div>
+    <div class="status-context" data-page-node-id="u5IubpSIoEWSQcUYS24b0r">
+      <button class="status-undo" data-page-node-id="NQTd74po7Gfd6NMXN12Kc0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" data-page-node-id="3q9vC4qW5DALL7wa3G9JcP"><path d="M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3" data-page-node-id="8WRr5bteeapDN5UFYbntEt"/></svg>
+        <span data-page-node-id="rD0Md86HoTEk9xNnwHP8zJ">撤销：加入拍摄清单</span>
+      </button>
+      <span data-page-node-id="ejPiB79SBbAC9G78ltd5fC">快捷键：Enter 打开 · Esc 返回 · Ctrl+Z 撤销</span>
+    </div>
+  </footer>
+</div>
+
+<!-- 设计说明抽屉 -->
+<button class="spec-fab" onclick="document.getElementById('specPanel').classList.toggle('show')" data-page-node-id="uEZMgUcNstjyBJNoQ2LJZY">设计说明</button>
+<aside class="spec-panel" id="specPanel" data-page-node-id="O6psPgSph8xdJkaD38anLb">
+  <h3 data-page-node-id="H94nTVCZGjDY8NVLiCdXoj">Pic v6 设计规范摘要</h3>
+  <h4 data-page-node-id="5Ybmg3t204YBbVraBWwb28">色彩 · 表面分层</h4>
+  <div class="spec-row" data-page-node-id="dREFplF7DWeVmgGWaw4hri"><span class="spec-swatch" style="background:#0B0C0E" data-page-node-id="07Kjrx8zagwm0RCCjbuNOc"></span>最底层 bg-deep<code data-page-node-id="H0nGzSQC26BsnLhXcmAWTb">#0B0C0E</code></div>
+  <div class="spec-row" data-page-node-id="SnTwkxqHfOrWhjdud4jQSF"><span class="spec-swatch" style="background:#111315" data-page-node-id="oB4ivbbVPIWYTTIpmVApcz"></span>工作区 bg-primary<code data-page-node-id="RTCRGOjgL2VjDiAqgR1SWm">#111315</code></div>
+  <div class="spec-row" data-page-node-id="sQVngjiaCqHBTcN5pBgKfi"><span class="spec-swatch" style="background:#17191C" data-page-node-id="C6tvSnFY7YvBaMH3kSzQBN"></span>卡片/面板 bg-surface<code data-page-node-id="bgsUY3uwHSO311KW133zmD">#17191C</code></div>
+  <div class="spec-row" data-page-node-id="EiJ3efxEPjzTNPvdbkWatF"><span class="spec-swatch" style="background:#1E2126" data-page-node-id="tEshctQGKmvVlnwqv3VGNv"></span>浮层/悬停 bg-elevated<code data-page-node-id="BH3J811pjzgNEOjAzOGR1a">#1E2126</code></div>
+  <h4 data-page-node-id="DVzdotfyAjv2B7mMIYyrpS">色彩 · 品牌</h4>
+  <div class="spec-row" data-page-node-id="tzHSFFQ6ytEKT8TFj6qaCs"><span class="spec-swatch" style="background:#D9A05B" data-page-node-id="7I04BXQSHcImdzwQAqg1fM"></span>主强调 accent<code data-page-node-id="Y0wdJFX6dC3KlwefgMDMNh">#D9A05B</code></div>
+  <div class="spec-row" data-page-node-id="mrlhEaPxMHWe4v59fOsAW3"><span class="spec-swatch" style="background:#E8B878" data-page-node-id="7z9DEOV1INeRlm7CHYbk6f"></span>悬停/焦点 accent-strong<code data-page-node-id="59KHd7RmTbvAcNjn7AhKKv">#E8B878</code></div>
+  <div class="spec-row" data-page-node-id="O6LEbcBEbR0BVYeRYLbmGk"><span class="spec-swatch" style="background:#F3F0EA" data-page-node-id="PGDBAuLfoGKmdJjh0TDK6y"></span>主文字<code data-page-node-id="CitIuqKXZxwOcX5V5A6cfk">#F3F0EA</code></div>
+  <div class="spec-row" data-page-node-id="2QkpwiQgr1PG7Ttji4Hum0"><span class="spec-swatch" style="background:#B8B4AC" data-page-node-id="1BDqFzoSTGdF7FE7saxDbs"></span>次级文字<code data-page-node-id="VjigyzQasYEdlXVSOthfoI">#B8B4AC</code></div>
+  <h4 data-page-node-id="FdlQHoGCsPqw7WBpFqNK6h">字体</h4>
+  <ul data-page-node-id="VPLgtaotIGqEyiS2PDKXfS">
+    <li data-page-node-id="4k38KPAiAdlpF3kkGDpVnP">标题：DM Serif Display 400（21px 方案名 / 18px 侧栏）</li>
+    <li data-page-node-id="O4QQ4QnfdQ9mH1DVsKGZsv">正文：DM Sans 400/500/600（14px 基准，11–13px 辅助）</li>
+  </ul>
+  <h4 data-page-node-id="RhvO9EzqszBFdTeBoM5JG5">关键规则</h4>
+  <ul data-page-node-id="RAQfonDgjGwbAbYabNEDr9">
+    <li data-page-node-id="nuhtljtbfExaPAGlyUzJKp">4pt 间距网格：4/8/12/16/20/24/32</li>
+    <li data-page-node-id="Dxqs78dz5Iq0LVlegNqIfs">圆角：6 / 10 / 14px；动效 140ms / 240ms</li>
+    <li data-page-node-id="DdoOIsEj70WH5EswQWFxxc">选中态沿用金色描边 + 光晕，与 v5 习惯一致</li>
+    <li data-page-node-id="aI60688RjrfnaSg8feBXhS">样片网格统一 3:2，hover 上浮 + 快捷操作条</li>
+    <li data-page-node-id="29TwOhQQk6nSziAG6RF9Pu">交互对比度 ≥ WCAG AA（正文 4.5:1）</li>
+  </ul>
+</aside>
+
+<script>
+// 视图切换：样片库 ↔ 拍摄清单
+const viewGallery = document.getElementById('viewGallery');
+const viewPlanning = document.getElementById('viewPlanning');
+function goto(view) {
+  const gallery = view === 'gallery';
+  viewGallery.style.display = gallery ? '' : 'none';
+  viewPlanning.style.display = gallery ? 'none' : '';
+  document.querySelectorAll('.view-switch button').forEach(b =>
+    b.classList.toggle('active', b.dataset.goto === view));
+  document.querySelector('.selection-bar').classList.toggle('show', gallery);
+  document.querySelectorAll('.aux-btn[data-goto]').forEach(b =>
+    b.classList.toggle('active', !gallery));
+}
+document.querySelectorAll('[data-goto]').forEach(el =>
+  el.addEventListener('click', () => goto(el.dataset.goto)));
+
+// 样片选中（演示选择态与操作栏）
+const bar = document.getElementById('selectionBar');
+const countEl = bar.querySelector('strong');
+function refreshCount() {
+  const n = document.querySelectorAll('.photo-card.selected').length;
+  countEl.textContent = n;
+  bar.classList.toggle('show', n > 0);
+}
+document.querySelectorAll('.photo-card').forEach(card =>
+  card.addEventListener('click', () => { card.classList.toggle('selected'); refreshCount(); }));
+</script>
+</body>
+</html>

@@ -241,21 +241,25 @@ function updateToolbarForGallery() {
   const permanentDeleteBtn = document.getElementById('permanentDeleteBtn');
   const importFolderBtn = document.getElementById('importFolderBtn');
   const importFilesBtn = document.getElementById('importFilesBtn');
+  const galleryExportBtn = document.getElementById('galleryExportBtn');
   const searchWrap = document.getElementById('searchInput')?.parentElement;
+  const galleryVisible = currentPanel === 'gallery' && !isRecycleBinView;
 
-  if (isRecycleBinView) {
+  if (!galleryVisible) {
     if (deleteBtn) deleteBtn.classList.add('hidden');
-    if (restoreBtn) restoreBtn.classList.remove('hidden');
-    if (permanentDeleteBtn) permanentDeleteBtn.classList.remove('hidden');
+    if (restoreBtn) restoreBtn.classList.toggle('hidden', !isRecycleBinView);
+    if (permanentDeleteBtn) permanentDeleteBtn.classList.toggle('hidden', !isRecycleBinView);
     if (importFolderBtn) importFolderBtn.classList.add('hidden');
     if (importFilesBtn) importFilesBtn.classList.add('hidden');
-    if (searchWrap) searchWrap.classList.add('hidden');
+    if (galleryExportBtn) galleryExportBtn.classList.add('hidden');
+    if (searchWrap) searchWrap.classList.toggle('hidden', isRecycleBinView);
   } else {
     if (deleteBtn) deleteBtn.classList.remove('hidden');
     if (restoreBtn) restoreBtn.classList.add('hidden');
     if (permanentDeleteBtn) permanentDeleteBtn.classList.add('hidden');
     if (importFolderBtn) importFolderBtn.classList.remove('hidden');
     if (importFilesBtn) importFilesBtn.classList.remove('hidden');
+    if (galleryExportBtn) galleryExportBtn.classList.remove('hidden');
     if (searchWrap) searchWrap.classList.remove('hidden');
   }
 }
@@ -558,6 +562,7 @@ document.addEventListener('keydown', (e) => {
 document.getElementById('importFolderBtn').addEventListener('click', importFromFolder);
 document.getElementById('importFilesBtn').addEventListener('click', importFromFiles);
 document.getElementById('emptyImportFolderBtn2').addEventListener('click', importFromFolder);
+document.getElementById('galleryExportBtn')?.addEventListener('click', () => { void exportSelectedPhotosToPdf() });
 
 // ─── 关于 / 更新公告 ───
 document.getElementById('aboutBtn').addEventListener('click', openAboutModal);

@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="8uY9KTTOjHrfWiKYVBcUNn">
+<head data-page-node-id="GZ5rfYHht5EsfCsq83VaTR">
+<meta charset="UTF-8" data-page-node-id="8cns0Y3HKl9Qt0OiVKG6gt">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="qUYStb0bRmMx6OdCQGcfbx">
+<title>Pic 新概念原型 · 导演台（人像摄影版）</title>
+<style>
+/* ============================================================
+   Pic · 概念版「导演台」· 人像摄影定制版
+   1) 分镜按五景别组织：远景 / 中景 / 近景 / 特写 / 空镜
+   2) 多项目分区常驻左侧，样片可跨项目拖拽复制
+   ============================================================ */
+:root {
+  --paper: #FAF8F4; --paper-sunk: #F1EDE6; --card: #FFFFFF;
+  --ink: #201C16; --ink-2: #6B645A; --ink-3: #A39B8E;
+  --clay: #C75B39; --clay-strong: #A8492B; --clay-soft: #F6E3DB; --clay-ink: #FFF6F2;
+  --line: #E4DED4; --line-strong: #D2CABA; --danger: #B3372F;
+  --font-display: Georgia, 'Times New Roman', serif;
+  --font-body: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --r-sm: 6px; --r-md: 10px; --r-lg: 16px;
+  --fast: 130ms; --std: 220ms;
+  --rail-w: 64px; --proj-w: 236px; --topbar-h: 58px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { color-scheme: light; }
+body {
+  font-family: var(--font-body); background: var(--paper); color: var(--ink);
+  height: 100vh; overflow: hidden; font-size: 14px; line-height: 1.55;
+  display: grid; grid-template-columns: var(--rail-w) var(--proj-w) 1fr;
+}
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
+::-webkit-scrollbar { height: 10px; width: 10px; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 6px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+kbd { font-family: inherit; font-size: 11px; border: 1px solid var(--line-strong); border-radius: 4px; padding: 0 5px; background: var(--paper-sunk); color: var(--ink-3); }
+
+/* ============ 空间轨道 ============ */
+.rail {
+  background: var(--paper); border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; align-items: center;
+  padding: var(--sp-4, 16px) 0; gap: 6px; z-index: 30;
+}
+.rail-logo {
+  width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center;
+  background: var(--ink); color: var(--paper);
+  font-family: var(--font-display); font-size: 18px; margin-bottom: 14px;
+}
+.rail-btn {
+  width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+  color: var(--ink-3); position: relative; transition: all var(--fast);
+}
+.rail-btn svg { width: 18px; height: 18px; }
+.rail-btn:hover { background: var(--paper-sunk); color: var(--ink); }
+.rail-btn.active { background: var(--clay-soft); color: var(--clay-strong); }
+.rail-btn .tip {
+  position: absolute; left: 52px; top: 50%; transform: translateY(-50%);
+  background: var(--ink); color: var(--paper); font-size: 12px; padding: 4px 10px;
+  border-radius: 6px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity var(--fast); z-index: 50;
+}
+.rail-btn:hover .tip { opacity: 1; }
+.rail-btn .badge {
+  position: absolute; top: 4px; right: 4px; min-width: 16px; height: 16px;
+  border-radius: 999px; background: var(--clay); color: var(--clay-ink);
+  font-size: 10px; font-weight: 700; display: grid; place-items: center; padding: 0 4px;
+}
+.rail-spacer { flex: 1; }
+
+/* ============ 项目分区 ============ */
+.project-panel {
+  background: var(--paper); border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; min-height: 0; z-index: 20;
+}
+.proj-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 18px 16px 10px;
+}
+.proj-head h2 { font-family: var(--font-display); font-size: 16px; font-weight: 400; }
+.proj-head span { font-size: 11px; letter-spacing: 2px; color: var(--ink-3); }
+.proj-list { flex: 1; overflow-y: auto; padding: 2px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
+.proj-item {
+  display: flex; gap: 11px; align-items: center; text-align: left; width: 100%;
+  padding: 9px; border-radius: 12px; border: 1.5px solid transparent;
+  transition: all var(--fast); position: relative;
+}
+.proj-item:hover { background: var(--paper-sunk); }
+.proj-item.active { background: var(--card); border-color: var(--clay); box-shadow: 0 2px 10px rgba(32,28,22,.06); }
+.proj-item.drop-hint { border: 1.5px dashed var(--clay); background: var(--clay-soft); }
+.proj-item.drop-hint::after {
+  content: "松开 · 复制到该项目"; position: absolute; inset: auto 0 -22px 0;
+  font-size: 11px; color: var(--clay-strong); text-align: center; font-weight: 600;
+}
+.proj-cover { width: 46px; height: 34px; border-radius: 7px; flex-shrink: 0; position: relative; overflow: hidden; border: 1px solid var(--line); }
+.proj-meta { min-width: 0; flex: 1; }
+.proj-name { font-weight: 700; font-size: 12.5px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.proj-sub { font-size: 11px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.proj-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
+.proj-stats b { font-size: 13px; color: var(--clay-strong); font-family: var(--font-display); }
+.proj-stats span { font-size: 10px; color: var(--ink-3); }
+.proj-new {
+  margin: 4px 10px 14px; height: 34px; border: 1.5px dashed var(--line-strong); border-radius: 10px;
+  color: var(--ink-3); font-size: 12.5px; display: grid; place-items: center;
+}
+.proj-new:hover { border-color: var(--clay); color: var(--clay-strong); }
+.proj-hint { padding: 0 16px 12px; font-size: 11px; color: var(--ink-3); line-height: 1.6; }
+.proj-hint b { color: var(--ink-2); }
+
+/* ============ 主舞台 ============ */
+.stage { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.topbar {
+  height: var(--topbar-h); display: flex; align-items: center; gap: var(--sp-4, 16px);
+  padding: 0 20px; border-bottom: 1px solid var(--line); flex-shrink: 0;
+}
+.project-name { font-family: var(--font-display); font-size: 19px; white-space: nowrap; }
+.project-name small { font-family: var(--font-body); font-size: 12px; color: var(--ink-3); margin-left: 10px; font-weight: 400; }
+.kbar {
+  flex: 1; max-width: 360px; height: 34px; display: flex; align-items: center; gap: 8px;
+  background: var(--paper-sunk); border: 1px solid transparent; border-radius: 999px;
+  padding: 0 14px; color: var(--ink-3); font-size: 13px;
+}
+.kbar svg { width: 14px; height: 14px; }
+.kbar kbd { margin-left: auto; }
+.kbar input { border: none; background: none; outline: none; color: var(--ink); width: 100%; font: inherit; }
+.topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.btn {
+  display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px;
+  border-radius: 999px; font-weight: 600; font-size: 13px; transition: all var(--fast); white-space: nowrap;
+}
+.btn svg { width: 14px; height: 14px; }
+.btn-quiet { color: var(--ink-2); }
+.btn-quiet:hover { background: var(--paper-sunk); color: var(--ink); }
+.btn-clay { background: var(--clay); color: var(--clay-ink); box-shadow: 0 1px 0 var(--clay-strong); }
+.btn-clay:hover { background: var(--clay-strong); }
+
+/* ============ 空间容器 ============ */
+.space { flex: 1; min-height: 0; display: none; flex-direction: column; }
+.space.active { display: flex; }
+
+/* ---- 分镜板 ---- */
+.brief-strip {
+  display: flex; align-items: center; gap: 12px;
+  margin: 14px 20px 0; padding: 11px 18px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg);
+  box-shadow: 0 1px 2px rgba(32,28,22,.04); flex-shrink: 0; flex-wrap: wrap;
+}
+.brief-goal { font-size: 13px; }
+.brief-goal strong { font-weight: 700; }
+.brief-chip { font-size: 12px; color: var(--ink-2); background: var(--paper-sunk); border-radius: 999px; padding: 3px 11px; }
+.brief-chip b { color: var(--ink); font-weight: 600; }
+.brief-spacer { flex: 1; }
+.progress { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--ink-2); }
+.progress-track { width: 110px; height: 6px; background: var(--paper-sunk); border-radius: 999px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--clay); border-radius: 999px; transition: width var(--std); }
+
+.board {
+  flex: 1; overflow-x: auto; overflow-y: hidden;
+  display: flex; gap: 14px; align-items: stretch; padding: 14px 20px 8px;
+}
+.lane {
+  width: 292px; flex-shrink: 0; display: flex; flex-direction: column;
+  background: var(--paper-sunk); border: 1px solid var(--line);
+  border-radius: var(--r-lg); min-height: 0; transition: all var(--fast);
+}
+.lane.drag-over { border: 1.5px dashed var(--lane-c, var(--clay)); background: var(--card); box-shadow: 0 0 0 3px rgba(199,91,57,.12); }
+.lane-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px 8px; flex-shrink: 0; }
+.lane-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--lane-c); flex-shrink: 0; }
+.lane-title { font-weight: 700; font-size: 13px; }
+.lane-en { font-size: 10px; color: var(--ink-3); letter-spacing: 1px; }
+.lane-count { font-size: 11px; color: var(--ink-3); margin-left: 2px; }
+.lane-add { margin-left: auto; color: var(--ink-3); width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; }
+.lane-add:hover { background: var(--card); color: var(--clay); }
+.lane-strip { flex: 1; overflow-y: auto; padding: 4px 10px 12px; display: flex; flex-direction: column; gap: 9px; min-height: 0; }
+.lane-empty { font-size: 11.5px; color: var(--ink-3); text-align: center; padding: 14px 0; border: 1.5px dashed var(--line-strong); border-radius: 10px; margin: 2px 2px 6px; }
+
+.shot {
+  display: flex; gap: 10px; background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r-md); padding: 9px; cursor: grab; position: relative;
+  box-shadow: 0 1px 2px rgba(32,28,22,.05);
+  transition: box-shadow var(--fast), transform var(--fast), opacity var(--fast);
+}
+.shot:hover { box-shadow: 0 6px 16px rgba(32,28,22,.10); transform: translateY(-1px); }
+.shot.dragging { opacity: .4; }
+.shot-num {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; align-self: flex-start; margin-top: 2px;
+  display: grid; place-items: center; font-size: 11.5px; font-weight: 700;
+  background: var(--paper-sunk); color: var(--ink-2);
+}
+.shot-num.done { background: var(--lane-c, var(--clay)); color: #fff; }
+.shot-thumb { width: 84px; aspect-ratio: 3/2; border-radius: 7px; flex-shrink: 0; position: relative; overflow: hidden; }
+.shot-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.shot-name { font-weight: 600; font-size: 12.5px; line-height: 1.35; }
+.shot-note { font-size: 11.5px; color: var(--ink-2); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.shot-note.empty { color: var(--ink-3); font-style: italic; }
+.shot-meta { display: flex; gap: 4px; margin-top: auto; flex-wrap: wrap; }
+.shot-tag { font-size: 10px; color: var(--ink-3); border: 1px solid var(--line); border-radius: 999px; padding: 0 7px; line-height: 15px; }
+.shot-tag.copy { color: var(--clay-strong); border-color: var(--clay); background: var(--clay-soft); }
+.shot-x {
+  position: absolute; top: 7px; right: 7px; width: 21px; height: 21px; border-radius: 50%;
+  display: grid; place-items: center; color: var(--ink-3); opacity: 0; transition: opacity var(--fast);
+  background: var(--card); border: 1px solid var(--line); font-size: 11px;
+}
+.shot:hover .shot-x { opacity: 1; }
+.shot-x:hover { color: var(--danger); border-color: var(--danger); }
+.board-footer { display: flex; padding: 0 20px 12px; color: var(--ink-3); font-size: 12px; gap: 16px; flex-shrink: 0; }
+
+/* ---- 收集箱 ---- */
+.inbox-head { display: flex; align-items: center; gap: 14px; margin: 14px 20px 0; flex-shrink: 0; flex-wrap: wrap; }
+.inbox-head h2 { font-family: var(--font-display); font-size: 20px; font-weight: 400; }
+.inbox-head p { color: var(--ink-2); font-size: 12.5px; }
+.inbox-tip { margin-left: auto; font-size: 12px; color: var(--ink-2); background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 5px 14px; }
+.inbox-tip b { color: var(--clay-strong); }
+.inbox-grid {
+  flex: 1; overflow-y: auto; display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;
+  padding: 14px 20px 20px; align-content: start;
+}
+.dropzone {
+  grid-column: 1 / -1; border: 2px dashed var(--line-strong); border-radius: var(--r-lg);
+  padding: 22px; text-align: center; color: var(--ink-3); font-size: 13px; margin-bottom: 4px;
+}
+.dropzone b { color: var(--ink-2); }
+.inbox-card {
+  position: relative; aspect-ratio: 3/2; border-radius: var(--r-md); overflow: hidden; cursor: pointer;
+  box-shadow: 0 1px 3px rgba(32,28,22,.08); transition: transform var(--fast), box-shadow var(--fast);
+}
+.inbox-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(32,28,22,.14); }
+.inbox-card .src { position: absolute; top: 8px; left: 8px; font-size: 10.5px; color: #fff; background: rgba(32,28,22,.55); border-radius: 999px; padding: 2px 9px; }
+.inbox-card.gone { transform: scale(.9); opacity: 0; transition: all var(--std); }
+.triage {
+  position: absolute; inset-inline: 0; bottom: 0; display: flex; justify-content: center; gap: 5px; padding: 9px;
+  background: linear-gradient(0deg, rgba(32,28,22,.74), transparent); opacity: 0; transition: opacity var(--fast);
+}
+.inbox-card:hover .triage { opacity: 1; }
+.triage button {
+  height: 27px; padding: 0 9px; border-radius: 8px; font-size: 11.5px; font-weight: 600;
+  background: rgba(250,248,244,.94); color: var(--ink); display: inline-flex; align-items: center; gap: 4px;
+}
+.triage button:hover { background: var(--clay); color: var(--clay-ink); }
+.triage .t-key { font-size: 9.5px; color: var(--ink-3); border: 1px solid var(--line-strong); border-radius: 3px; padding: 0 3px; }
+.triage button:hover .t-key { color: var(--clay-ink); border-color: rgba(255,255,255,.5); }
+.triage .t-x:hover { background: var(--danger); }
+
+/* ---- 占位空间 ---- */
+.stub { flex: 1; display: grid; place-items: center; color: var(--ink-3); font-size: 13px; }
+
+/* ---- toast ---- */
+.toast {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(8px);
+  display: flex; align-items: center; gap: 14px;
+  background: var(--ink); color: var(--paper); padding: 10px 18px; border-radius: 999px;
+  font-size: 13px; box-shadow: 0 10px 30px rgba(32,28,22,.28);
+  opacity: 0; pointer-events: none; transition: all var(--std); z-index: 60; max-width: 70vw;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast b { color: #F0B9A6; }
+.toast button { color: #F0B9A6; font-weight: 700; }
+
+/* ---- 设计推导 ---- */
+.fab {
+  position: fixed; right: 22px; bottom: 22px; z-index: 60;
+  height: 36px; padding: 0 16px; border-radius: 999px; font-weight: 700; font-size: 12.5px;
+  background: var(--ink); color: var(--paper); box-shadow: 0 6px 20px rgba(32,28,22,.25);
+}
+.spec {
+  position: fixed; right: 22px; bottom: 70px; z-index: 60; width: 370px; max-height: 68vh; overflow-y: auto;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 22px; box-shadow: 0 18px 50px rgba(32,28,22,.18); display: none;
+}
+.spec.show { display: block; }
+.spec h3 { font-family: var(--font-display); font-weight: 400; font-size: 18px; margin-bottom: 10px; }
+.spec h4 { font-size: 11px; letter-spacing: 2px; color: var(--ink-3); margin: 15px 0 6px; }
+.spec ul { padding-left: 17px; font-size: 12.5px; color: var(--ink-2); display: flex; flex-direction: column; gap: 6px; }
+.spec b { color: var(--ink); }
+.spec .demo { font-size: 12px; color: var(--clay-strong); background: var(--clay-soft); border-radius: 8px; padding: 8px 12px; margin-top: 10px; line-height: 1.6; }
+
+/* 占位图渐变 */
+.ph-a { background: linear-gradient(135deg,#3d2f22,#8a6a45 55%,#c9a06d); }
+.ph-b { background: linear-gradient(160deg,#22303c,#5b7285 60%,#9db4c4); }
+.ph-c { background: linear-gradient(120deg,#2c2320,#7a4a33 55%,#d78e5a); }
+.ph-d { background: linear-gradient(150deg,#1f2a24,#4e6e58 55%,#a8c9a8); }
+.ph-e { background: linear-gradient(140deg,#241d2e,#5d4a7a 55%,#a48ec2); }
+.ph-f { background: linear-gradient(125deg,#32222a,#8a4a5c 55%,#d38ba0); }
+.ph-g { background: linear-gradient(155deg,#20303a,#3f6272 50%,#8fb7c9); }
+.ph-h { background: linear-gradient(145deg,#2a2a20,#6e6e3e 55%,#c2c28a); }
+</style>
+</head>
+<body data-page-node-id="Az9udZWCHi4MG0VSzgJMGf">
+
+<!-- ============ 空间轨道 ============ -->
+<nav class="rail" style="padding:16px 0" data-page-node-id="Wd4UE0KRjhsBgOvWam1CWr">
+  <div class="rail-logo" data-page-node-id="5zHkjce6iHwy2bpMGeTQ5v">P</div>
+  <button class="rail-btn" data-space="inbox" data-page-node-id="KLcSwsJ4lEifSPRJUi8CNH">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="WDLxVFcpO5Z2wRE26dS1Tj"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" data-page-node-id="omJI6DIvjhRuEqfk5NkUlW"/></svg>
+    <span class="tip" data-page-node-id="Ua9DgZRcaQhzuS002FPThK">收集箱</span><span class="badge" id="inboxBadge" data-page-node-id="ZuraTEkxpJ2maXywtKG3qN">6</span>
+  </button>
+  <button class="rail-btn active" data-space="board" data-page-node-id="DUIWFQaqSklCTVvPlCGtQU">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="szHVK8d5z60wlaTzFPN3YS"><rect x="3" y="4" width="18" height="14" rx="2" data-page-node-id="ocNEhZLCtAhEBaKFWyCmfM"/><path d="M3 9h18M8 4v5" data-page-node-id="Uzw7EVvpjYhV4qGA9VtDbj"/></svg>
+    <span class="tip" data-page-node-id="GOCHUa3OlHcUvC6ceXeE0f">分镜板（五景别）</span>
+  </button>
+  <button class="rail-btn" data-space="recycle" data-page-node-id="wv38eGBJIVXm99tW0nkGKC">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="EzhMz0DLEotv6z5GTNUj8G"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14" data-page-node-id="v3PJ2cfz5HcQM7UTUrpjOq"/></svg>
+    <span class="tip" data-page-node-id="E5jGgQCBINsG6ny7z5k0S9">回收站</span>
+  </button>
+  <button class="rail-btn" data-space="browser" data-page-node-id="HeOVo3LcZRvAcTxy8xgBCl">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="Lksyi0WkE99uhGGf4FRTEL"><circle cx="12" cy="12" r="9" data-page-node-id="NIxLM8RpylDgXU4yooq3jR"/><path d="M3 12h18M12 3c2.5 2.5 4 5.5 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.5-4-9s1.5-6.5 4-9z" data-page-node-id="ieAgTfXdvhamNrnla2CiLj"/></svg>
+    <span class="tip" data-page-node-id="vBHWmSdltwLaq7GY244p7j">素材浏览器（小红书）</span>
+  </button>
+  <span class="rail-spacer" data-page-node-id="sZyBtpFwaZyGP7fYoPRBUB"></span>
+  <button class="rail-btn" data-page-node-id="VzJIoESkCXMyqoby2vGQEG">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="OAGbXgcJzviCA6W2AZOuxi"><circle cx="12" cy="12" r="3" data-page-node-id="Xi86cypPhFoGNCBEO1WTjq"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.06-.4.1-.8.1-1.2z" data-page-node-id="nkbHhPfpzfyYGCxIbfCSas"/></svg>
+    <span class="tip" data-page-node-id="2M45jKtm7JFEUbAQkk4b2Y">设置</span>
+  </button>
+</nav>
+
+<!-- ============ 项目分区 ============ -->
+<aside class="project-panel" data-page-node-id="fDLc4afQ1svkXF8yYu2HIw">
+  <div class="proj-head" data-page-node-id="qGGrIMoNjY16dwU5zVIDiW"><h2 data-page-node-id="pWL0U11efKbkopPeTaAiCz">项目分区</h2><span data-page-node-id="sSO2WM9W49DFGdDHrMFAAU">PROJECTS</span></div>
+  <div class="proj-list" id="projList" data-page-node-id="JHKDeB7aHxWw96bEgJRe6x"></div>
+  <button class="proj-new" onclick="newProject()" data-page-node-id="xBrrc9kAoXC7eL2fMEOuFX">＋ 新建项目</button>
+  <p class="proj-hint" data-page-node-id="lrovy9Jzh7QsVxEfdggUQj"><b data-page-node-id="4u8M8YRRZXIPUMvRntEfiq">拖拽复制：</b>把分镜卡片拖到左侧任意项目上松开，会<b data-page-node-id="NYzaQ0IzO4eVGCzSsqDHc2">复制一份</b>到该项目的同一景别，原卡片保留。</p>
+</aside>
+
+<!-- ============ 主舞台 ============ -->
+<div class="stage" data-page-node-id="J5BlmptkH7oAEfAeUjbUXC">
+  <header class="topbar" data-page-node-id="r8OJ5iu7S3Y321dPz0rTLJ">
+    <div class="project-name" id="topProject" data-page-node-id="TAeCP8RcD3wvqVRfHyAZVq">—<small id="topProjectSub" data-page-node-id="VGvaVNpi8Fb4Vx6ItlCDUI"></small></div>
+    <div class="kbar" data-page-node-id="nztEhCbTCq9KrdXif9OCsx">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="BCinrNcWRV4R7FSaXCt32S"><circle cx="11" cy="11" r="7" data-page-node-id="MoZsHUfcGZm5p4SogE1G9X"/><path d="m20 20-3.5-3.5" data-page-node-id="vOnEw0M7LNJx0AVjFlG49q"/></svg>
+      <input id="kinput" placeholder="搜索样片、镜头或执行命令…" data-page-node-id="tZCfi8oAT1koolEtMi7DSV">
+      <kbd data-page-node-id="PAcWee9ZRJU4nDZfvcNYXx">Ctrl K</kbd>
+    </div>
+    <div class="topbar-actions" data-page-node-id="IMvCXIekRDUUi8nITmCrbw">
+      <button class="btn btn-quiet" onclick="toast('已撤销上一步操作')" data-page-node-id="fZF2KeQluVaAyT5FAbCpTt">撤销</button>
+      <button class="btn btn-clay" onclick="toast('已导出「'+activeProject().name+'」拍摄方案 PDF（按远景→空镜顺序）')" data-page-node-id="mLxbjRuvxsAqG8ZCbB2Hrf">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="3tywVZcgbklxInHGMhCXnC"><path d="M14 3v5h5M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" data-page-node-id="D8DqKmrFfmxGClFJ6qkRlc"/></svg>
+        导出拍摄方案 PDF
+      </button>
+    </div>
+  </header>
+
+  <!-- 分镜板 -->
+  <section class="space active" id="space-board" data-page-node-id="rAA68JNYhsv6THHCncQkqA">
+    <div class="brief-strip" id="briefStrip" data-page-node-id="UnGXCmDl2GTqMByfO72s5r"></div>
+    <div class="board" id="board" data-page-node-id="gH8NKJO9K4F4JPFWEH6XFA"></div>
+    <div class="board-footer" data-page-node-id="sCyZhYAShWWTmaH1JJE7j0">
+      <span data-page-node-id="URE6addQmWqY56BmwUqWXc">💡 拖拽卡片可换位 / 跨景别移动；拖到<b style="color:var(--ink-2)" data-page-node-id="G0Yx4FJuZJpYBaCTQbtFMZ">左侧项目</b>上即复制</span>
+      <span style="margin-left:auto" data-page-node-id="yzL7CnmWOL6HTWxLAtJd05">导出 PDF 顺序：远景 → 中景 → 近景 → 特写 → 空镜</span>
+    </div>
+  </section>
+
+  <!-- 收集箱 -->
+  <section class="space" id="space-inbox" data-page-node-id="nmQAjvKQeSbThdhEaGFZQB">
+    <div class="inbox-head" data-page-node-id="DDmOunSjOlpog4ZWs6sCEt">
+      <div data-page-node-id="gjqJXObyxlrOXXPyponwzs">
+        <h2 data-page-node-id="EhMPZEYGXbI0EsCMZjLCtt">收集箱</h2>
+        <p data-page-node-id="W0cKTpvMyXsx90IboDoxMR">先扔进来，别急着决定。hover 样片一键拍板到当前项目「<b id="inboxTarget" style="color:var(--clay-strong)" data-page-node-id="EvcfGGb6uouM5s6AENwlFe"></b>」的五景别。</p>
+      </div>
+      <span class="inbox-tip" data-page-node-id="DNun17gb9Z9DdGfOZSbw8g">拍板落点：<b data-page-node-id="4xhfgBMoD8P9cA8BQolhDW">远景</b> <kbd data-page-node-id="6GPE0PAqxuh5ztEAPOWLDy">1</kbd> · <b data-page-node-id="N8AeyrN7N2BDisdxFUFpjy">中景</b> <kbd data-page-node-id="tLqFaZpXXOpdvBHIUTPhYq">2</kbd> · <b data-page-node-id="BcwD0LkGpDo5JqrPzDbFpd">近景</b> <kbd data-page-node-id="bczP2ieP2iGCvJ2rbmzq1T">3</kbd> · <b data-page-node-id="14GGO3v2QRJhrDzW37gzEE">特写</b> <kbd data-page-node-id="dlKBj4F1LB2I9nwZBSYz7Q">4</kbd> · <b data-page-node-id="VlXM00f5P2od5yFVAxlpQG">空镜</b> <kbd data-page-node-id="gwfKgM7uFyIRdiE2rM98Fz">5</kbd></span>
+    </div>
+    <div class="inbox-grid" id="inboxGrid" data-page-node-id="3tTlWaTWFGYp6rAAvLfASa"></div>
+  </section>
+
+  <section class="space" id="space-recycle" data-page-node-id="9prhtqGHlS7x57YEQV7Z48"><div class="stub" data-page-node-id="yNoahSM2hf6b9L2hM7li4B">回收站 · 已删除镜头 30 天内可恢复</div></section>
+  <section class="space" id="space-browser" data-page-node-id="hoPOI603GDIFFmjLiTdll4"><div class="stub" data-page-node-id="llsSEDUOu5vyKqAUO7LkxF">素材浏览器 · 小红书内嵌浏览，收藏自动落入收集箱</div></section>
+</div>
+
+<div class="toast" id="toast" data-page-node-id="SH2WX6qRpJs9ju0sBJGV4K"></div>
+
+<button class="fab" onclick="document.getElementById('spec').classList.toggle('show')" data-page-node-id="s7Gjvw29uZ0aLu1yw2fo9Y">设计推导</button>
+<aside class="spec" id="spec" data-page-node-id="GAItJOuXalOmE2gGObEoW8">
+  <h3 data-page-node-id="obWChRZ1uoCFBMu4ATjFIF">针对你的三点需求</h3>
+  <h4 data-page-node-id="P0DsAyKzNmmqETKbvPBvXh">① 五景别分镜</h4>
+  <ul data-page-node-id="u4GeyP7XPQ9bDRRYF9b9H8">
+    <li data-page-node-id="KZgBoimbzHOHljW0mW1XtO">分镜板固定五条轨道：<b data-page-node-id="MGGLM0gxXaGy8ZDurHVfJe">远景 / 中景 / 近景 / 特写 / 空镜</b>，每条独立编号、独立配色。</li>
+    <li data-page-node-id="eukXoLIah8TOqXVOhbflZl">景别是拍摄现场的调度语言，比自由分组更贴合人像拍摄；空镜轨道常用来垫转场与氛围镜头。</li>
+    <li data-page-node-id="1lCa4Gaq0HukW3ucgb0AJq">导出 PDF 按远景 → 空镜顺序成稿，与现场拍摄顺序一致。</li>
+  </ul>
+  <h4 data-page-node-id="JLswlvsEMtDkpNDSEsQ2kg">② 多项目分区</h4>
+  <ul data-page-node-id="gDIfvVExiCe4dLQ5eY6m69">
+    <li data-page-node-id="E48AD88TUs9gaF53AHu4pB">左侧<b data-page-node-id="x9ltGcBXhsAzKPistXjCnt">项目分区常驻</b>：每个项目独立封面、独立统计（样片 / 镜头 / 已拍进度），点击即切换整块工作区，数据完全隔离。</li>
+    <li data-page-node-id="YEX1XKb8Cb4NpyuKo4CWGh">新建项目一键创建空板。</li>
+  </ul>
+  <h4 data-page-node-id="ezy2nmLs0D4bErAIRok1na">③ 跨项目拖拽复制</h4>
+  <ul data-page-node-id="RLtkl8UAlmtTpitGQitKBE">
+    <li data-page-node-id="CNiBlcAx7BowUReWZM8l7F">把分镜卡片拖到左侧任一项目上松开 → <b data-page-node-id="Zvo9eHpthymLNCJBihQudr">复制一份</b>到该项目的同一景别，原卡片保留，副本带「副本」标签可溯源。</li>
+    <li data-page-node-id="gzEyMUjUDxRuvaHQIu3d4l">同理，收集箱拍板、景别间移动都是拖拽 / 一键操作，全程无对话框。</li>
+  </ul>
+  <div class="demo" data-page-node-id="8ik2VVEBi4ABnxHW29iZ2x">试一下：把「外景 · 树影长焦」拖到「客片 · 情侣写真」上松开，看副本落点与 toast 提示。</div>
+</aside>
+
+<script>
+/* ================= 数据 ================= */
+const LANES = [
+  { key:'far',   name:'远景', en:'WIDE',    c:'#2F6F6A' },
+  { key:'mid',   name:'中景', en:'MEDIUM',  c:'#C75B39' },
+  { key:'near',  name:'近景', en:'MEDIUM CLOSE', c:'#B08A2E' },
+  { key:'close', name:'特写', en:'CLOSE-UP', c:'#5B5F97' },
+  { key:'empty', name:'空镜', en:'INSERT',  c:'#7A8B6F' },
+];
+let seq = 0; const uid = () => 's' + (++seq);
+const S = (name, note, cls, tags = [], done = false, copy = false) =>
+  ({ id: uid(), name, note, cls, tags, done, copy });
+
+const projects = [
+  { id:'p1', name:'春季新品 · 女装 lookbook', sub:'LANMU 服饰 · 03-15', cover:'ph-a',
+    goal:'主 KV 3 张 · 社媒竖图 6 张',
+    lanes:{
+      far:[ S('外景 · 树影长焦','85mm 压缩空间，逆光发丝光，注意风。','ph-b',['逆光'],true),
+            S('街角 · 慢门动势','1/15s 跟焦，裙摆方向留白。','ph-g',['慢门']) ],
+      mid:[ S('七分身 · 廊柱前','f/2.8，柱体作引导线。','ph-a',['环境人像'],true) ],
+      near:[ S('腰部以上 · 回眸','窗光 45°，眼神先看镜头外再看镜头。','ph-c',['窗光'],true) ],
+      close:[ S('面部特写 · 135mm','唇釉补涂，虹膜对焦。','ph-f',['135mm']) ],
+      empty:[ S('橱窗与花艺空镜','转场垫镜，浅焦。','ph-h',['垫镜']) ] } },
+  { id:'p2', name:'个人作品集 · 人像组照', sub:'自用 · 长期滚动', cover:'ph-e',
+    goal:'年度组照 10 张 · 统一青灰影调',
+    lanes:{
+      far:[ S('天台 · 城市轮廓','日落前后 20 分钟，剪影与轮廓光。','ph-g',['日落']) ],
+      mid:[], near:[ S('半身 · 白墙前','单灯伦勃朗光。','ph-d',['单灯']) ],
+      close:[], empty:[ S('雨后玻璃 · 水珠','微距 100mm。','ph-b',['微距']) ] } },
+  { id:'p3', name:'客片 · 情侣写真', sub:'小柯 & 阿澄 · 03-22', cover:'ph-f',
+    goal:'精修 9 张 · 相册跨页 2 组',
+    lanes:{
+      far:[ S('江边 · 夕阳牵手','逆光剪影，控制在日落后 10 分钟内。','ph-c',['夕阳']) ],
+      mid:[ S('双人互动 · 走动抓拍','连拍，不看镜头的第三张最好。','ph-a',['连拍']) ],
+      near:[], close:[ S('十指相扣 · 特写','戒指细节，f/2.2。','ph-h',['细节']) ],
+      empty:[ S('野餐布 · 道具空镜','待补拍。','ph-d',[]) ] } },
+];
+let activeId = 'p1';
+const activeProject = () => projects.find(p => p.id === activeId);
+const inboxItems = [
+  { cls:'ph-h', src:'截图 · 刚刚' }, { cls:'ph-d', src:'拖入文件' }, { cls:'ph-b', src:'小红书收藏' },
+  { cls:'ph-f', src:'截图' }, { cls:'ph-a', src:'拖入文件' }, { cls:'ph-e', src:'小红书收藏' },
+];
+
+/* ================= 渲染 ================= */
+const $ = sel => document.querySelector(sel);
+function shotHTML(s, laneKey) {
+  const lane = LANES.find(l => l.key === laneKey);
+  return `<div class="shot" draggable="true" data-shot="${s.id}" data-lane="${laneKey}">
+    <span class="shot-num ${s.done ? 'done' : ''}" style="--lane-c:${lane.c}">${s.done ? '✓' : ''}</span>
+    <span class="shot-thumb"><span class="ph ${s.cls}" style="position:absolute;inset:0"></span></span>
+    <div class="shot-body">
+      <span class="shot-name">${s.name}</span>
+      <span class="shot-note ${s.note ? '' : 'empty'}">${s.note || '尚未填写备注…'}</span>
+      <span class="shot-meta">${s.copy ? '<span class="shot-tag copy">副本</span>' : ''}${s.tags.map(t => `<span class="shot-tag">${t}</span>`).join('')}</span>
+    </div>
+    <button class="shot-x" title="移出分镜">✕</button>
+  </div>`;
+}
+function renderBoard() {
+  const p = activeProject();
+  $('#topProject').innerHTML = `${p.name}<small id="topProjectSub">${p.sub}</small>`;
+  const total = LANES.reduce((n, l) => n + p.lanes[l.key].length, 0);
+  const done = LANES.reduce((n, l) => n + p.lanes[l.key].filter(s => s.done).length, 0);
+  $('#briefStrip').innerHTML = `
+    <span class="brief-goal"><strong>交付目标</strong>　${p.goal}</span>
+    <span class="brief-chip">景别 <b>5</b></span>
+    <span class="brief-chip">镜头 <b>${total}</b></span>
+    <span class="brief-spacer"></span>
+    <div class="progress"><span>拍摄进度</span>
+      <div class="progress-track"><div class="progress-fill" style="width:${total ? done / total * 100 : 0}%"></div></div>
+      <span><b>${done}</b>/${total}</span></div>`;
+  $('#board').innerHTML = LANES.map(l => {
+    const shots = p.lanes[l.key];
+    return `<div class="lane" data-lane="${l.key}" style="--lane-c:${l.c}">
+      <div class="lane-head">
+        <span class="lane-dot"></span>
+        <span><span class="lane-title">${l.name}</span> <span class="lane-en">${l.en}</span></span>
+        <span class="lane-count">${shots.length} 镜</span>
+        <button class="lane-add" title="添加空镜头到${l.name}">＋</button>
+      </div>
+      <div class="lane-strip">
+        ${shots.length ? shots.map(s => shotHTML(s, l.key)).join('') : '<div class="lane-empty">拖入或拍板镜头到「' + l.name + '」</div>'}
+      </div>
+    </div>`;
+  }).join('');
+  bindBoard();
+}
+function renderProjects() {
+  $('#projList').innerHTML = projects.map(p => {
+    const shots = LANES.reduce((n, l) => n + p.lanes[l.key].length, 0);
+    const done = LANES.reduce((n, l) => n + p.lanes[l.key].filter(s => s.done).length, 0);
+    return `<button class="proj-item ${p.id === activeId ? 'active' : ''}" data-proj="${p.id}">
+      <span class="proj-cover"><span class="ph ${p.cover}" style="position:absolute;inset:0"></span></span>
+      <span class="proj-meta"><span class="proj-name">${p.name}</span><span class="proj-sub">${p.sub}</span></span>
+      <span class="proj-stats"><b>${shots}</b><span>镜头 · 已拍 ${done}</span></span>
+    </button>`;
+  }).join('');
+  document.querySelectorAll('.proj-item').forEach(el => {
+    el.addEventListener('click', () => { activeId = el.dataset.proj; renderProjects(); renderBoard(); });
+    el.addEventListener('dragover', e => { if (dragging) { e.preventDefault(); el.classList.add('drop-hint'); } });
+    el.addEventListener('dragleave', () => el.classList.remove('drop-hint'));
+    el.addEventListener('drop', e => {
+      e.preventDefault(); el.classList.remove('drop-hint');
+      if (!dragging) return;
+      const target = projects.find(x => x.id === el.dataset.proj);
+      if (!target || target.id === dragging.projId) return;
+      const src = projects.find(x => x.id === dragging.projId);
+      const shot = src.lanes[dragging.lane].find(s => s.id === dragging.shotId);
+      if (!shot) return;
+      const copy = { ...shot, id: uid(), copy: true };
+      target.lanes[dragging.lane].push(copy);
+      renderProjects(); if (target.id === activeId) renderBoard();
+      toast(`已复制「${shot.name}」到 <b>${target.name}</b> · ${LANES.find(l => l.key === dragging.lane).name}（原卡片保留）`);
+    });
+  });
+}
+function renderInbox() {
+  $('#inboxBadge').textContent = inboxItems.length;
+  $('#inboxTarget').textContent = activeProject().name.split(' · ')[0];
+  $('#inboxGrid').innerHTML = `<div class="dropzone"><b>把图片、文件夹或网页截图拖到这里</b> · Alt+A 截图自动落入收集箱</div>` +
+    inboxItems.map((it, i) => `<div class="inbox-card" data-idx="${i}">
+      <span class="ph ${it.cls}" style="position:absolute;inset:0"></span>
+      <span class="src">${it.src}</span>
+      <div class="triage">${LANES.map((l, n) =>
+        `<button data-lane="${l.key}"><span class="t-key">${n + 1}</span>${l.name}</button>`).join('')}
+      <button class="t-x" data-discard="1"><span class="t-key">X</span></button></div>
+    </div>`).join('');
+  document.querySelectorAll('.inbox-card').forEach(card => {
+    const idx = +card.dataset.idx;
+    card.querySelectorAll('.triage button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.discard) {
+          inboxItems.splice(idx, 1); renderInbox(); toast('已移入回收站，30 天内可恢复'); return;
+        }
+        const p = activeProject();
+        const laneKey = btn.dataset.lane;
+        p.lanes[laneKey].push(S('收集样片 ' + (idx + 1), '', inboxItems[idx].cls, [LANES.find(l => l.key === laneKey).name]));
+        inboxItems.splice(idx, 1);
+        renderInbox(); renderProjects();
+        toast(`已拍板到「${p.name}」· ${LANES.find(l => l.key === laneKey).name}`);
+      });
+    });
+  });
+}
+
+/* ================= 拖拽 ================= */
+let dragging = null;
+function bindBoard() {
+  document.querySelectorAll('.shot').forEach(card => {
+    card.addEventListener('dragstart', () => {
+      dragging = { shotId: card.dataset.shot, lane: card.dataset.lane, projId: activeId };
+      card.classList.add('dragging');
+    });
+    card.addEventListener('dragend', () => { dragging = null; card.classList.remove('dragging'); });
+    const x = card.querySelector('.shot-x');
+    x.addEventListener('click', e => {
+      e.stopPropagation();
+      const p = activeProject(), lane = card.dataset.lane;
+      const s = p.lanes[lane].find(v => v.id === card.dataset.shot);
+      p.lanes[lane] = p.lanes[lane].filter(v => v.id !== card.dataset.shot);
+      renderBoard(); renderProjects();
+      toast(`已从「${LANES.find(l => l.key === lane).name}」移除「${s.name}」`);
+    });
+  });
+  document.querySelectorAll('.lane').forEach(lane => {
+    const key = lane.dataset.lane;
+    lane.addEventListener('dragover', e => {
+      if (!dragging) return;
+      e.preventDefault(); lane.classList.add('drag-over');
+      const strip = lane.querySelector('.lane-strip');
+      const empty = strip.querySelector('.lane-empty'); if (empty) empty.remove();
+      const cards = [...strip.querySelectorAll('.shot:not(.dragging)')];
+      const after = cards.find(c => {
+        const r = c.getBoundingClientRect();
+        return e.clientY < r.top + r.height / 2;
+      });
+      if (after) strip.insertBefore(document.querySelector('.shot.dragging'), after);
+      else strip.appendChild(document.querySelector('.shot.dragging'));
+    });
+    lane.addEventListener('dragleave', e => {
+      if (!lane.contains(e.relatedTarget)) lane.classList.remove('drag-over');
+    });
+    lane.addEventListener('drop', e => {
+      e.preventDefault(); lane.classList.remove('drag-over');
+      if (!dragging) return;
+      const strip = lane.querySelector('.lane-strip');
+      const order = [...strip.querySelectorAll('.shot')].map(c => c.dataset.shot);
+      const p = activeProject();
+      const pool = [...poolRemove(p, dragging)];
+      order.forEach(id => { const s = pool.find(v => v.id === id); if (s) place(p, lane, s); });
+      renderBoard(); renderProjects();
+    });
+  });
+  document.querySelectorAll('.lane-add').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.closest('.lane').dataset.lane;
+      const p = activeProject();
+      p.lanes[key].push(S('新镜头 · ' + LANES.find(l => l.key === key).name, '', 'ph-a', []));
+      renderBoard(); renderProjects();
+    });
+  });
+}
+// 把拖拽中的卡片从原位置摘出（可能是本项目，也可能只是 DOM 移动）
+function poolRemove(p, d) {
+  const src = projects.find(x => x.id === d.projId) || p;
+  const arr = src.lanes[d.lane];
+  const s = arr.find(v => v.id === d.shotId);
+  if (s) src.lanes[d.lane] = arr.filter(v => v.id !== d.shotId);
+  return s ? [s, ...src.lanes[d.lane].slice()] : src.lanes[d.lane].slice();
+}
+function place(p, laneKey, s) {
+  // 归还到正确的轨道（跨景别移动时 lane 已变）
+  const owner = projects.find(x => Object.values(x.lanes).some(a => a.includes(s)));
+  if (owner) return; // 已在其他轨道数组中（同项目跨轨），renderBoard 会按 DOM 顺序重排
+  p.lanes[laneKey].push(s);
+}
+
+/* ================= 空间切换 / 其他 ================= */
+const spaces = { inbox:'space-inbox', board:'space-board', recycle:'space-recycle', browser:'space-browser' };
+document.querySelectorAll('.rail-btn[data-space]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.rail-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.space').forEach(s => s.classList.remove('active'));
+    document.getElementById(spaces[btn.dataset.space]).classList.add('active');
+  });
+});
+let toastTimer;
+function toast(html) {
+  const t = $('#toast'); t.innerHTML = html; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+function newProject() {
+  const n = projects.length + 1;
+  const covers = ['ph-b','ph-c','ph-d','ph-e','ph-f','ph-g','ph-h'];
+  projects.push({ id:'p' + Date.now(), name:'新项目 ' + n, sub:'未设置客户 · 未排期', cover: covers[n % covers.length], goal:'尚未填写交付目标',
+    lanes: Object.fromEntries(LANES.map(l => [l.key, []])) });
+  renderProjects(); toast('已创建新项目，点击进入开始分镜');
+}
+addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('#kinput').focus(); }
+});
+
+renderProjects(); renderBoard(); renderInbox();
+</script>
+</body>
+</html>

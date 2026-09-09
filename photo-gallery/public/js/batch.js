@@ -88,6 +88,54 @@ async function permanentlyDeleteSelectedPhotos() {
   }
 }
 
+async function exportSelectedPhotosToPdf() {
+  const selectedPhotoObjs = Array.from(selectedPhotos)
+    .map(id => photos.find(photo => photo.id === id))
+    .filter(photo => photo && !photo.deleted_at && photo.filepath);
+
+  if (selectedPhotoObjs.length === 0) {
+    showToast('请先选择有原图文件的样片', 'warning');
+    return;
+  }
+  if (!window.electronAPI?.photos?.exportToPdf) {
+    showToast('PDF 导出功能不可用', 'error');
+    return;
+  }
+
+  const now = new Date();
+  const date = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0')
+  ].join('');
+  const projectLabel = typeof currentProjectName === 'string' && currentProjectName.trim()
+    ? currentProjectName.trim()
+    : 'Pic-样片';
+  const fileBaseName = projectLabel + '-' + date;
+  showProgress('导出 PDF', '正在处理 ' + selectedPhotoObjs.length + ' 张选中样片...', '');
+
+  try {
+    const result = await window.electronAPI.photos.exportToPdf(
+      selectedPhotoObjs.map(photo => photo.filepath),
+      fileBaseName
+    );
+    if ((result.exported || 0) > 0) {
+      const suffix = result.failed > 0 ? '，' + result.failed + ' 张失败' : '';
+      const fileLabel = result.filePath ? result.filePath.split(/[\\/]/).pop() : fileBaseName + '.pdf';
+      showToast('已将 ' + result.exported + ' 张选中样片导出为 PDF「' + fileLabel + '」' + suffix, result.failed > 0 ? 'warning' : 'success');
+      if (result.filePath && window.electronAPI.delivery?.openFolder) {
+        void window.electronAPI.delivery.openFolder(result.filePath.replace(/[\\/][^\\/]+$/, ''));
+      }
+    } else {
+      showToast('PDF 导出失败: ' + (result.error || '没有可导出的原图'), 'error');
+    }
+  } catch (error) {
+    showToast('PDF 导出失败: ' + (error instanceof Error ? error.message : String(error)), 'error');
+  } finally {
+    hideProgress();
+  }
+}
+
 function applyPhotoFilters() {
   photoFilterState.search = document.getElementById('searchInput').value.toLowerCase().trim();
   if (window.electronAPI) {

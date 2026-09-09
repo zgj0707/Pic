@@ -259,6 +259,8 @@ export interface ImportResult {
   skipped: number
   thumbnailsGenerated: number
   total: number
+  /** IDs of newly-created photos, used by the planning import workflow. */
+  importedPhotoIds?: number[]
   error?: string
 }
 

@@ -207,6 +207,7 @@ function openPlanningPanel() {
   document.getElementById('galleryPanel')?.classList.add('hidden')
   document.getElementById('planningPanel')?.classList.remove('hidden')
   currentPanel = 'planning'
+  if (typeof updateToolbarForGallery === 'function') updateToolbarForGallery()
   updateStatusBar()
   void loadPlanning()
   PicEvents.emit('workspace:changed', 'planning')
@@ -217,6 +218,7 @@ function closePlanningPanel() {
   document.getElementById('planningPanel')?.classList.add('hidden')
   document.getElementById('galleryPanel')?.classList.remove('hidden')
   currentPanel = 'gallery'
+  if (typeof updateToolbarForGallery === 'function') updateToolbarForGallery()
   updateStatusBar()
   if (typeof updateSelectionActionBar === 'function') updateSelectionActionBar()
   PicEvents.emit('workspace:changed', 'gallery')
@@ -348,9 +350,52 @@ async function addSelectedPhotosToPlanning() {
   } catch (error) { showToast(`加入拍摄清单失败：${error instanceof Error ? error.message : String(error)}`, 'error') } finally { planningBusy = false }
 }
 
+async function importPhotosIntoPlanning(importAction) {
+  const projectId = planningProjectId()
+  if (projectId === null) {
+    showToast('请先创建或选择一个拍摄方案', 'warning')
+    return
+  }
+  if (planningBusy || typeof importAction !== 'function') return
+
+  planningBusy = true
+  try {
+    // The planning panel is loaded asynchronously when opened. Make sure the
+    // active group is known before assigning newly imported photos to it.
+    if (planningGroupsState.length === 0 && planningShots.length === 0) await loadPlanning()
+    const result = await importAction()
+    if (!result?.success) return
+
+    const photoIds = Array.from(new Set((result.importedPhotoIds || [])
+      .map(Number)
+      .filter(id => Number.isInteger(id) && id > 0)))
+    if (photoIds.length === 0) {
+      await loadPlanning()
+      return
+    }
+
+    const active = planningGroups().find(group => planningGroupKey(group) === planningActiveGroup)
+    const chapter = active?.name || '未分组'
+    let added = 0
+    for (const photoId of photoIds) {
+      const created = await window.electronAPI?.shots?.create?.(projectId, photoId, { chapter })
+      if (created?.success && created.shot) added += 1
+    }
+    await loadPlanning()
+    showToast(added > 0 ? `已将 ${added} 张新导入样片加入「${chapter}」` : '新导入样片未能加入拍摄清单', added > 0 ? 'success' : 'warning')
+  } catch (error) {
+    showToast(`导入拍摄清单失败：${error instanceof Error ? error.message : String(error)}`, 'error')
+    await loadPlanning()
+  } finally {
+    planningBusy = false
+  }
+}
+
 async function exportPlanningPdf() {
   const projectId = planningProjectId()
-  if (projectId === null || planningShots.length === 0) { showToast('请先把样片加入拍摄清单', 'warning'); return }
+  if (projectId === null) { showToast('请先创建或选择一个拍摄方案', 'warning'); return }
+  if (window.electronAPI?.shots?.getAll) await loadPlanning()
+  if (planningShots.length === 0) { showToast('请先把样片加入拍摄清单', 'warning'); return }
   const project = typeof currentProjectRecord === 'function' ? currentProjectRecord() : null
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, '')
   const name = `${project?.name || currentProjectName || 'Pic-拍摄方案'}-${date}`
@@ -408,11 +453,22 @@ function bindPlanningEvents() {
   document.getElementById('openPlanningBtn')?.addEventListener('click', openPlanningPanel)
   document.getElementById('statusPlanningBtn')?.addEventListener('click', openPlanningPanel)
   document.getElementById('planningBackBtn')?.addEventListener('click', closePlanningPanel)
+  document.getElementById('planningImportFolderBtn')?.addEventListener('click', () => { void importPhotosIntoPlanning(importFromFolder) })
+  document.getElementById('planningImportFilesBtn')?.addEventListener('click', () => { void importPhotosIntoPlanning(importFromFiles) })
+  document.getElementById('planningEmptyImportFolderBtn')?.addEventListener('click', () => { void importPhotosIntoPlanning(importFromFolder) })
+  document.getElementById('planningEmptyImportFilesBtn')?.addEventListener('click', () => { void importPhotosIntoPlanning(importFromFiles) })
   document.getElementById('planningAddGroupBtn')?.addEventListener('click', () => { void createPlanningGroup() })
   document.getElementById('planningExportBtn')?.addEventListener('click', () => { void exportPlanningPdf() })
   document.getElementById('addToShotListBtn')?.addEventListener('click', () => { void addSelectedPhotosToPlanning() })
+  PicEvents?.on('workspace:changed', updateGalleryExportButtonVisibility)
   PicEvents?.on('project:selected', () => { planningActiveGroup = '__all__'; if (currentPanel === 'planning') void loadPlanning() })
   window.electronAPI?.capture?.onSaved?.(() => { if (currentPanel === 'planning') void loadPlanning() })
+  updateGalleryExportButtonVisibility()
+}
+
+function updateGalleryExportButtonVisibility() {
+  const button = document.getElementById('galleryExportBtn')
+  button?.classList.toggle('hidden', currentPanel !== 'gallery' || isRecycleBinView)
 }
 
 bindPlanningEvents()

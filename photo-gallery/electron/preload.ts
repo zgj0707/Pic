@@ -34,6 +34,7 @@ export interface ElectronAPI {
     generateThumbnails: () => Promise<{ success: boolean; generated: number }>
     getThumbnail: (id: number, size?: 'grid' | 'preview') => Promise<{ success: boolean; data?: { path: string }; error?: string }>
     copyImageToClipboard: (filePath: string) => Promise<{ success: boolean; error?: string }>
+    exportToPdf: (filePaths: string[], fileBaseName: string) => Promise<{ success: boolean; filePath?: string; exported: number; failed: number; results: { sourcePath: string; success: boolean; error?: string }[]; error?: string }>
   }
   selections: {
     getAll: (projectId: number) => Promise<ProjectSelection[]>
@@ -197,7 +198,8 @@ const api: ElectronAPI = {
     openInExplorer: (filePath: string) => ipcRenderer.invoke('photos:openInExplorer', filePath),
     generateThumbnails: () => ipcRenderer.invoke('photos:generateThumbnails'),
     getThumbnail: (id: number, size?: 'grid' | 'preview') => ipcRenderer.invoke('photos:getThumbnail', id, size),
-    copyImageToClipboard: (filePath: string) => ipcRenderer.invoke('photos:copyImageToClipboard', filePath)
+    copyImageToClipboard: (filePath: string) => ipcRenderer.invoke('photos:copyImageToClipboard', filePath),
+    exportToPdf: (filePaths: string[], fileBaseName: string) => ipcRenderer.invoke('photos:exportToPdf', filePaths, fileBaseName)
   },
   selections: {
     getAll: (projectId: number) => ipcRenderer.invoke('selections:getAll', projectId),

@@ -147,6 +147,7 @@ async function performImport(
 
   let imported = 0
   let skipped = 0
+  const importedPhotoIds: number[] = []
 
   for (let i = 0; i < filePaths.length; i++) {
     const filePath = filePaths[i]
@@ -163,6 +164,7 @@ async function performImport(
         skipped++
       } else {
         imported++
+        importedPhotoIds.push(photo.id)
       }
     }
   }
@@ -172,7 +174,7 @@ async function performImport(
 
   notifyProgress({ total: filePaths.length, current: filePaths.length, status: 'done', message })
 
-  return { success: true, imported, skipped, thumbnailsGenerated: 0, total: filePaths.length }
+  return { success: true, imported, skipped, thumbnailsGenerated: 0, total: filePaths.length, importedPhotoIds }
 }
 
 export function registerImportIpc(mainWindow: BrowserWindow | null): void {

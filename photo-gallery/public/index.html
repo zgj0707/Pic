@@ -30,6 +30,9 @@
           <button id="openPlanningBtn" class="secondary-action" type="button" title="打开拍摄清单">
             <i class="fa-solid fa-list-check" aria-hidden="true"></i><span>拍摄清单</span>
           </button>
+          <button id="galleryExportBtn" class="secondary-action" type="button" title="导出当前选中样片为 PDF">
+            <i class="fa-solid fa-file-pdf" aria-hidden="true"></i><span>导出 PDF</span>
+          </button>
           <button id="importFolderBtn" class="primary-action" type="button">
             <i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>导入文件夹</span>
           </button>
@@ -159,6 +162,8 @@
             </div>
             <div class="planning-header-actions">
               <button id="planningBackBtn" class="secondary-action" type="button"><i class="fa-solid fa-images" aria-hidden="true"></i><span>回到样片池</span></button>
+              <button id="planningImportFolderBtn" class="secondary-action" type="button" title="导入照片并加入当前拍摄分组"><i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>导入文件夹</span></button>
+              <button id="planningImportFilesBtn" class="secondary-action" type="button" title="选择照片并加入当前拍摄分组"><i class="fa-solid fa-file-import" aria-hidden="true"></i><span>导入照片</span></button>
               <button id="planningAddGroupBtn" class="secondary-action" type="button"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span>新建分组</span></button>
               <button id="planningExportBtn" class="primary-action" type="button"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i><span>导出方案 PDF</span></button>
             </div>
@@ -172,7 +177,11 @@
               <div id="planningEmpty" class="planning-empty hidden">
                 <i class="fa-solid fa-list-check" aria-hidden="true"></i>
                 <h3>还没有拍摄条目</h3>
-                <p>回到样片池，选择样片后点击“加入拍摄清单”。</p>
+                <p>可以直接导入照片，照片会自动加入当前分组；也可以回到样片池后再选择样片。</p>
+                <div class="planning-empty-actions">
+                  <button id="planningEmptyImportFolderBtn" class="secondary-action" type="button"><i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>导入文件夹</span></button>
+                  <button id="planningEmptyImportFilesBtn" class="primary-action" type="button"><i class="fa-solid fa-file-import" aria-hidden="true"></i><span>选择照片</span></button>
+                </div>
               </div>
               <div id="planningItems" class="planning-items"></div>
             </div>

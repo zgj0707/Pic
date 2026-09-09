@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="01EMpAYGsrhMr7uGbpbaso">
+<head data-page-node-id="Ck2kXrWQFKaEDsguB7XgzX">
+<meta charset="UTF-8" data-page-node-id="GiUNgTOpFCBYoTHnBAy8Oj">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="0K0Vgd4f1RmqYYtZOYUIw3">
+<title>Pic 新概念原型 · 导演台</title>
+<style>
+/* ============================================================
+   Pic · 概念版「导演台 Director's Desk」
+   设计假设：不带任何旧版约束，从拍摄前策划的工作本质重新推导
+   —— 收集时不做决定，拍板时只看顺序。
+   ============================================================ */
+:root {
+  /* 画廊纸感 · 浅色工作台（打印一致的暖中性色） */
+  --paper: #FAF8F4;          /* 主工作面 */
+  --paper-sunk: #F1EDE6;     /* 下沉区 / 收集箱底 */
+  --card: #FFFFFF;           /* 卡片 */
+  --elevated: #FFFFFF;       /* 浮层 */
+  --ink: #201C16;            /* 主墨色 */
+  --ink-2: #6B645A;          /* 次级 */
+  --ink-3: #A39B8E;          /* 弱化 */
+
+  /* 品牌 · 陶土橘（与导出 PDF 的印刷质感同源） */
+  --clay: #C75B39;
+  --clay-strong: #A8492B;
+  --clay-soft: #F6E3DB;
+  --clay-ink: #FFF6F2;
+
+  /* 场景色（分组色板） */
+  --sc-1: #C75B39; --sc-2: #2F6F6A; --sc-3: #B08A2E; --sc-4: #5B5F97;
+
+  --line: #E4DED4;           /* 常规描边 */
+  --line-strong: #D2CABA;
+  --danger: #B3372F;
+
+  --font-display: Georgia, 'Times New Roman', serif;
+  --font-body: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+
+  --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --r-sm: 6px; --r-md: 10px; --r-lg: 16px;
+  --fast: 130ms; --std: 220ms;
+  --rail-w: 68px;
+  --topbar-h: 58px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { color-scheme: light; }
+body {
+  font-family: var(--font-body); background: var(--paper); color: var(--ink);
+  height: 100vh; overflow: hidden; font-size: 14px; line-height: 1.55;
+  display: grid; grid-template-columns: var(--rail-w) 1fr;
+}
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
+::-webkit-scrollbar { height: 10px; width: 10px; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 6px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ============ 左侧 · 空间轨道（icon rail） ============ */
+.rail {
+  background: var(--paper); border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; align-items: center;
+  padding: var(--sp-4) 0; gap: 6px; z-index: 20;
+}
+.rail-logo {
+  width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  background: var(--ink); color: var(--paper);
+  font-family: var(--font-display); font-size: 19px; margin-bottom: var(--sp-4);
+}
+.rail-btn {
+  width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center;
+  color: var(--ink-3); position: relative; transition: all var(--fast);
+}
+.rail-btn svg { width: 19px; height: 19px; }
+.rail-btn:hover { background: var(--paper-sunk); color: var(--ink); }
+.rail-btn.active { background: var(--clay-soft); color: var(--clay-strong); }
+.rail-btn .tip {
+  position: absolute; left: 54px; top: 50%; transform: translateY(-50%);
+  background: var(--ink); color: var(--paper); font-size: 12px; padding: 4px 10px;
+  border-radius: 6px; white-space: nowrap; opacity: 0; pointer-events: none;
+  transition: opacity var(--fast); z-index: 50;
+}
+.rail-btn:hover .tip { opacity: 1; }
+.rail-btn .badge {
+  position: absolute; top: 5px; right: 5px; min-width: 16px; height: 16px;
+  border-radius: 999px; background: var(--clay); color: var(--clay-ink);
+  font-size: 10px; font-weight: 700; display: grid; place-items: center; padding: 0 4px;
+}
+.rail-spacer { flex: 1; }
+
+/* ============ 右侧 · 主舞台 ============ */
+.stage { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+
+/* 顶部命令条 */
+.topbar {
+  height: var(--topbar-h); display: flex; align-items: center; gap: var(--sp-4);
+  padding: 0 var(--sp-5); border-bottom: 1px solid var(--line); flex-shrink: 0;
+}
+.project-name { font-family: var(--font-display); font-size: 19px; letter-spacing: .2px; }
+.project-name small { font-family: var(--font-body); font-size: 12px; color: var(--ink-3); margin-left: 10px; font-weight: 400; }
+.kbar {
+  flex: 1; max-width: 380px; height: 34px; display: flex; align-items: center; gap: 8px;
+  background: var(--paper-sunk); border: 1px solid transparent; border-radius: 999px;
+  padding: 0 14px; color: var(--ink-3); font-size: 13px;
+  transition: all var(--fast); cursor: text;
+}
+.kbar:hover { border-color: var(--line-strong); }
+.kbar kbd {
+  margin-left: auto; font-family: inherit; font-size: 11px; color: var(--ink-3);
+  border: 1px solid var(--line-strong); border-radius: 4px; padding: 0 5px; background: var(--card);
+}
+.kbar svg { width: 14px; height: 14px; }
+.topbar-actions { display: flex; align-items: center; gap: var(--sp-2); margin-left: auto; }
+.btn {
+  display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px;
+  border-radius: 999px; font-weight: 600; font-size: 13px;
+  transition: all var(--fast); white-space: nowrap;
+}
+.btn svg { width: 14px; height: 14px; }
+.btn-quiet { color: var(--ink-2); }
+.btn-quiet:hover { background: var(--paper-sunk); color: var(--ink); }
+.btn-clay { background: var(--clay); color: var(--clay-ink); box-shadow: 0 1px 0 var(--clay-strong); }
+.btn-clay:hover { background: var(--clay-strong); }
+
+/* ============ 空间一 · 分镜板（核心界面） ============ */
+.space { flex: 1; min-height: 0; display: none; flex-direction: column; }
+.space.active { display: flex; }
+
+/* 简报卡（可折叠的一行式 brief） */
+.brief-strip {
+  display: flex; align-items: center; gap: var(--sp-4);
+  margin: var(--sp-4) var(--sp-5) 0; padding: 12px 18px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg);
+  box-shadow: 0 1px 2px rgba(32,28,22,.04);
+  flex-shrink: 0;
+}
+.brief-goal { font-size: 13.5px; }
+.brief-goal strong { font-weight: 700; }
+.brief-chip {
+  font-size: 12px; color: var(--ink-2); background: var(--paper-sunk);
+  border-radius: 999px; padding: 3px 11px; display: inline-flex; align-items: center; gap: 5px;
+}
+.brief-chip b { color: var(--ink); font-weight: 600; }
+.brief-spacer { flex: 1; }
+.progress { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--ink-2); }
+.progress-track { width: 120px; height: 6px; background: var(--paper-sunk); border-radius: 999px; overflow: hidden; }
+.progress-fill { width: 62%; height: 100%; background: var(--clay); border-radius: 999px; }
+
+/* 分镜横向轨道 */
+.board {
+  flex: 1; overflow-x: auto; overflow-y: hidden;
+  display: flex; gap: var(--sp-4); align-items: stretch;
+  padding: var(--sp-4) var(--sp-5) var(--sp-5);
+}
+.lane {
+  width: 344px; flex-shrink: 0; display: flex; flex-direction: column;
+  background: var(--paper-sunk); border: 1px solid var(--line);
+  border-radius: var(--r-lg); min-height: 0;
+}
+.lane.drag-over { border: 1.5px dashed var(--clay); background: var(--clay-soft); }
+.lane-head {
+  display: flex; align-items: center; gap: 9px; padding: 13px 16px 9px; flex-shrink: 0;
+}
+.lane-dot { width: 9px; height: 9px; border-radius: 50%; }
+.lane-title { font-weight: 700; font-size: 13.5px; }
+.lane-count { font-size: 11.5px; color: var(--ink-3); }
+.lane-add { margin-left: auto; color: var(--ink-3); width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; }
+.lane-add:hover { background: var(--card); color: var(--clay); }
+.lane-strip {
+  flex: 1; overflow-y: auto; padding: 4px 12px 14px;
+  display: flex; flex-direction: column; gap: 10px; min-height: 0;
+}
+.shot {
+  display: flex; gap: 12px; background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r-md); padding: 10px; cursor: grab; position: relative;
+  box-shadow: 0 1px 2px rgba(32,28,22,.05);
+  transition: box-shadow var(--fast), transform var(--fast), opacity var(--fast);
+}
+.shot:hover { box-shadow: 0 6px 18px rgba(32,28,22,.10); transform: translateY(-1px); }
+.shot.dragging { opacity: .45; }
+.shot-num {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; align-self: flex-start;
+  display: grid; place-items: center; font-size: 12px; font-weight: 700;
+  background: var(--paper-sunk); color: var(--ink-2); margin-top: 2px;
+  transition: all var(--fast);
+}
+.shot-num.done { background: var(--sc-2); color: #fff; }
+.shot-thumb { width: 92px; aspect-ratio: 3/2; border-radius: 7px; flex-shrink: 0; position: relative; overflow: hidden; }
+.shot-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.shot-name { font-weight: 600; font-size: 13px; line-height: 1.35; }
+.shot-note {
+  font-size: 12px; color: var(--ink-2); line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.shot-note.empty { color: var(--ink-3); font-style: italic; }
+.shot-meta { display: flex; gap: 5px; margin-top: auto; }
+.shot-tag { font-size: 10.5px; color: var(--ink-3); border: 1px solid var(--line); border-radius: 999px; padding: 0 7px; line-height: 16px; }
+.shot-x {
+  position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 50%;
+  display: grid; place-items: center; color: var(--ink-3); opacity: 0; transition: opacity var(--fast);
+  background: var(--card); border: 1px solid var(--line);
+}
+.shot:hover .shot-x { opacity: 1; }
+.shot-x:hover { color: var(--danger); border-color: var(--danger); }
+
+/* 落款：连拍编号横排 */
+.board-footer {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: 0 var(--sp-5) var(--sp-4); color: var(--ink-3); font-size: 12px; flex-shrink: 0;
+}
+
+/* ============ 空间二 · 收集箱 ============ */
+.inbox-head {
+  display: flex; align-items: center; gap: var(--sp-4);
+  margin: var(--sp-4) var(--sp-5) 0; flex-shrink: 0;
+}
+.inbox-head h2 { font-family: var(--font-display); font-size: 20px; font-weight: 400; }
+.inbox-head p { color: var(--ink-2); font-size: 13px; }
+.inbox-tip {
+  margin-left: auto; font-size: 12px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 5px 14px;
+}
+.inbox-tip kbd { font-family: inherit; border: 1px solid var(--line-strong); border-radius: 4px; padding: 0 5px; font-size: 11px; background: var(--paper-sunk); }
+.inbox-grid {
+  flex: 1; overflow-y: auto; display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5) var(--sp-5);
+  align-content: start;
+}
+.dropzone {
+  grid-column: 1 / -1; border: 2px dashed var(--line-strong); border-radius: var(--r-lg);
+  padding: 26px; text-align: center; color: var(--ink-3); font-size: 13px;
+  background: transparent; margin-bottom: var(--sp-2);
+}
+.inbox-card {
+  position: relative; aspect-ratio: 3/2; border-radius: var(--r-md); overflow: hidden; cursor: pointer;
+  box-shadow: 0 1px 3px rgba(32,28,22,.08);
+  transition: transform var(--fast), box-shadow var(--fast);
+}
+.inbox-card:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(32,28,22,.14); }
+.inbox-card .src {
+  position: absolute; top: 8px; left: 8px; font-size: 10.5px; color: #fff;
+  background: rgba(32,28,22,.55); border-radius: 999px; padding: 2px 9px; backdrop-filter: blur(3px);
+}
+.triage {
+  position: absolute; inset-inline: 0; bottom: 0; display: flex; justify-content: center; gap: 6px; padding: 10px;
+  background: linear-gradient(0deg, rgba(32,28,22,.72), transparent); opacity: 0; transition: opacity var(--fast);
+}
+.inbox-card:hover .triage { opacity: 1; }
+.triage button {
+  height: 28px; padding: 0 10px; border-radius: 8px; font-size: 11.5px; font-weight: 600;
+  background: rgba(250,248,244,.92); color: var(--ink);
+}
+.triage button:hover { background: var(--clay); color: var(--clay-ink); }
+.triage .t-key { font-size: 10px; color: var(--ink-3); margin-right: 4px; }
+
+/* 回收站 / 其他空间占位 */
+.stub {
+  flex: 1; display: grid; place-items: center; color: var(--ink-3);
+  font-size: 13px; gap: 8px;
+}
+
+/* ============ 撤销 toast ============ */
+.toast {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(8px);
+  display: flex; align-items: center; gap: 14px;
+  background: var(--ink); color: var(--paper); padding: 10px 18px; border-radius: 999px;
+  font-size: 13px; box-shadow: 0 10px 30px rgba(32,28,22,.28);
+  opacity: 0; pointer-events: none; transition: all var(--std); z-index: 60;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast button { color: #F0B9A6; font-weight: 700; }
+
+/* ============ 设计推导抽屉 ============ */
+.fab {
+  position: fixed; right: 22px; bottom: 22px; z-index: 60;
+  height: 36px; padding: 0 16px; border-radius: 999px; font-weight: 700; font-size: 12.5px;
+  background: var(--ink); color: var(--paper); box-shadow: 0 6px 20px rgba(32,28,22,.25);
+}
+.spec {
+  position: fixed; right: 22px; bottom: 70px; z-index: 60; width: 360px; max-height: 66vh; overflow-y: auto;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: var(--sp-5); box-shadow: 0 18px 50px rgba(32,28,22,.18); display: none;
+}
+.spec.show { display: block; }
+.spec h3 { font-family: var(--font-display); font-weight: 400; font-size: 18px; margin-bottom: 10px; }
+.spec h4 { font-size: 11px; letter-spacing: 2px; color: var(--ink-3); margin: 16px 0 6px; }
+.spec ul { padding-left: 17px; font-size: 12.5px; color: var(--ink-2); display: flex; flex-direction: column; gap: 6px; }
+.spec b { color: var(--ink); }
+.swatch-row { display: flex; align-items: center; gap: 10px; font-size: 12.5px; padding: 4px 0; }
+.swatch { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--line); flex-shrink: 0; }
+.swatch-row code { margin-left: auto; font-size: 11px; color: var(--ink-3); }
+</style>
+</head>
+<body data-page-node-id="KTPj7681zrWeF1UFECArXF">
+
+<!-- ============ 空间轨道 ============ -->
+<nav class="rail" data-page-node-id="OseUKaGSv5kqhyTAA5X2TB">
+  <div class="rail-logo" data-page-node-id="uwQ9atnijYZbwGawCFWIYw">P</div>
+
+  <button class="rail-btn" data-space="inbox" data-page-node-id="oX5LBF7EWr16v2fszoaBTo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="S9ArfsQ2lZcF1i5lD1drxu"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" data-page-node-id="WFZMpFVoEX7ShSDrGbDI90"/></svg>
+    <span class="tip" data-page-node-id="KzVvpDTy9nNHo9yjLcxDsz">收集箱 · 12 张待拍板</span><span class="badge" data-page-node-id="PGWoo34QdiZhvZA2HJ5Apo">12</span>
+  </button>
+  <button class="rail-btn active" data-space="board" data-page-node-id="vp6oNeIOzWAS1a4GIxVzK9">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="1pehe6A95tvuzdZDImgECX"><rect x="3" y="4" width="18" height="14" rx="2" data-page-node-id="4EyaIgPMdiezfHALCLQOrH"/><path d="M3 9h18M8 4v5" data-page-node-id="Zfj09LvEl9DC5xx6XHWmtq"/></svg>
+    <span class="tip" data-page-node-id="Cs9RW8dB9B0nBzD717OjXD">分镜板</span>
+  </button>
+  <button class="rail-btn" data-space="recycle" data-page-node-id="2yOkUb65oUD71xtPJC9y8m">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="RvLXxQNEujfECs41nBTk1V"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14" data-page-node-id="04EEHpHrf3XzQ1uA0LB1j3"/></svg>
+    <span class="tip" data-page-node-id="CAsGKCCAMFceYSWOYOcPSv">回收站</span><span class="badge" style="background:var(--ink-3)" data-page-node-id="ipFv3l4SW0JtaLF2BAl9DC">3</span>
+  </button>
+  <button class="rail-btn" data-space="browser" data-page-node-id="POJdqIDYYJjceDA5SD6P9B">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="pbYMOfiwMKiG7ezsMoHxao"><circle cx="12" cy="12" r="9" data-page-node-id="7xQ6R43sOwFGobvGssXQl1"/><path d="M3 12h18M12 3c2.5 2.5 4 5.5 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.5-4-9s1.5-6.5 4-9z" data-page-node-id="BZYRvQOgmjJHBZVMiAdEsP"/></svg>
+    <span class="tip" data-page-node-id="YlQfKO0dxDWC3VxZWt74sx">素材浏览器（小红书）</span>
+  </button>
+
+  <span class="rail-spacer" data-page-node-id="wW717w5RafBgQzhKFAQQbr"></span>
+
+  <button class="rail-btn" data-page-node-id="PFgleuSsT9QumcGx0m1X23">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="iJDURX07LaRGdNk2oTgcT1"><circle cx="12" cy="12" r="3" data-page-node-id="HK7GdWpZ1dd8pi8BMAk4hp"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.06-.4.1-.8.1-1.2z" data-page-node-id="roGOQjV8bms6yOAwjdFdTp"/></svg>
+    <span class="tip" data-page-node-id="GRT67KFho32sKvD4EjbCN0">设置</span>
+  </button>
+</nav>
+
+<!-- ============ 主舞台 ============ -->
+<div class="stage" data-page-node-id="wA7WZ1VRjkMFgL1WV4p9Aa">
+  <header class="topbar" data-page-node-id="GoUF5kz4oJTIimM7J5gs7b">
+    <div class="project-name" data-page-node-id="YtXrHhi5p7jrHvi3iW2Buz">春季新品 · 女装 lookbook<small data-page-node-id="7kX7gL7L6OezXSHtxC6lhV">LANMU 服饰 · 03-15</small></div>
+    <div class="kbar" onclick="document.getElementById('kinput').focus()" data-page-node-id="8fJClGw6UxrBkuZIA33MtN">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="jCKfPOJe1IXPdrDujYea8x"><circle cx="11" cy="11" r="7" data-page-node-id="4jmMwTqHTbUhvuzZX2TP2a"/><path d="m20 20-3.5-3.5" data-page-node-id="D29OvmZ6Yu71sm80XILf6B"/></svg>
+      <input id="kinput" placeholder="搜索样片、分组或执行命令…" style="border:none;background:none;outline:none;color:var(--ink);width:100%;font:inherit" data-page-node-id="0ERaczcFLvjotrtqIGghpf">
+      <kbd data-page-node-id="DLfWncrTYJKygiWvqeQcCU">Ctrl K</kbd>
+    </div>
+    <div class="topbar-actions" data-page-node-id="CHMjAwxRzoLtPq7T7SZBEy">
+      <button class="btn btn-quiet" data-page-node-id="jDmA9bBmHeT6cSQFqSEFYv">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="h3nRd4eteUbRBLFHJKR3os"><path d="M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3" data-page-node-id="daaWAkFmUIUEiaTSayHYjm"/></svg>
+        撤销
+      </button>
+      <button class="btn btn-clay" data-page-node-id="WBP25Qay8ZOWjbUOQyJAAq">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-page-node-id="d3195YaqlSQPQpOT4W1FlT"><path d="M14 3v5h5M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" data-page-node-id="Wu98IUjC61caPyNTQS0Cg9"/></svg>
+        导出拍摄方案 PDF
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== 空间 · 分镜板 ===== -->
+  <section class="space active" id="space-board" data-page-node-id="jNVWNtQ4i3369bF7hi22ad">
+    <div class="brief-strip" data-page-node-id="ez2THFL52CUUdkJQwekmyl">
+      <span class="brief-goal" data-page-node-id="cw8CGAfpRqPvsCit0nnDH8"><strong data-page-node-id="O0xKxtDpk6uwUvVYVs4Xaw">交付目标</strong>　主 KV 3 张 · 社媒竖图 6 张</span>
+      <span class="brief-chip" data-page-node-id="AYRsrBNPGWMRiscR71uTQ3">场景 <b data-page-node-id="CRx5lWKvyHgLGNzVMhcNVF">4</b></span>
+      <span class="brief-chip" data-page-node-id="PtRFkFxYxInbZXZbs7giA0">镜头 <b data-page-node-id="cZk1KHOebAQ7nP8nq2IOHJ">18</b></span>
+      <span class="brief-chip" data-page-node-id="Xi6A6aMfWdyoVODAj1muQx">场地 <b data-page-node-id="2DtAGtq6YTyyR3QkBr94no">滨江摄影基地 3F</b></span>
+      <span class="brief-spacer" data-page-node-id="EpCks9n9HKnZPwVoNABTb3"></span>
+      <div class="progress" data-page-node-id="Wy6w80ACkLYH6zjjrqETlx">
+        <span data-page-node-id="21AOoW4kQy2VFNKHQ0rwLE">拍摄进度</span>
+        <div class="progress-track" data-page-node-id="oCwGwNmmo6jWUJGJIgWL0o"><div class="progress-fill" data-page-node-id="M3l8UPte4RUy10uiIApBC7"></div></div>
+        <span data-page-node-id="3KGHGGewyy7DJ50VQjphvD"><b data-page-node-id="wrPozaXuHJnk9ksPN3ErXR">11</b>/18</span>
+      </div>
+    </div>
+
+    <div class="board" id="board" data-page-node-id="sC6HVTLNH40r6JfLgn8mec">
+      <!-- 场景 1 -->
+      <div class="lane" data-lane data-page-node-id="jaFV6ZswHEm0eeHMT34rrH">
+        <div class="lane-head" data-page-node-id="1OHfjLJDcF8UA0bCDQrzZO">
+          <span class="lane-dot" style="background:var(--sc-1)" data-page-node-id="cvF7aRvcWTOmOmzMGO2D1m"></span>
+          <span class="lane-title" data-page-node-id="DLxG2HXhN6aX2YD7dGL5BG">开场 · 氛围</span><span class="lane-count" data-page-node-id="yHn4b0qygaqSZgOKDn61Zf">3 镜</span>
+          <button class="lane-add" data-page-node-id="DJVAiECQboO3NIm4EE7dmd">＋</button>
+        </div>
+        <div class="lane-strip" data-page-node-id="DZJMDEPYDKMIYPG5V3F8ku">
+          <div class="shot" draggable="true" data-page-node-id="NxxmV5GMug5NEpbRZ1K7Nz">
+            <span class="shot-num done" data-page-node-id="v2gdSpjl2uR7QP4jJ8AqVz">1</span>
+            <span class="shot-thumb" data-page-node-id="PwE63lHHHTABrpNxsjLX19"><span class="ph ph-1" style="position:absolute;inset:0;background:linear-gradient(135deg,#3d2f22,#8a6a45 55%,#c9a06d)" data-page-node-id="eFigkE8ob9f76EpXaUp9ew"></span></span>
+            <div class="shot-body" data-page-node-id="ByvNEQfcK50e0BDUS5OaXk">
+              <span class="shot-name" data-page-node-id="8eFYbtEct3HIlKEHs5BKi2">晨光橱窗 · 回眸</span>
+              <span class="shot-note" data-page-node-id="FycL2GQYE6qRSDCyK8B6jz">东侧晨光，35mm f/2.0，模特背对橱窗回眸。</span>
+              <span class="shot-meta" data-page-node-id="qJTxdH9ShOYGCuSleXWqEJ"><span class="shot-tag" data-page-node-id="vMup0r9rAzshWYTF4r8kP3">自然光</span><span class="shot-tag" data-page-node-id="aZCKZ9Ku74wPHysc1rplMw">✔ 已拍</span></span>
+            </div>
+            <button class="shot-x" title="移出分镜" data-page-node-id="hUMiuMtVKPNZBD7qezMGeh">✕</button>
+          </div>
+          <div class="shot" draggable="true" data-page-node-id="E6ATLk4uYUyu81Okzf65ph">
+            <span class="shot-num done" data-page-node-id="em22DqCvVCDfrJMOALOJb4">2</span>
+            <span class="shot-thumb" data-page-node-id="AlK2Wbz9GaYaY7ptmcfJYM"><span class="ph" style="position:absolute;inset:0;background:linear-gradient(160deg,#22303c,#5b7285 60%,#9db4c4)" data-page-node-id="HOPG8QZLmIQBorD8oQZSwV"></span></span>
+            <div class="shot-body" data-page-node-id="Nuv2ZWjGrl9NxsYLMFd4E8">
+              <span class="shot-name" data-page-node-id="Htv0MOKR1qSZmTEvVaxcSx">外景 · 街角慢门</span>
+              <span class="shot-note" data-page-node-id="zhNQaduaiQlH8hHn3iKbI3">1/15s 慢门带出动势，注意行人穿帮。</span>
+              <span class="shot-meta" data-page-node-id="FlFOA6ydvGBZB3PszgxnmJ"><span class="shot-tag" data-page-node-id="W59x08raz2OgtPJ0RglnD6">✔ 已拍</span></span>
+            </div>
+            <button class="shot-x" data-page-node-id="IN2VA7115gGuoIC3S7xKYE">✕</button>
+          </div>
+          <div class="shot" draggable="true" data-page-node-id="AexzwpMygdeqcTQnZYCWtb">
+            <span class="shot-num" data-page-node-id="gFWsdRKlbqdkzu24X2crWg">3</span>
+            <span class="shot-thumb" data-page-node-id="pCkhdoVB2VGAxk9fnVfTAx"><span class="ph" style="position:absolute;inset:0;background:linear-gradient(120deg,#2c2320,#7a4a33 55%,#d78e5a)" data-page-node-id="PPIssaOAbi7fQjuwKWv2bY"></span></span>
+            <div class="shot-body" data-page-node-id="4PNKjsKO5flDWi9y6Hcap3">
+              <span class="shot-name" data-page-node-id="IGHlqW5Hd62BYayIQpzbcA">场景空镜 · 道具组</span>
+              <span class="shot-note empty" data-page-node-id="HKQw7xR2MebeINuokhulf3">尚未填写备注…</span>
+              <span class="shot-meta" data-page-node-id="SVGNWCHOvg2CdmavmNITXU"><span class="shot-tag" data-page-node-id="XN9paeA6cAniBs4zLVNrEz">空镜</span></span>
+            </div>
+            <button class="shot-x" data-page-node-id="H0YQ2kLxna8HwgpNmUPwHP">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 场景 2 -->
+      <div class="lane" data-lane data-page-node-id="nsziEd0b8iDOpQYPSdIYG8">
+        <div class="lane-head" data-page-node-id="eByF7S9pcI1T2FcFhjENC9">
+          <span class="lane-dot" style="background:var(--sc-2)" data-page-node-id="CpTWQVtbFgfCGJ3GMajxvY"></span>
+          <span class="lane-title" data-page-node-id="7Oc4OFycAvEHXVsjSg1d2T">产品 · 平铺特写</span><span class="lane-count" data-page-node-id="gzEoZoCSKjt7vwYpNzCqgI">2 镜</span>
+          <button class="lane-add" data-page-node-id="rSUrELCWE7X0wpCn1sHxU0">＋</button>
+        </div>
+        <div class="lane-strip" data-page-node-id="BLJ19sTFwqLpHhJr1vDRXP">
+          <div class="shot" draggable="true" data-page-node-id="5w0pbj3M3MEeJFoLCCWFdE">
+            <span class="shot-num" data-page-node-id="PU2pKvS6km2yYYDIq1iKGD">4</span>
+            <span class="shot-thumb" data-page-node-id="IwLVQbRTmzMLjREhHKwBcI"><span class="ph" style="position:absolute;inset:0;background:linear-gradient(150deg,#1f2a24,#4e6e58 55%,#a8c9a8)" data-page-node-id="pDHIofOaWRXjHy8wEWUPGT"></span></span>
+            <div class="shot-body" data-page-node-id="1wZCsdDuXvZmpG4u40QVsW">
+              <span class="shot-name" data-page-node-id="52IevMq1lzg7MY3brH44sx">连衣裙平铺 · 正面</span>
+              <span class="shot-note" data-page-node-id="yeVvJ78AXcCtyTJAqZUMC5">垂直俯拍，整理褶皱与吊牌。</span>
+              <span class="shot-meta" data-page-node-id="tGlFcEHgUrgGu5w2WI3VnK"><span class="shot-tag" data-page-node-id="fK7XEULA9TkE0aARAE4zAl">平铺</span></span>
+            </div>
+            <button class="shot-x" data-page-node-id="6VqwKzF9O2BbtGgt1Hli1n">✕</button>
+          </div>
+          <div class="shot" draggable="true" data-page-node-id="ee53xLR93zKjjZ7eYOeoXO">
+            <span class="shot-num" data-page-node-id="askeXKeE0JGCm6vavNIds0">5</span>
+            <span class="shot-thumb" data-page-node-id="UrohjJeDTuB7XQxXChmGJe"><span class="ph" style="position:absolute;inset:0;background:linear-gradient(140deg,#241d2e,#5d4a7a 55%,#a48ec2)" data-page-node-id="yZfbaEmezPGvBGEHsXMqfI"></span></span>
+            <div class="shot-body" data-page-node-id="v6C4TillkErOiJ7sS0pguG">
+              <span class="shot-name" data-page-node-id="uqrCguBy0KPPTS9U4jSBpR">面料纹理 · 微距</span>
+              <span class="shot-note empty" data-page-node-id="rrQBv8Uku7PNTbbWCX5Kze">尚未填写备注…</span>
+              <span class="shot-meta" data-page-node-id="PgtDK6VxotiT1wcjzhDDse"><span class="shot-tag" data-page-node-id="UZ7nvdeIWqLWM1w8M0ogay">微距</span><span class="shot-tag" data-page-node-id="cGV8BDAGwtfOv37Bd6fbsB">竖构图</span></span>
+            </div>
+            <button class="shot-x" data-page-node-id="MS3mThKRfF7NYEaoQNmemj">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 场景 3 -->
+      <div class="lane" data-lane data-page-node-id="aODhAhCQr3C6ODIBAjxWsJ">
+        <div class="lane-head" data-page-node-id="Mg8bfYC0PWU3BRmEuXr7z0">
+          <span class="lane-dot" style="background:var(--sc-3)" data-page-node-id="Fqg6vfp9Hvh88bcebPCTRA"></span>
+          <span class="lane-title" data-page-node-id="wvfw4pOvA6kJOst2kFU3oN">人物 · 互动</span><span class="lane-count" data-page-node-id="oOviNuqyC6MJa7RHpyHMdY">1 镜</span>
+          <button class="lane-add" data-page-node-id="LuXXWeQiHcUfo5HoJPjiJD">＋</button>
+        </div>
+        <div class="lane-strip" data-page-node-id="J7bNR31hapa6PDsz9QOPZJ">
+          <div class="shot" draggable="true" data-page-node-id="tWv1L212NC6waHUFvFZYSR">
+            <span class="shot-num" data-page-node-id="NkCr3XLM0MkEFMXIDUZkao">6</span>
+            <span class="shot-thumb" data-page-node-id="PU5McxKvVNoQH2e57DYFQ3"><span class="ph" style="position:absolute;inset:0;background:linear-gradient(125deg,#32222a,#8a4a5c 55%,#d38ba0)" data-page-node-id="35Xor0KVKNoo9PAJ5dTImD"></span></span>
+            <div class="shot-body" data-page-node-id="JHM9vY7deFtag1LKOMeHOU">
+              <span class="shot-name" data-page-node-id="P5N5wfkPBNyVOMjzHKLChg">双人穿搭 · 走动抓拍</span>
+              <span class="shot-note" data-page-node-id="I21Bz3kpnCENkBN4nDYqYO">连续拍摄 20 张选 3，裙摆动势优先。</span>
+              <span class="shot-meta" data-page-node-id="ksBG3sqSlDwIjREfwFMKZc"><span class="shot-tag" data-page-node-id="0C4CEErXLD8IDFNWl3qzCw">连拍</span></span>
+            </div>
+            <button class="shot-x" data-page-node-id="mRUfRspWuxk3HKLQmfWOCJ">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 新建场景 -->
+      <button class="lane" data-lane style="justify-content:center;align-items:center;color:var(--ink-3);border-style:dashed;background:transparent;min-height:180px;width:200px" data-page-node-id="55VlrqecBj6AvFHOxPdeyc">
+        ＋ 新建场景
+      </button>
+    </div>
+
+    <div class="board-footer" data-page-node-id="6c3VU0yf9OMj8HguuImkBD">
+      <span data-page-node-id="mRhIvmhk8uRcT4TSo2sXuN">💡 卡片可拖拽换位与跨场景移动，编号自动重排</span>
+      <span style="margin-left:auto" data-page-node-id="YhtFaFXBBEOZGli1wYiV8M">导出 PDF 即按此从左到右、从上到下的顺序成稿</span>
+    </div>
+  </section>
+
+  <!-- ===== 空间 · 收集箱 ===== -->
+  <section class="space" id="space-inbox" data-page-node-id="O33cWQr3MXEbgrfBGwh3ST">
+    <div class="inbox-head" data-page-node-id="d0y3UP0cBte2AFLDz2fn7G">
+      <div data-page-node-id="Mlcx0xc9gVGbZp4jorRVLh">
+        <h2 data-page-node-id="l5aRzwZFeQ11quarSU9Lwr">收集箱</h2>
+        <p data-page-node-id="XUM2bkaEPPDavDsjj3DSCa">截图、拖入与下载的样片先落在这里 —— 收集时不做决定，之后一次性拍板。</p>
+      </div>
+      <span class="inbox-tip" data-page-node-id="wpkbQsS0jzGJKWlwG9X6Qt">拍板快捷键：<kbd data-page-node-id="oDrQpol3nuOvjZ0R8fIqw1">1</kbd> 开场 · <kbd data-page-node-id="MLbBnQiiBBTpTgW8o8Tksf">2</kbd> 产品 · <kbd data-page-node-id="fpoCMryt8TdhFE4T6VtIOM">3</kbd> 人物 · <kbd data-page-node-id="0O4QpWojClWIZgqiKe2nJT">X</kbd> 丢弃</span>
+    </div>
+    <div class="inbox-grid" data-page-node-id="iJx8phqIowvGt8KWogVaGv">
+      <div class="dropzone" data-page-node-id="vkqrOtZY6VTLnfee0UH1nO">把图片、文件夹或网页截图拖到这里 · Alt+A 截图自动落入收集箱</div>
+      <!-- 待拍板样片 -->
+      <div class="inbox-card" data-page-node-id="AbvXXjCMofz5cadaovhU9n"><span class="ph" style="position:absolute;inset:0;background:linear-gradient(135deg,#26221e,#5f5348 55%,#b0a08c)" data-page-node-id="y6ivH5HF8y0jKvn6TnssLl"></span><span class="src" data-page-node-id="FnGYU3mb1ax6FFAZYKeSJA">截图 · 刚刚</span>
+        <div class="triage" data-page-node-id="SUdzA2zXdaPALSNSBd1isV"><button data-page-node-id="ElmpoTFwRUcrt8THvB7dPF"><span class="t-key" data-page-node-id="uGHb7SRUIdxkby4Nvpia5t">1</span>开场</button><button data-page-node-id="52GozopiIWj5OgxkuePEYj"><span class="t-key" data-page-node-id="9W8TYTApHVZvp35GNPsUcd">2</span>产品</button><button data-page-node-id="qgcJ0VeIChWrqPnm3jv4Zx"><span class="t-key" data-page-node-id="WB6ZhnguLNo9vP1agh5tZM">3</span>人物</button><button data-page-node-id="d8rOKRdOzS2a3i5CsQnU5w"><span class="t-key" data-page-node-id="7c7LJ7nfrxIM89rm7izlCz">X</span></button></div>
+      </div>
+      <div class="inbox-card" data-page-node-id="Q4awnBA0P65YfVXnPfvelw"><span class="ph" style="position:absolute;inset:0;background:linear-gradient(145deg,#2a2a20,#6e6e3e 55%,#c2c28a)" data-page-node-id="BhxRGc8A0Na3EDjVEywNdt"></span><span class="src" data-page-node-id="J6VzxTGSfVCwWTufx78D4C">拖入文件</span>
+        <div class="triage" data-page-node-id="jQLIndy8dv2YGoHVWIBkfn"><button data-page-node-id="oejwmqR06VZhi14LDH71gi"><span class="t-key" data-page-node-id="BVDFN1HvBbt1jnxXgIPg3K">1</span>开场</button><button data-page-node-id="2G9QJoao7Y7uzDOhAXWJVw"><span class="t-key" data-page-node-id="H7sctCeKMV4AbWxpBiBegP">2</span>产品</button><button data-page-node-id="kFH8XqwdvJHTR3omJvNlVu"><span class="t-key" data-page-node-id="QuczFqHcNheWD3KElAYARA">3</span>人物</button><button data-page-node-id="CwbLJ2QDq6Bd8ee7zxLltT"><span class="t-key" data-page-node-id="p1ZsOR6AvU5Xg5uATHsqoR">X</span></button></div>
+      </div>
+      <div class="inbox-card" data-page-node-id="G3GM3bwUBkN469PXPIcmMm"><span class="ph" style="position:absolute;inset:0;background:linear-gradient(150deg,#1e2a30,#48626e 55%,#9dbcc9)" data-page-node-id="b9JX5SxpqKWllQi9Hztr5k"></span><span class="src" data-page-node-id="wVBRm6AhGKrIz9jetBym28">小红书收藏</span>
+        <div class="triage" data-page-node-id="hMc2KzujgCrBonbfsNENmS"><button data-page-node-id="tvTLdaO3CtyG5gEryDywi9"><span class="t-key" data-page-node-id="qKNQBHDgFKlrBMuNu42IxY">1</span>开场</button><button data-page-node-id="q5QTblSDJD0gYxGIk45At7"><span class="t-key" data-page-node-id="wC2JJEebFbH8bKgjeKnDLA">2</span>产品</button><button data-page-node-id="q4TwWPm5rgrrsZk3xAHvll"><span class="t-key" data-page-node-id="0kBNdUvaTb25U5HYpA1xCD">3</span>人物</button><button data-page-node-id="cSFppOFMPjfGEyhiJZTROM"><span class="t-key" data-page-node-id="iD6Ot94BVEMjYVzxqL2SZC">X</span></button></div>
+      </div>
+      <div class="inbox-card" data-page-node-id="OGFoxXL2TmcP2fgDNwjYu9"><span class="ph" style="position:absolute;inset:0;background:linear-gradient(140deg,#2c2430,#7a5a78 55%,#c9a3c4)" data-page-node-id="u1EOlp8F36hteV81XiHVK7"></span><span class="src" data-page-node-id="hRpUs9DSJ7e14n0k7noCxv">截图</span>
+        <div class="triage" data-page-node-id="R0ntGNJvxvj8pvURdcNKlF"><button data-page-node-id="MKGBZoLA2QX8MXOCBywFzE"><span class="t-key" data-page-node-id="V436QDW68pAFSczzX8lx1t">1</span>开场</button><button data-page-node-id="3BqhyBQV2WL0MukAfSVpER"><span class="t-key" data-page-node-id="E0vyFKQzbF7YxTKQZ3sOxi">2</span>产品</button><button data-page-node-id="mCRn4VQMUDqyBQEPnwhShq"><span class="t-key" data-page-node-id="9PeKrlpTmKJG09weauniu8">3</span>人物</button><button data-page-node-id="5B9eCtTK0679JxktHjurqf"><span class="t-key" data-page-node-id="FngTU1JbP40jUPC1tixFYK">X</span></button></div>
+      </div>
+      <div class="inbox-card" data-page-node-id="W1eygVocQ2zZItRi50vEY1"><span class="ph" style="position:absolute;inset:0;background:linear-gradient(130deg,#2e2620,#9c7a4e 60%,#e3c493)" data-page-node-id="dNPAtfmMkVacPQv7Y9Y1wV"></span><span class="src" data-page-node-id="JEwEJu9ovGpA3TV0o4Naah">拖入文件</span>
+        <div class="triage" data-page-node-id="MwmpipYzJBaSxuJeazYS5H"><button data-page-node-id="HjN6lVCk5oQdAB7AGBBNCQ"><span class="t-key" data-page-node-id="bgZPlmgG8wDd13Ww4wcXr1">1</span>开场</button><button data-page-node-id="AnLwE45FPdYYb1uCEyPZ9x"><span class="t-key" data-page-node-id="piCFcz8Cihgy7mraLcAQ92">2</span>产品</button><button data-page-node-id="axVxoE7GBq2BISAD5QCPAe"><span class="t-key" data-page-node-id="ApWETZIVwRAmBDeQYrocCD">3</span>人物</button><button data-page-node-id="t70VCKriRCoT54mtYY3Jkh"><span class="t-key" data-page-node-id="4reaCfACbc1JgbeYtC9wPO">X</span></button></div>
+      </div>
+      <div class="inbox-card" data-page-node-id="9wSGz2arCYGRAp4nUvZA50"><span class="ph" style="position:absolute;inset:0;background:linear-gradient(135deg,#241d2e,#5d4a7a 55%,#a48ec2)" data-page-node-id="5FBGmVTCEeeCU21ctgjcpC"></span><span class="src" data-page-node-id="VnFH8HYPxmeJBpx3UoKYq3">小红书收藏</span>
+        <div class="triage" data-page-node-id="p2J4YVCcr6xGPrGBXYeSz5"><button data-page-node-id="gs3EXYeYWugAIIxc7b8NpY"><span class="t-key" data-page-node-id="Ci7zy5QiLifrXR3DbcFRsJ">1</span>开场</button><button data-page-node-id="p3A9P57G16ZPNxdkIw33a6"><span class="t-key" data-page-node-id="0mKJEthablIFlGrOOtwPEt">2</span>产品</button><button data-page-node-id="l22dmI18Ts1IGsaqPlau2D"><span class="t-key" data-page-node-id="HCEhNhzGPzjc2MbGXcqG2Y">3</span>人物</button><button data-page-node-id="tyFmraTyo250lpBPCCrGpt"><span class="t-key" data-page-node-id="UDBULZmv6yTbcTi94JDExt">X</span></button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 空间 · 回收站 / 浏览器 占位 ===== -->
+  <section class="space" id="space-recycle" data-page-node-id="Vl6ILbCprn4TjlGXyd9Xlk"><div class="stub" data-page-node-id="ATlGmpJXiTmxIZb5FgvAGs">回收站 · 已删除样片保留 30 天，可恢复或彻底删除</div></section>
+  <section class="space" id="space-browser" data-page-node-id="aZFjt8STEjGIadjXTkuTk0"><div class="stub" data-page-node-id="nAhuDXXlCbmTqSESDbkMKj">素材浏览器 · 小红书内嵌浏览，收藏即落入收集箱</div></section>
+</div>
+
+<!-- 撤销 toast -->
+<div class="toast show" id="toast" data-page-node-id="AmqcNF8GPxj8jUu4PoEG43">已从「开场 · 氛围」移除 1 个镜头 <button onclick="document.getElementById('toast').classList.remove('show')" data-page-node-id="HUZaAGJd15MYJlb8AEFUMK">撤销</button></div>
+
+<!-- 设计推导抽屉 -->
+<button class="fab" onclick="document.getElementById('spec').classList.toggle('show')" data-page-node-id="finntoXBqU27pMsuNbTIPt">设计推导</button>
+<aside class="spec" id="spec" data-page-node-id="korDVqoJEb4Di26GjudUUX">
+  <h3 data-page-node-id="pxBV35L4wiGRB8zFoRDqGC">为什么这样设计</h3>
+  <h4 data-page-node-id="pyCUACu3We19tqWUVK0ylt">从工作本质推导</h4>
+  <ul data-page-node-id="oFKqxpsAgAd4RxJPLquX8S">
+    <li data-page-node-id="HMihBKIC4QO760E0AOcj8v"><b data-page-node-id="f1YZvQkM2PaRCpFQq22sQo">两个心智时刻</b>：收集时"先扔进来别想"，拍板时"只管顺序"。所以界面只有两个主动作空间 —— 收集箱 → 分镜板，中间不再有第三种状态。</li>
+    <li data-page-node-id="Nj8L5glQYBciAMbcg9CMRk"><b data-page-node-id="d3lbBekx2eJdxs1Gu6K0jN">拍摄清单的本质是顺序</b>，不是文件夹。所以主界面是<b data-page-node-id="qNFSjs05igc40phkCdesv6">横向分镜轨道</b>（场景=列，镜头=卡），顺序即视觉本身，导出 PDF 与屏幕顺序 1:1。</li>
+    <li data-page-node-id="IrKB9FFVJqfFfS2srPnuqJ"><b data-page-node-id="Vrf3CCYL0d2y1yUqJ3ewos">分组即场景</b>：用颜色 + 名字命名拍摄段落（开场/产品/人物/收尾），比树形列表更接近拍摄现场的语言。</li>
+  </ul>
+  <h4 data-page-node-id="GqoQnfAITEFFCsyHaDbuHt">易用性决策</h4>
+  <ul data-page-node-id="ChYBJ1i1jJy65X1IqJaOTQ">
+    <li data-page-node-id="pEG75WKosTO7TYcBoOHsFo"><b data-page-node-id="veGWQf92yujj3yxWmSMH9J">Icon Rail 替代大侧栏</b>：空间只有 5 个，68px 图标栏足够，把 90% 宽度还给内容。</li>
+    <li data-page-node-id="CBkGyELT2rxarwKYfNi4Pu"><b data-page-node-id="px0Ceo9xyuRVmoWtKdgOHz">收集箱拍板</b>：hover 出场景按钮 + 数字快捷键 1/2/3 拍板、X 丢弃，百张样片几分钟能分完。</li>
+    <li data-page-node-id="CnkxFlsjq99DtFSR8YdiOp"><b data-page-node-id="TeSBxUyWnMYYIMvy5cSPfY">简报常驻一行</b>：交付目标与进度钉在板顶，编辑时才展开，不再是一大块表单。</li>
+    <li data-page-node-id="NOgivcBGIc730Nwwe8eMgd"><b data-page-node-id="YmLmPZRAfBrz3Ej0oTpXTP">Ctrl+K 命令条</b>：搜索样片、跳空间、执行动作统一入口。</li>
+  </ul>
+  <h4 data-page-node-id="1RW1tI1STTmRZwGGWzHR7s">视觉 · 画廊纸感（与旧版彻底区分）</h4>
+  <div class="swatch-row" data-page-node-id="PH3Oc6aOCKXuBeCSy5ljw2"><span class="swatch" style="background:#FAF8F4" data-page-node-id="CAUGcuV184RBwD50Y3t5sO"></span>主工作面 · 暖纸白<code data-page-node-id="U1iYifgAdNwaYwDy5uf2fP">#FAF8F4</code></div>
+  <div class="swatch-row" data-page-node-id="9iQNVTxeu7eNpliVTd0TXQ"><span class="swatch" style="background:#F1EDE6" data-page-node-id="8qfFPsJuKOsgFKvVz6Q7QL"></span>下沉区<code data-page-node-id="uMzv3dJk4vXDbJoU71l9Qy">#F1EDE6</code></div>
+  <div class="swatch-row" data-page-node-id="hCw9i4X1Hb6a86LU61Znf0"><span class="swatch" style="background:#C75B39" data-page-node-id="H5DpW8DvZ9mWhhS5B7lRpW"></span>品牌强调 · 陶土橘<code data-page-node-id="5qqFtpfHIhgC2A87ifJoaf">#C75B39</code></div>
+  <div class="swatch-row" data-page-node-id="aAL6bYVRfWFaeHWG119wsK"><span class="swatch" style="background:#2F6F6A" data-page-node-id="8R4FABzLJtlyE8FgVSCu9t"></span>场景色板示例<code data-page-node-id="2jOLy3xoEGyFZVumILEYvG">#2F6F6A</code></div>
+  <div class="swatch-row" data-page-node-id="qMXUXMfdE1A3PznCkfTpYa"><span class="swatch" style="background:#201C16" data-page-node-id="ZWIsbHaa7H8eJQdinnDMDc"></span>主墨色<code data-page-node-id="zcTcmoZIEsGFCFOC9ZPXFz">#201C16</code></div>
+  <ul data-page-node-id="boGDLRhX53xMw8TttcR2aL">
+    <li data-page-node-id="9rlDywlTQqEAynsaSgwIBI"><b data-page-node-id="SxLYSR04QtzND9AqAYOK6s">为什么浅色</b>：与导出的印刷 PDF 同一质感体系，屏幕与纸面连贯；样片卡自带白底阴影，浮在纸面上。</li>
+    <li data-page-node-id="mJziAILDkzi4VCQLD50Fi0"><b data-page-node-id="GLvefSnF5BZ2U4GWC9KHbX">陶土橘</b>：只用于动作与品牌，场景/状态用四色场景板，避免金色既是品牌又是选中态的语义混用。</li>
+    <li data-page-node-id="7XfCy24O4IYPzxQj3cMYFI">动效克制：130ms 反馈 / 220ms 位移；深色模式可做第二主题（纸感反转），不在本版展开。</li>
+  </ul>
+</aside>
+
+<script>
+// ===== 空间切换 =====
+const spaces = { inbox:'space-inbox', board:'space-board', recycle:'space-recycle', browser:'space-browser' };
+document.querySelectorAll('.rail-btn[data-space]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.rail-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.space').forEach(s => s.classList.remove('active'));
+    document.getElementById(spaces[btn.dataset.space]).classList.add('active');
+  });
+});
+
+// ===== 分镜卡片拖拽（同列重排 + 跨场景移动，编号自动刷新）=====
+let dragEl = null;
+document.querySelectorAll('.shot').forEach(card => {
+  card.addEventListener('dragstart', () => { dragEl = card; card.classList.add('dragging'); });
+  card.addEventListener('dragend', () => { card.classList.remove('dragging'); dragEl = null; renumber(); });
+});
+document.querySelectorAll('.lane').forEach(lane => {
+  const strip = lane.querySelector('.lane-strip');
+  if (!strip) return;
+  lane.addEventListener('dragover', e => {
+    e.preventDefault(); lane.classList.add('drag-over');
+    if (!dragEl) return;
+    const after = [...strip.querySelectorAll('.shot:not(.dragging)')].find(c => {
+      const r = c.getBoundingClientRect();
+      return e.clientY < r.top + r.height / 2;
+    });
+    if (after) strip.insertBefore(dragEl, after); else strip.appendChild(dragEl);
+  });
+  lane.addEventListener('dragleave', () => lane.classList.remove('drag-over'));
+  lane.addEventListener('drop', e => { e.preventDefault(); lane.classList.remove('drag-over'); });
+});
+function renumber() {
+  let n = 1;
+  document.querySelectorAll('#board .lane').forEach(lane => {
+    lane.querySelectorAll('.shot .shot-num').forEach(num => {
+      if (!num.classList.contains('done')) num.textContent = n++;
+      else n++;
+    });
+  });
+  const lanes = document.querySelectorAll('#board [data-lane] .lane-strip');
+  lanes.forEach(strip => {
+    const lane = strip.closest('.lane');
+    const cnt = lane.querySelector('.lane-count');
+    const shots = strip.querySelectorAll('.shot').length;
+    if (cnt) cnt.textContent = shots + ' 镜';
+  });
+}
+document.querySelectorAll('.shot-x').forEach(x =>
+  x.addEventListener('click', e => {
+    e.stopPropagation();
+    const card = x.closest('.shot');
+    const laneName = card.closest('.lane').querySelector('.lane-title').textContent;
+    card.remove(); renumber();
+    const t = document.getElementById('toast');
+    t.firstChild.textContent = '已从「' + laneName + '」移除 1 个镜头 ';
+    t.classList.add('show');
+  }));
+
+// Ctrl+K 聚焦命令条
+addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); document.getElementById('kinput').focus(); }
+});
+</script>
+</body>
+</html>
