@@ -95,7 +95,7 @@ describe('project copy and delete management', () => {
     expect(dbAdapter.get('SELECT project_id FROM photos WHERE id = ?', [photoId])?.project_id).toBe(deleted.targetProjectId)
     expect(dbAdapter.get('SELECT project_id FROM project_selections WHERE photo_id = ?', [photoId])?.project_id).toBe(deleted.targetProjectId)
     expect(dbAdapter.get('SELECT project_id FROM project_shots WHERE photo_id = ?', [photoId])?.project_id).toBe(deleted.targetProjectId)
-    expect(listShotGroups(deleted.targetProjectId!).map(group => group.name)).toContain('预留场景')
+    expect(listShotGroups(deleted.targetProjectId!).map(group => group.name)).toEqual(['远景', '中景', '近景', '特写', '空镜', '待归类'])
     expect(dbAdapter.get('SELECT project_id FROM project_exports WHERE target_path = ?', ['C:/exports/reference'])?.project_id).toBe(deleted.targetProjectId)
     expect(dbAdapter.get('SELECT project_id FROM project_material_references WHERE project_id = ? AND source_item_id = ?', [deleted.targetProjectId, 'https://www.douyin.com/video/123'])?.project_id).toBe(deleted.targetProjectId)
   })
@@ -144,9 +144,11 @@ describe('project copy and delete management', () => {
 
     const copy = duplicateProject(sourceId)
     expect(copy.success).toBe(true)
-    expect(listShotGroups(copy.id!)).toMatchObject([{ name: '主视觉' }])
+    // v6：非景别分组名「主视觉」迁移收敛到「待归类」轨道
+    expect(listShotGroups(copy.id!).map(group => group.name)).toEqual(['远景', '中景', '近景', '特写', '空镜', '待归类'])
     expect(listProjectShots(copy.id!)).toMatchObject([{
       photo_id: photoId,
+      chapter: '待归类',
       title: '侧逆光半身',
       composition_notes: '保留左侧留白',
       lighting_gear_notes: '准备银色反光板'

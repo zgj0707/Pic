@@ -74,6 +74,13 @@ export interface ProjectShot {
   photo: Photo
 }
 
+/** v6 五景别分镜轨道（远景→中景→近景→特写→空镜，固定顺序） */
+export const SHOT_LANES = ['远景', '中景', '近景', '特写', '空镜'] as const
+export type ShotLane = (typeof SHOT_LANES)[number]
+/** 迁移期兜底轨道：v5 自由分组数据收敛到这里，等待拖入五景别 */
+export const SHOT_LANE_UNFILED = '待归类'
+export type ShotChapter = ShotLane | typeof SHOT_LANE_UNFILED
+
 export interface ShotGroup {
   id: number
   project_id: number

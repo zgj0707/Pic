@@ -1,8 +1,12 @@
 import { dbAdapter, saveDatabase } from './database'
 import type { Photo, ProjectShot, ShotGroup } from '../types'
+import { SHOT_LANES, SHOT_LANE_UNFILED, type ShotChapter, type ShotLane } from '../types'
 
 const SHOT_STATUSES = ['planned', 'ready', 'done'] as const
 type ShotStatus = typeof SHOT_STATUSES[number]
+
+/** 五景别 + 迁移兜底轨道的完整值域（分组名白名单） */
+const LANE_WHITELIST: readonly string[] = [...SHOT_LANES, SHOT_LANE_UNFILED]
 
 export interface ProjectShotInput {
   chapter?: string
@@ -104,6 +108,7 @@ function shotSelectSql(): string {
 
 export function listShotGroups(projectId: number): ShotGroup[] {
   ensureNormalizedShots(projectId)
+  ensureLaneGroups(projectId)
   return dbAdapter.query(
     'SELECT * FROM shot_groups WHERE project_id = ? ORDER BY position ASC, id ASC',
     [projectId]
@@ -114,8 +119,68 @@ function assertProject(projectId: number): void {
   if (!dbAdapter.get('SELECT id FROM projects WHERE id = ?', [projectId])) throw new Error('拍摄项目不存在')
 }
 
+/**
+ * v6 分镜轨道名归一化：只接受五景别，其余输入（v5 自由分组名、
+ * 空值、旧镜像数据）一律收敛到「待归类」轨道。
+ */
 function normalizeGroupName(name: string): string {
-  return String(name || '').trim() || '未分组'
+  const value = String(name || '').trim()
+  return (LANE_WHITELIST as readonly string[]).includes(value) ? value : SHOT_LANE_UNFILED
+}
+
+/**
+ * v6 迁移（幂等）：把非景别分组归并为「待归类」，并保证五条景别轨道
+ * 以固定顺序存在。旧项目第一次被读取时自动完成收敛，不丢任何条目。
+ */
+function ensureLaneGroups(projectId: number): void {
+  const groups = dbAdapter.query('SELECT * FROM shot_groups WHERE project_id = ? ORDER BY position, id', [projectId])
+  const stale = groups.filter(group => !(LANE_WHITELIST as readonly string[]).includes(String(group.name)))
+  if (stale.length > 0) {
+    let unfiled = groups.find(group => String(group.name) === SHOT_LANE_UNFILED)
+    if (!unfiled) {
+      const now = Math.floor(Date.now() / 1000)
+      const id = dbAdapter.insert('shot_groups', {
+        project_id: projectId,
+        name: SHOT_LANE_UNFILED,
+        position: SHOT_LANES.length,
+        created_at: now,
+        updated_at: now
+      })
+      unfiled = dbAdapter.get('SELECT * FROM shot_groups WHERE id = ?', [id]) ?? undefined
+    }
+    const unfiledId = Number(unfiled?.id)
+    if (unfiledId > 0) {
+      for (const group of stale) {
+        dbAdapter.run('UPDATE shot_items SET group_id = ? WHERE group_id = ?', [unfiledId, Number(group.id)])
+        dbAdapter.run('DELETE FROM shot_groups WHERE id = ?', [Number(group.id)])
+      }
+    }
+    const lanePlaceholders = LANE_WHITELIST.map(() => '?').join(', ')
+    dbAdapter.run(
+      `UPDATE project_shots SET chapter = ?, updated_at = ? WHERE project_id = ? AND chapter NOT IN (${lanePlaceholders})`,
+      [SHOT_LANE_UNFILED, Math.floor(Date.now() / 1000), projectId, ...LANE_WHITELIST]
+    )
+  }
+  // 保证五条景别轨道存在，且 position 与固定顺序一致（待归类排最后）。
+  const now = Math.floor(Date.now() / 1000)
+  LANE_WHITELIST.forEach((lane, index) => {
+    if (!dbAdapter.get('SELECT id FROM shot_groups WHERE project_id = ? AND name = ?', [projectId, lane])) {
+      dbAdapter.insert('shot_groups', {
+        project_id: projectId,
+        name: lane,
+        position: index,
+        created_at: now,
+        updated_at: now
+      })
+    }
+  })
+  dbAdapter.query('SELECT id, name, position FROM shot_groups WHERE project_id = ?', [projectId]).forEach(group => {
+    const laneIndex = LANE_WHITELIST.indexOf(String(group.name))
+    const expected = laneIndex >= 0 ? laneIndex : LANE_WHITELIST.length
+    if (Number(group.position) !== expected) {
+      dbAdapter.run('UPDATE shot_groups SET position = ? WHERE id = ?', [expected, Number(group.id)])
+    }
+  })
 }
 
 function getOrCreateGroup(projectId: number, name: string): ShotGroup {
@@ -208,7 +273,20 @@ function ensureNormalizedShots(projectId: number): void {
 
 export function listProjectShots(projectId: number): ProjectShot[] {
   ensureNormalizedShots(projectId)
+  ensureLaneGroups(projectId)
   return dbAdapter.query(shotSelectSql(), [projectId]).map(mapShotRow)
+}
+
+/**
+ * v6 分镜板数据源：按五景别固定顺序返回各轨道条目，
+ * 「待归类」轨道固定排在最后（迁移期的旧数据落点）。
+ */
+export function listShotsByLane(projectId: number): { lane: ShotChapter; shots: ProjectShot[] }[] {
+  const all = listProjectShots(projectId)
+  return (['远景', '中景', '近景', '特写', '空镜', SHOT_LANE_UNFILED] as ShotChapter[]).map(lane => ({
+    lane,
+    shots: all.filter(shot => shot.chapter === lane)
+  }))
 }
 
 function assertPhotoBelongsToProject(projectId: number, photoId: number): Photo {
