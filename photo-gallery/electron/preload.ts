@@ -34,6 +34,7 @@ export interface ElectronAPI {
     generateThumbnails: () => Promise<{ success: boolean; generated: number }>
     getThumbnail: (id: number, size?: 'grid' | 'preview') => Promise<{ success: boolean; data?: { path: string }; error?: string }>
     copyImageToClipboard: (filePath: string) => Promise<{ success: boolean; error?: string }>
+    exportToPdf: (filePaths: string[], fileBaseName: string) => Promise<{ success: boolean; filePath?: string; exported: number; failed: number; results: { sourcePath: string; success: boolean; error?: string }[]; error?: string }>
   }
   selections: {
     getAll: (projectId: number) => Promise<ProjectSelection[]>
@@ -54,6 +55,7 @@ export interface ElectronAPI {
     update: (projectId: number, shotId: number, input: { chapter?: string; title?: string; intent?: string | null; compositionNotes?: string | null; lightingGearNotes?: string | null; status?: 'planned' | 'ready' | 'done' }) => Promise<{ success: boolean; shot?: ProjectShot; error?: string }>
     reorder: (projectId: number, shotIds: number[]) => Promise<{ success: boolean; shots?: ProjectShot[]; error?: string }>
     remove: (projectId: number, shotId: number) => Promise<{ success: boolean; error?: string }>
+    copy: (sourceProjectId: number, shotId: number, toProjectId: number, options?: { lane?: string }) => Promise<{ success: boolean; shot?: ProjectShot; error?: string }>
   }
   planningExports: {
     getAll: (projectId: number) => Promise<ProjectExport[]>
@@ -169,6 +171,8 @@ export interface ElectronAPI {
     maximize: () => Promise<void>
     close: () => Promise<void>
     isMaximized: () => Promise<boolean>
+    reload: () => Promise<void>
+    setTitleBarOverlay: (overlay: { color?: string; symbolColor?: string; height?: number }) => Promise<void>
   }
 }
 
@@ -197,7 +201,8 @@ const api: ElectronAPI = {
     openInExplorer: (filePath: string) => ipcRenderer.invoke('photos:openInExplorer', filePath),
     generateThumbnails: () => ipcRenderer.invoke('photos:generateThumbnails'),
     getThumbnail: (id: number, size?: 'grid' | 'preview') => ipcRenderer.invoke('photos:getThumbnail', id, size),
-    copyImageToClipboard: (filePath: string) => ipcRenderer.invoke('photos:copyImageToClipboard', filePath)
+    copyImageToClipboard: (filePath: string) => ipcRenderer.invoke('photos:copyImageToClipboard', filePath),
+    exportToPdf: (filePaths: string[], fileBaseName: string) => ipcRenderer.invoke('photos:exportToPdf', filePaths, fileBaseName)
   },
   selections: {
     getAll: (projectId: number) => ipcRenderer.invoke('selections:getAll', projectId),
@@ -217,7 +222,8 @@ const api: ElectronAPI = {
     generateFromSelections: (projectId: number) => ipcRenderer.invoke('shots:generateFromSelections', projectId),
     update: (projectId: number, shotId: number, input: unknown) => ipcRenderer.invoke('shots:update', projectId, shotId, input),
     reorder: (projectId: number, shotIds: number[]) => ipcRenderer.invoke('shots:reorder', projectId, shotIds),
-    remove: (projectId: number, shotId: number) => ipcRenderer.invoke('shots:remove', projectId, shotId)
+    remove: (projectId: number, shotId: number) => ipcRenderer.invoke('shots:remove', projectId, shotId),
+    copy: (sourceProjectId: number, shotId: number, toProjectId: number, options?: { lane?: string }) => ipcRenderer.invoke('shots:copy', sourceProjectId, shotId, toProjectId, options)
   },
   planningExports: {
     getAll: (projectId: number) => ipcRenderer.invoke('planningExports:getAll', projectId),
@@ -343,7 +349,10 @@ const api: ElectronAPI = {
     minimize: () => ipcRenderer.invoke('window:minimize'),
     maximize: () => ipcRenderer.invoke('window:maximize'),
     close: () => ipcRenderer.invoke('window:close'),
-    isMaximized: () => ipcRenderer.invoke('window:isMaximized')
+    isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+    reload: () => ipcRenderer.invoke('window:reload'),
+    setTitleBarOverlay: (overlay: { color?: string; symbolColor?: string; height?: number }) =>
+      ipcRenderer.invoke('window:setTitleBarOverlay', overlay)
   }
 }
 

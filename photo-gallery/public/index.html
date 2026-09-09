@@ -30,6 +30,9 @@
           <button id="openPlanningBtn" class="secondary-action" type="button" title="打开拍摄清单">
             <i class="fa-solid fa-list-check" aria-hidden="true"></i><span>拍摄清单</span>
           </button>
+          <button id="galleryExportBtn" class="secondary-action" type="button" title="导出当前选中样片为 PDF">
+            <i class="fa-solid fa-file-pdf" aria-hidden="true"></i><span>导出 PDF</span>
+          </button>
           <button id="importFolderBtn" class="primary-action" type="button">
             <i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>导入文件夹</span>
           </button>
@@ -49,6 +52,7 @@
               <button id="importFilesBtn" type="button" role="menuitem"><i class="fa-solid fa-file-import" aria-hidden="true"></i><span>导入文件</span></button>
               <button id="viewToggleBtn" type="button" role="menuitem"><i class="fa-solid fa-th-large" id="viewToggleIcon" aria-hidden="true"></i><span id="viewToggleLabel">切换视图</span></button>
               <button id="metadataPanelBtn" type="button" role="menuitem"><i class="fa-solid fa-list-check" aria-hidden="true"></i><span>样片详情</span></button>
+              <button id="uiReloadBtn" type="button" role="menuitem"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i><span>刷新界面</span></button>
               <button id="aboutBtn" type="button" role="menuitem"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>关于与更新公告</span></button>
               <button id="settingsBtn" type="button" role="menuitem"><i class="fa-solid fa-gear" aria-hidden="true"></i><span>设置</span></button>
             </div>
@@ -58,10 +62,35 @@
     </header>
 
     <div class="workspace-frame">
+      <!-- 空间轨道（v6 · Phase 2） -->
+      <nav class="space-rail" aria-label="工作空间">
+        <div class="rail-logo" aria-hidden="true">P</div>
+        <button class="rail-btn" data-space="inbox" type="button" title="收集箱" aria-label="收集箱">
+          <i class="fa-solid fa-inbox" aria-hidden="true"></i>
+        </button>
+        <button class="rail-btn active" data-space="gallery" type="button" title="样片库" aria-label="样片库">
+          <i class="fa-solid fa-images" aria-hidden="true"></i>
+        </button>
+        <button class="rail-btn" data-space="planning" type="button" title="分镜板 · 拍摄清单" aria-label="分镜板拍摄清单">
+          <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+        </button>
+        <button class="rail-btn" data-space="recycle" type="button" title="回收站" aria-label="回收站">
+          <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+          <span id="recycleCount" class="rail-badge hidden">0</span>
+        </button>
+        <button class="rail-btn" data-space="browser" type="button" title="素材浏览器" aria-label="素材浏览器">
+          <i class="fa-solid fa-photo-film" aria-hidden="true"></i>
+        </button>
+        <span class="rail-spacer" aria-hidden="true"></span>
+        <button class="rail-btn" data-space="settings" type="button" title="设置" aria-label="设置">
+          <i class="fa-solid fa-gear" aria-hidden="true"></i>
+        </button>
+      </nav>
+
       <aside class="project-sidebar" aria-label="拍摄方案导航">
         <div class="project-sidebar-header">
           <div>
-            <span class="sidebar-eyebrow">拍摄策划</span>
+            <span class="sidebar-eyebrow">项目分区</span>
             <h2 class="sidebar-title">拍摄方案</h2>
           </div>
           <button id="createProjectBtn" class="create-project-btn" type="button" title="新建拍摄方案">
@@ -69,13 +98,6 @@
           </button>
         </div>
         <div id="projectList" class="project-list custom-scrollbar" aria-label="拍摄方案列表"></div>
-        <div class="sidebar-auxiliary" aria-label="辅助空间">
-          <span class="sidebar-section-label">辅助空间</span>
-          <button id="statusPlanningBtn" type="button"><i class="fa-solid fa-list-check" aria-hidden="true"></i><span>拍摄清单</span></button>
-          <button id="statusRecycleBtn" type="button"><i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>回收站</span><span id="recycleCount" class="auxiliary-count"></span></button>
-          <button id="statusBrowserBtn" type="button"><i class="fa-solid fa-photo-film" aria-hidden="true"></i><span>素材浏览器</span></button>
-          <button id="statusSettingsBtn" type="button"><i class="fa-solid fa-gear" aria-hidden="true"></i><span>设置</span></button>
-        </div>
       </aside>
 
       <main class="workspace-main" aria-label="拍摄方案工作区">
@@ -150,33 +172,34 @@
           </div>
         </section>
 
-        <section id="planningPanel" class="planning-panel hidden" aria-label="拍摄清单">
+        <section id="inboxPanel" class="inbox-panel hidden" aria-label="收集箱">
+          <div class="inbox-head">
+            <div>
+              <span class="section-eyebrow">先收集 · 再拍板</span>
+              <h2>收集箱</h2>
+              <p id="inboxSummary" class="inbox-summary">截图、拖入与网页收藏的样片先落在这里，hover 一键拍板到景别轨道</p>
+            </div>
+            <span class="inbox-tip">拍板：<b>远景</b> <kbd>1</kbd> · <b>中景</b> <kbd>2</kbd> · <b>近景</b> <kbd>3</kbd> · <b>特写</b> <kbd>4</kbd> · <b>空镜</b> <kbd>5</kbd> · 丢弃 <kbd>X</kbd></span>
+          </div>
+          <div class="inbox-grid custom-scrollbar" id="inboxGrid"></div>
+        </section>
+
+        <section id="planningPanel" class="planning-panel hidden" aria-label="分镜板">
           <div class="planning-header">
             <div>
               <span class="section-eyebrow">拍摄执行顺序</span>
-              <h2>拍摄清单</h2>
-              <p id="planningSummary" class="planning-summary">把样片编排成可以照着拍的顺序</p>
+              <h2>分镜板</h2>
+              <p id="planningSummary" class="planning-summary">远景 → 中景 → 近景 → 特写 → 空镜 · 导出 PDF 按此顺序成稿</p>
             </div>
             <div class="planning-header-actions">
               <button id="planningBackBtn" class="secondary-action" type="button"><i class="fa-solid fa-images" aria-hidden="true"></i><span>回到样片池</span></button>
-              <button id="planningAddGroupBtn" class="secondary-action" type="button"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span>新建分组</span></button>
+              <button id="planningImportFolderBtn" class="secondary-action" type="button" title="导入照片并加入分镜板"><i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>导入文件夹</span></button>
+              <button id="planningImportFilesBtn" class="secondary-action" type="button" title="选择照片并加入分镜板"><i class="fa-solid fa-file-import" aria-hidden="true"></i><span>导入照片</span></button>
               <button id="planningExportBtn" class="primary-action" type="button"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i><span>导出方案 PDF</span></button>
             </div>
           </div>
-          <div class="planning-layout">
-            <aside class="planning-groups" aria-label="拍摄分组">
-              <div class="planning-groups-heading"><span>拍摄分组</span><strong id="planningGroupCount">0</strong></div>
-              <div id="planningGroupList" class="planning-group-list"></div>
-            </aside>
-            <div class="planning-content">
-              <div id="planningEmpty" class="planning-empty hidden">
-                <i class="fa-solid fa-list-check" aria-hidden="true"></i>
-                <h3>还没有拍摄条目</h3>
-                <p>回到样片池，选择样片后点击“加入拍摄清单”。</p>
-              </div>
-              <div id="planningItems" class="planning-items"></div>
-            </div>
-          </div>
+          <div id="planningBoard" class="planning-board" aria-label="五景别分镜轨道"></div>
+          <div id="planningLanePicker" class="modal-overlay hidden"></div>
         </section>
 
         <div id="selectionActionBar" class="selection-actionbar hidden" role="toolbar" aria-label="选中样片操作">
@@ -316,11 +339,12 @@
     <div id="imageContainer" class="flex items-center justify-center w-full h-full overflow-hidden">
       <img id="lightboxImage" src="" alt="" draggable="false">
     </div>
-    <div class="zoom-controls bg-bgSecondary rounded-full px-4 py-2">
-      <button id="zoomOut" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white" aria-label="缩小样片"><i class="fa-solid fa-minus"></i></button>
-      <span id="zoomLevel" class="px-3 py-1 text-white">100%</span>
-      <button id="zoomIn" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white" aria-label="放大样片"><i class="fa-solid fa-plus"></i></button>
-      <button id="zoomReset" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white ml-2">重置</button>
+    <div class="zoom-controls" role="group" aria-label="缩放控制">
+      <button id="zoomOut" class="zoom-btn" aria-label="缩小样片"><i class="fa-solid fa-minus"></i></button>
+      <span id="zoomLevel" class="zoom-level">100%</span>
+      <button id="zoomIn" class="zoom-btn" aria-label="放大样片"><i class="fa-solid fa-plus"></i></button>
+      <span class="zoom-divider" aria-hidden="true"></span>
+      <button id="zoomReset" class="zoom-btn" aria-label="重置缩放">重置</button>
     </div>
     <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 p-4 z-10">
       <div class="flex items-center justify-between">
@@ -489,6 +513,7 @@
   <script src="js/ui.js"></script>
   <script src="js/enhancements.js"></script>
   <script src="js/planning.js"></script>
+  <script src="js/inbox.js"></script>
   <script src="js/dragdrop.js"></script>
   <script src="js/app.js"></script>
 </body>

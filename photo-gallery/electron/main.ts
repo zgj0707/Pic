@@ -12,7 +12,7 @@
  *   3. Creating the BrowserWindow and driving the content module's lifecycle
  */
 
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, nativeTheme } from 'electron'
 import { join } from 'path'
 import { existsSync } from 'fs'
 
@@ -73,14 +73,21 @@ function loadContentModule(): { exports: any; dir: string; isExternal: boolean }
 }
 
 function createWindow(): void {
+  // v6 纸感浅色主题：标题栏/窗口底色与内页一致，避免黑色外框突兀
+  nativeTheme.themeSource = 'light'
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 1000,
     minHeight: 600,
-    titleBarStyle: 'hiddenInset',
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#00000000', // 透明背景：按钮直接浮在当前界面上，跟随任意主题
+      symbolColor: '#6B655B',
+      height: 40
+    },
     show: true,
-    backgroundColor: '#1c1c1c',
+    backgroundColor: '#FAF8F4',
     webPreferences: {
       preload: join(__dirname, '../preload/preload.js'),
       contextIsolation: true,
@@ -89,6 +96,17 @@ function createWindow(): void {
       webSecurity: true,
       devTools: true,
       spellcheck: false
+    }
+  })
+
+  // F5 / Ctrl+R 界面重载（标题栏隐藏后无系统 reload 入口；主进程级监听，
+  // 渲染层卡死时依然可用）
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return
+    const key = typeof input.key === 'string' ? input.key.toLowerCase() : ''
+    if (input.key === 'F5' || (input.control && key === 'r')) {
+      event.preventDefault()
+      mainWindow?.webContents.reload()
     }
   })
 

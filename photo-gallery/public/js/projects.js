@@ -21,6 +21,14 @@ async function loadProjects(preferredProjectId = null) {
   }
 }
 
+function projectCoverColor(project) {
+  const palette = ['#2F6F6A', '#C75B39', '#B08A2E', '#5B5F97', '#7A8B6F', '#8A5A78'];
+  const key = String(project.id || project.name || '');
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  return palette[hash % palette.length];
+}
+
 function renderProjectSidebar() {
   const list = document.getElementById('projectList');
   if (!list) return;
@@ -33,8 +41,13 @@ function renderProjectSidebar() {
     item.tabIndex = 0;
       item.setAttribute('aria-label', `${project.name}，${project.photo_count || 0} 张样片，右键打开方案菜单`);
     item.title = '右键：复制或删除拍摄方案';
+    const initial = (project.name || '?').trim().charAt(0).toUpperCase();
     item.innerHTML = `
-      <span class="project-name">${escapeHtml(project.name)}</span>
+      <span class="project-item-cover" style="background:${projectCoverColor(project)}">${escapeHtml(initial)}</span>
+      <span class="project-name">
+        <span class="project-name-text">${escapeHtml(project.name)}</span>
+        <span class="project-item-sub">${escapeHtml(project.description || '')}</span>
+      </span>
       <span class="project-item-meta">
         <span class="photo-count">${project.photo_count || 0}</span>
         <i class="fa-solid fa-ellipsis project-item-menu-hint" aria-hidden="true"></i>

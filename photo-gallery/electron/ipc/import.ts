@@ -119,6 +119,8 @@ export async function importPhotoToDatabase(
     height,
     created_at: createdAt,
     exif_json: exifJson,
+    // v6 收集箱：所有新入库样片（导入/截图/网页收集）先落入收集箱
+    review_state: 'inbox',
     ...normalizeSource(source)
   }
   if (projectId !== undefined && projectId !== null) {
@@ -147,6 +149,7 @@ async function performImport(
 
   let imported = 0
   let skipped = 0
+  const importedPhotoIds: number[] = []
 
   for (let i = 0; i < filePaths.length; i++) {
     const filePath = filePaths[i]
@@ -163,6 +166,7 @@ async function performImport(
         skipped++
       } else {
         imported++
+        importedPhotoIds.push(photo.id)
       }
     }
   }
@@ -172,7 +176,7 @@ async function performImport(
 
   notifyProgress({ total: filePaths.length, current: filePaths.length, status: 'done', message })
 
-  return { success: true, imported, skipped, thumbnailsGenerated: 0, total: filePaths.length }
+  return { success: true, imported, skipped, thumbnailsGenerated: 0, total: filePaths.length, importedPhotoIds }
 }
 
 export function registerImportIpc(mainWindow: BrowserWindow | null): void {

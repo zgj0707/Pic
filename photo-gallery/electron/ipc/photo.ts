@@ -90,6 +90,11 @@ function buildPhotoFilterSql(filter: PhotoFilter): { whereClause: string; params
     params.push(filter.reviewState)
   }
 
+  if (filter.excludeReviewState) {
+    conditions.push('(p.review_state IS NULL OR p.review_state != ?)')
+    params.push(filter.excludeReviewState)
+  }
+
   if (filter.unrated) {
     conditions.push('p.rating = 0')
   }
@@ -226,7 +231,7 @@ export function registerPhotoIpc(): void {
   ipcMain.handle('photos:countByReviewState', wrapHandler('photos:countByReviewState',
     (_event, projectId: number) => {
       const rows = dbAdapter.query('SELECT review_state, COUNT(*) as total FROM photos WHERE project_id = ? AND deleted_at IS NULL GROUP BY review_state', [projectId])
-      const counts: Record<ReviewState, number> = { unreviewed: 0, pick: 0, reject: 0 }
+      const counts: Record<ReviewState, number> = { inbox: 0, unreviewed: 0, pick: 0, reject: 0 }
       for (const row of rows) {
         if (isReviewState(row.review_state)) counts[row.review_state] = Number(row.total) || 0
       }

@@ -1,11 +1,55 @@
 // Desktop/file import and photo-to-project drag and drop.
 
 const PIC_PHOTO_DRAG_TYPE = 'application/x-pic-photo-ids';
+const PIC_SHOT_COPY_DRAG_TYPE = 'application/x-pic-shot-copy';
 window.PIC_PHOTO_DRAG_TYPE = PIC_PHOTO_DRAG_TYPE;
 window.picPhotoDragActive = false;
 
 function hasPicPhotoPayload(dataTransfer) {
   return Boolean(dataTransfer?.types?.includes(PIC_PHOTO_DRAG_TYPE));
+}
+
+function hasShotCopyPayload(dataTransfer) {
+  return Boolean(dataTransfer?.types?.includes(PIC_SHOT_COPY_DRAG_TYPE));
+}
+
+function readShotCopyPayload(dataTransfer) {
+  if (!hasShotCopyPayload(dataTransfer)) return null;
+  try {
+    const payload = JSON.parse(dataTransfer.getData(PIC_SHOT_COPY_DRAG_TYPE));
+    if (!payload || !Number.isInteger(Number(payload.sourceProjectId)) || !Number.isInteger(Number(payload.shotId))) return null;
+    return {
+      sourceProjectId: Number(payload.sourceProjectId),
+      shotId: Number(payload.shotId),
+      lane: typeof payload.lane === 'string' ? payload.lane : '',
+      shotName: typeof payload.shotName === 'string' ? payload.shotName : ''
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function copyShotToProject(payload, targetProjectId) {
+  if (!payload) return;
+  if (Number(payload.sourceProjectId) === Number(targetProjectId)) {
+    showToast('镜头已经在这个项目中', 'info');
+    return;
+  }
+  if (!window.electronAPI?.shots?.copy) {
+    showToast('跨项目复制功能当前不可用，请重启应用后重试', 'error');
+    return;
+  }
+  try {
+    const result = await window.electronAPI.shots.copy(payload.sourceProjectId, payload.shotId, targetProjectId, { lane: payload.lane || undefined });
+    if (!result?.success) throw new Error(result?.error || '复制镜头失败');
+    const targetName = projects.find(project => project.id === Number(targetProjectId))?.name || '目标项目';
+    showToast(`已复制「${payload.shotName || '镜头'}」到「${targetName}」· ${payload.lane || '原景别'}（原镜头保留）`, 'success');
+    if (Number(currentProjectId) === Number(targetProjectId) && currentPanel === 'planning' && typeof loadPlanning === 'function') {
+      await loadPlanning();
+    }
+  } catch (error) {
+    showToast('复制镜头失败: ' + (error instanceof Error ? error.message : String(error)), 'error');
+  }
 }
 
 function readPicPhotoPayload(dataTransfer) {
@@ -152,7 +196,7 @@ function bindProjectDropTargets() {
   list.addEventListener('dragover', event => {
     const target = event.target.closest('.project-item');
     if (!target) return;
-    if (hasPicPhotoPayload(event.dataTransfer) || hasExternalFiles(event.dataTransfer)) {
+    if (hasPicPhotoPayload(event.dataTransfer) || hasShotCopyPayload(event.dataTransfer) || hasExternalFiles(event.dataTransfer)) {
       event.preventDefault();
       event.stopPropagation();
       event.dataTransfer.dropEffect = hasPicPhotoPayload(event.dataTransfer) ? 'move' : 'copy';
@@ -171,6 +215,13 @@ function bindProjectDropTargets() {
     if (!target) return;
     clearDropTargetStates();
     const targetProjectId = Number(target.dataset.projectId);
+    const shotPayload = readShotCopyPayload(event.dataTransfer);
+    if (shotPayload) {
+      event.preventDefault();
+      event.stopPropagation();
+      void copyShotToProject(shotPayload, targetProjectId);
+      return;
+    }
     const payload = readPicPhotoPayload(event.dataTransfer);
     if (payload) {
       event.preventDefault();

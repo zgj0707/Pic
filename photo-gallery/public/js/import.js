@@ -38,11 +38,18 @@ async function importFromFolder() {
   if (!ensureCurrentProjectForImport() || !window.electronAPI) return;
   const dir = await window.electronAPI.dialog.openDirectory();
   if (!dir) return;
-  showProgress('导入样片', '正在扫描...', '');
-  startImportProgressListener();
-  const result = await window.electronAPI.import.fromDirectory(dir, currentProjectId);
-  stopImportProgressListener();
-  hideProgress();
+  let result = null;
+  try {
+    showProgress('导入样片', '正在扫描...', '');
+    startImportProgressListener();
+    result = await window.electronAPI.import.fromDirectory(dir, currentProjectId);
+  } catch (error) {
+    showToast('导入失败: ' + (error instanceof Error ? error.message : String(error)), 'error');
+    return null;
+  } finally {
+    stopImportProgressListener();
+    hideProgress();
+  }
   if (result.success) {
     let message = `成功导入 ${result.imported} 张样片`;
     if (result.skipped > 0) {
@@ -59,17 +66,25 @@ async function importFromFolder() {
   } else {
     showToast('导入失败: ' + (result.error || '未知错误'), 'error');
   }
+  return result;
 }
 
 async function importFromFiles() {
   if (!ensureCurrentProjectForImport() || !window.electronAPI) return;
   const files = await window.electronAPI.dialog.openFile();
   if (!files || files.length === 0) return;
-  showProgress('导入样片', '正在导入...', '');
-  startImportProgressListener();
-  const result = await window.electronAPI.import.fromFiles(files, currentProjectId);
-  stopImportProgressListener();
-  hideProgress();
+  let result = null;
+  try {
+    showProgress('导入样片', '正在导入...', '');
+    startImportProgressListener();
+    result = await window.electronAPI.import.fromFiles(files, currentProjectId);
+  } catch (error) {
+    showToast('导入失败: ' + (error instanceof Error ? error.message : String(error)), 'error');
+    return null;
+  } finally {
+    stopImportProgressListener();
+    hideProgress();
+  }
   if (result.success) {
     let message = `成功导入 ${result.imported} 张样片`;
     if (result.skipped > 0) {
@@ -86,4 +101,5 @@ async function importFromFiles() {
   } else {
     showToast('导入失败: ' + (result.error || '未知错误'), 'error');
   }
+  return result;
 }

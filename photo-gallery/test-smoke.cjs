@@ -105,11 +105,17 @@ async function main() {
     'material-browser:open-download-dir', 'material-browser:clear-download-cache',
     'material-browser:import-to-library',
     'project-references:getAll', 'project-references:add', 'project-references:remove', 'project-references:export',
+    'shotGroups:getAll', 'shotGroups:create', 'shotGroups:rename', 'shotGroups:reorder', 'shotGroups:remove',
+    'shots:getAll', 'shots:create', 'shots:generateFromSelections', 'shots:update', 'shots:reorder', 'shots:remove',
+    'planningExports:getAll', 'planningExports:record', 'planningExports:preflight', 'planningExports:exportPdf',
+    'delivery:export', 'delivery:openFolder',
     'app:quit', 'dialog:openDirectory', 'dialog:openFile', 'path:join', 'path:appData',
     'shell:showItemInFolder', 'shell:openPath', 'app:getVersionInfo', 'app:getChangelog',
     'cache:getStats', 'cache:clearAll', 'cache:cleanOld', 'cache:enforceLimit',
     'window:minimize', 'window:maximize', 'window:close', 'window:isMaximized',
-    'photos:copyToDesktopFolder', 'photos:exportToPdf', 'photos:copyImageToClipboard',
+    'window:reload', 'window:setTitleBarOverlay',
+    'photos:copyImageToClipboard',
+    'photos:exportToPdf',
     'projects:movePhotos'
   ]
   let missing = 0

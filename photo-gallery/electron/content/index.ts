@@ -46,6 +46,7 @@ import { registerProjectIpc } from '../ipc/project'
 import { registerSelectionIpc } from '../ipc/selection'
 import { registerProjectShotsIpc } from '../ipc/projectShots'
 import { registerPlanningExportsIpc } from '../ipc/planningExports'
+import { registerPdfExportIpc } from '../ipc/pdfExport'
 import { registerDeliveryIpc } from '../ipc/delivery'
 import { registerMaterialBrowserIpc, setupDownloadHandler, setupMaterialBrowserView, disposeMaterialBrowserView } from '../ipc/materialBrowser'
 import { registerProjectReferencesIpc } from '../ipc/projectReferences'
@@ -58,11 +59,11 @@ import { wrapAsyncHandler, wrapHandler } from '../utils/ipcHandler'
 import type { ChangelogEntry } from '../types'
 
 export const name = 'pic-content'
-export const version = '5.0.0'
+export const version = '5.1.0'
 
 // Content module capabilities (what the shell can rely on).
 export const capabilities = {
-  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'capture', 'projectReferences', 'projects', 'selection', 'projectShots', 'planningExports', 'delivery'],
+  ipc: ['photos', 'albums', 'import', 'database', 'rename', 'tags', 'exif', 'delete', 'materialBrowser', 'capture', 'projectReferences', 'projects', 'selection', 'projectShots', 'planningExports', 'pdfExport', 'delivery'],
   services: ['cache', 'changelog', 'window'],
   db: true
 }
@@ -131,6 +132,7 @@ export function registerIpc(c: ContentContext): void {
   registerSelectionIpc()
   registerProjectShotsIpc()
   registerPlanningExportsIpc(c)
+  registerPdfExportIpc(c)
   registerDeliveryIpc()
   registerMaterialBrowserIpc(c.getMainWindow())
   registerProjectReferencesIpc(c.app.getPath('desktop'))
@@ -327,6 +329,17 @@ function registerGenericHandlers(c: ContentContext): void {
   }))
   ipcMain.handle('window:close', wrapHandler('window:close', () => c.getMainWindow()?.close()))
   ipcMain.handle('window:isMaximized', wrapHandler('window:isMaximized', () => c.getMainWindow()?.isMaximized() ?? false))
+  ipcMain.handle('window:reload', wrapHandler('window:reload', () => c.getMainWindow()?.webContents.reload()))
+  ipcMain.handle('window:setTitleBarOverlay', wrapHandler('window:setTitleBarOverlay', (_e, overlay: { color?: string; symbolColor?: string; height?: number }) => {
+    const win = c.getMainWindow()
+    if (!win) return
+    try {
+      // Windows WCO 专用：随界面主题切换标题条深浅色，其他平台静默跳过
+      if (process.platform === 'win32' && typeof win.setTitleBarOverlay === 'function') {
+        win.setTitleBarOverlay(overlay)
+      }
+    } catch { /* overlay 未启用时忽略 */ }
+  }))
 
   // ─── Photo file helpers ───
   ipcMain.handle('photos:copyImageToClipboard', wrapAsyncHandler('photos:copyImageToClipboard',

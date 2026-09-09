@@ -58,6 +58,8 @@ function updateSelectionActionBar() {
   document.getElementById('selectionActionCount')?.replaceChildren(document.createTextNode(`已选 ${count} 张`))
   const addToShotList = document.getElementById('addToShotListBtn')
   if (addToShotList) addToShotList.disabled = count === 0 || currentProjectId === null || isRecycleBinView
+  const galleryExport = document.getElementById('galleryExportBtn')
+  if (galleryExport) galleryExport.disabled = count === 0 || currentPanel !== 'gallery' || isRecycleBinView
   const coverButton = document.getElementById('selectionActionCoverBtn')
   if (coverButton) coverButton.disabled = count !== 1 || currentProjectId === null || isRecycleBinView
   if (!document.getElementById('projectBriefEditor')?.classList.contains('hidden')) renderBriefCoverPicker()

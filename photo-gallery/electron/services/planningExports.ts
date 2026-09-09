@@ -5,7 +5,22 @@ import { tmpdir } from 'os'
 import { dbAdapter, saveDatabase } from './database'
 import { listProjectShots } from './projectShots'
 import { availablePdfPath } from './pdfExport'
+import { SHOT_LANES, SHOT_LANE_UNFILED, type ShotChapter } from '../types'
 import type { PlanningPdfExportResult, PlanningPdfPreflightResult, ProjectShot } from '../types'
+
+/** PDF 导出章节固定顺序：五景别在前，「待归类」兜底轨排最后（轨道内保持 position 顺序） */
+const PLANNING_EXPORT_LANE_ORDER: readonly ShotChapter[] = [...SHOT_LANES, SHOT_LANE_UNFILED]
+
+export function orderShotsForExport(shots: ProjectShot[]): ProjectShot[] {
+  const laneIndex = new Map<string, number>(PLANNING_EXPORT_LANE_ORDER.map((lane, index) => [lane, index]))
+  return shots
+    .map((shot, index) => ({ shot, index }))
+    .sort((a, b) => {
+      const laneDiff = (laneIndex.get(a.shot.chapter) ?? laneIndex.size) - (laneIndex.get(b.shot.chapter) ?? laneIndex.size)
+      return laneDiff !== 0 ? laneDiff : a.index - b.index
+    })
+    .map(entry => entry.shot)
+}
 
 export type PlanningExportKind = 'moodboard' | 'shot-list' | 'reference-package'
 
@@ -172,7 +187,7 @@ export function buildPlanningHtml(projectName: string, project: Record<string, u
 export function preflightProjectPlanningPdf(projectId: number): PlanningPdfPreflightResult {
   const project = dbAdapter.get('SELECT id FROM projects WHERE id = ?', [projectId])
   if (!project) throw new Error('拍摄项目不存在')
-  const shots = listProjectShots(projectId)
+  const shots = orderShotsForExport(listProjectShots(projectId))
   const items = shots.map(shot => {
     const filename = basename(shot.photo.filepath || shot.photo.filename || '未命名样片')
     if (!shot.photo.filepath || !existsSync(shot.photo.filepath)) {
@@ -206,7 +221,7 @@ export async function exportProjectPlanningPdf(
   const project = dbAdapter.get('SELECT name, shoot_date, location FROM projects WHERE id = ?', [projectId])
   if (!project) throw new Error('拍摄项目不存在')
 
-  const shots = listProjectShots(projectId)
+  const shots = orderShotsForExport(listProjectShots(projectId))
   if (shots.length === 0) {
     return { success: false, exported: 0, failed: 0, results: [], error: '拍摄清单为空' }
   }

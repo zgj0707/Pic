@@ -16,6 +16,8 @@ let browserSourceUrls = (() => {
 })();
 let currentViewMode = localStorage.getItem('photoViewMode') || 'masonry';
 let isRecycleBinView = false;
+// v6 space rail: logical top-level workspace (inbox | gallery | planning | recycle | browser | settings)
+let currentSpace = 'gallery';
 let projects = [];
 let currentProjectId = null;
 let currentProjectName = '';
@@ -34,6 +36,11 @@ Object.defineProperties(PicState, {
     enumerable: true,
     get: () => currentPanel,
     set: value => { currentPanel = value; }
+  },
+  space: {
+    enumerable: true,
+    get: () => currentSpace,
+    set: value => { currentSpace = value; }
   },
   selectedPhotoIds: {
     enumerable: true,

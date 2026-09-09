@@ -44,7 +44,7 @@ export interface ProjectMaterialReference {
   created_at: number
 }
 
-export type ReviewState = 'unreviewed' | 'pick' | 'reject'
+export type ReviewState = 'inbox' | 'unreviewed' | 'pick' | 'reject'
 
 export interface ProjectSelection {
   id: number
@@ -73,6 +73,13 @@ export interface ProjectShot {
   updated_at: number
   photo: Photo
 }
+
+/** v6 五景别分镜轨道（远景→中景→近景→特写→空镜，固定顺序） */
+export const SHOT_LANES = ['远景', '中景', '近景', '特写', '空镜'] as const
+export type ShotLane = (typeof SHOT_LANES)[number]
+/** 迁移期兜底轨道：v5 自由分组数据收敛到这里，等待拖入五景别 */
+export const SHOT_LANE_UNFILED = '待归类'
+export type ShotChapter = ShotLane | typeof SHOT_LANE_UNFILED
 
 export interface ShotGroup {
   id: number
@@ -214,6 +221,8 @@ export interface PhotoFilter {
   camera?: string
   lens?: string
   reviewState?: ReviewState | 'all'
+  /** v6 收集箱：样片库默认排除 inbox 状态（inbox 只出现在收集箱空间） */
+  excludeReviewState?: ReviewState
   sourceType?: 'web' | 'local'
   sourceDomain?: string
   tagsAll?: string[]
@@ -259,6 +268,8 @@ export interface ImportResult {
   skipped: number
   thumbnailsGenerated: number
   total: number
+  /** IDs of newly-created photos, used by the planning import workflow. */
+  importedPhotoIds?: number[]
   error?: string
 }
 
