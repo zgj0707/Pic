@@ -4,7 +4,7 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { closeDatabase, dbAdapter, initializeDatabase } from '../../electron/services/database'
 import { buildPlanningHtml, listProjectExports, orderShotsForExport, recordProjectExport } from '../../electron/services/planningExports'
-import { SHOT_LANES, SHOT_LANE_UNFILED, type ProjectShot } from '../../electron/types'
+import { SHOT_LANE_UNFILED, type ProjectShot } from '../../electron/types'
 
 describe('planning export records', () => {
   let tempDir = ''

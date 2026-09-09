@@ -1,6 +1,6 @@
 import { dbAdapter, saveDatabase } from './database'
 import type { Photo, ProjectShot, ShotGroup } from '../types'
-import { SHOT_LANES, SHOT_LANE_UNFILED, type ShotChapter, type ShotLane } from '../types'
+import { SHOT_LANES, SHOT_LANE_UNFILED, type ShotChapter } from '../types'
 
 const SHOT_STATUSES = ['planned', 'ready', 'done'] as const
 type ShotStatus = typeof SHOT_STATUSES[number]

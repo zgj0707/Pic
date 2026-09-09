@@ -11,7 +11,6 @@ import {
   listShotGroups,
   listProjectShots,
   listShotsByLane,
-  removeProjectShot,
   reorderProjectShots,
   removeShotsForPhotos,
   updateProjectShot
