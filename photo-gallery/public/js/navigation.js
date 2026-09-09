@@ -6,7 +6,11 @@
 const XHS_URL = 'https://www.xiaohongshu.com';
 
 function navigateToWorkspace(workspace) {
+  currentSpace = workspace;
+  PicState.space = workspace;
   switch (workspace) {
+    case 'inbox':
+      return showToast('收集箱将在 Phase 5 上线：截图与导入的样片会先落在这里', 'info');
     case 'gallery':
       return switchToGallery();
     case 'recycle':
@@ -22,6 +26,30 @@ function navigateToWorkspace(workspace) {
     default:
       console.warn('Unknown workspace:', workspace);
   }
+}
+
+// Space rail (v6): the left icon rail is the primary navigation surface.
+const SPACE_RAIL_MAP = {
+  gallery: 'gallery',
+  recycle: 'recycle',
+  browser: 'browser',
+  planning: 'planning',
+  settings: 'settings'
+};
+
+function syncSpaceRailActive(workspace) {
+  const mapped = SPACE_RAIL_MAP[workspace] || (workspace === 'inbox' ? 'inbox' : '');
+  document.querySelectorAll('.space-rail .rail-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.space === mapped);
+  });
+}
+
+PicEvents?.on?.('workspace:changed', workspace => syncSpaceRailActive(workspace));
+
+function bindSpaceRail() {
+  document.querySelectorAll('.space-rail .rail-btn').forEach(btn => {
+    btn.addEventListener('click', () => navigateToWorkspace(btn.dataset.space));
+  });
 }
 
 function getSavedXiaohongshuUrl() {
@@ -261,18 +289,7 @@ function navigateBrowserToUrl() {
 }
 
 function bindNavigationEvents() {
-  document.getElementById('statusBrowserBtn')?.addEventListener('click', () => {
-    const panel = document.getElementById('materialBrowserPanel');
-    if (panel?.classList.contains('open')) closeMaterialBrowserPanel();
-    else navigateToWorkspace('browser');
-  });
-  document.getElementById('statusPlanningBtn')?.addEventListener('click', () => navigateToWorkspace('planning'));
-  document.getElementById('statusRecycleBtn')?.addEventListener('click', () => navigateToWorkspace('recycle'));
-  document.getElementById('statusSettingsBtn')?.addEventListener('click', () => {
-    const modal = document.getElementById('settingsModal');
-    if (modal?.classList.contains('hidden')) navigateToWorkspace('settings');
-    else document.getElementById('closeSettingsBtn')?.click();
-  });
+  bindSpaceRail();
   document.getElementById('statusProject')?.addEventListener('click', () => {
     if (isRecycleBinView || currentPanel === 'planning') navigateToWorkspace('gallery');
   });

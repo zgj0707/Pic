@@ -61,10 +61,35 @@
     </header>
 
     <div class="workspace-frame">
+      <!-- 空间轨道（v6 · Phase 2） -->
+      <nav class="space-rail" aria-label="工作空间">
+        <div class="rail-logo" aria-hidden="true">P</div>
+        <button class="rail-btn" data-space="inbox" type="button" title="收集箱" aria-label="收集箱">
+          <i class="fa-solid fa-inbox" aria-hidden="true"></i>
+        </button>
+        <button class="rail-btn active" data-space="gallery" type="button" title="样片库" aria-label="样片库">
+          <i class="fa-solid fa-images" aria-hidden="true"></i>
+        </button>
+        <button class="rail-btn" data-space="planning" type="button" title="分镜板 · 拍摄清单" aria-label="分镜板拍摄清单">
+          <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+        </button>
+        <button class="rail-btn" data-space="recycle" type="button" title="回收站" aria-label="回收站">
+          <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+          <span id="recycleCount" class="rail-badge hidden">0</span>
+        </button>
+        <button class="rail-btn" data-space="browser" type="button" title="素材浏览器" aria-label="素材浏览器">
+          <i class="fa-solid fa-photo-film" aria-hidden="true"></i>
+        </button>
+        <span class="rail-spacer" aria-hidden="true"></span>
+        <button class="rail-btn" data-space="settings" type="button" title="设置" aria-label="设置">
+          <i class="fa-solid fa-gear" aria-hidden="true"></i>
+        </button>
+      </nav>
+
       <aside class="project-sidebar" aria-label="拍摄方案导航">
         <div class="project-sidebar-header">
           <div>
-            <span class="sidebar-eyebrow">拍摄策划</span>
+            <span class="sidebar-eyebrow">项目分区</span>
             <h2 class="sidebar-title">拍摄方案</h2>
           </div>
           <button id="createProjectBtn" class="create-project-btn" type="button" title="新建拍摄方案">
@@ -72,13 +97,6 @@
           </button>
         </div>
         <div id="projectList" class="project-list custom-scrollbar" aria-label="拍摄方案列表"></div>
-        <div class="sidebar-auxiliary" aria-label="辅助空间">
-          <span class="sidebar-section-label">辅助空间</span>
-          <button id="statusPlanningBtn" type="button"><i class="fa-solid fa-list-check" aria-hidden="true"></i><span>拍摄清单</span></button>
-          <button id="statusRecycleBtn" type="button"><i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>回收站</span><span id="recycleCount" class="auxiliary-count"></span></button>
-          <button id="statusBrowserBtn" type="button"><i class="fa-solid fa-photo-film" aria-hidden="true"></i><span>素材浏览器</span></button>
-          <button id="statusSettingsBtn" type="button"><i class="fa-solid fa-gear" aria-hidden="true"></i><span>设置</span></button>
-        </div>
       </aside>
 
       <main class="workspace-main" aria-label="拍摄方案工作区">
