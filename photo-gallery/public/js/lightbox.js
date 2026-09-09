@@ -1,9 +1,10 @@
 // 灯箱查看相关函数
 // 与 app.js / grid.js 共享全局状态变量
 
-// 标题栏按钮条（Windows WCO）随灯箱开合切换深浅，避免米白条压在深色预览上
-const CAPTION_OVERLAY_LIGHT = { color: '#FAF8F4', symbolColor: '#6B655B' }
-const CAPTION_OVERLAY_DARK = { color: '#211C16', symbolColor: '#FAF8F4' }
+// 标题栏按钮条（Windows WCO）背景保持透明，灯箱开合只切换图标深浅：
+// 浅色界面用暖灰图标，深色灯箱用纸白图标
+const CAPTION_OVERLAY_LIGHT = { color: '#00000000', symbolColor: '#6B655B' }
+const CAPTION_OVERLAY_DARK = { color: '#00000000', symbolColor: '#FAF8F4' }
 
 function syncCaptionOverlay(theme) {
   try {

@@ -82,7 +82,7 @@ function createWindow(): void {
     minHeight: 600,
     titleBarStyle: 'hidden',
     titleBarOverlay: {
-      color: '#FAF8F4',
+      color: '#00000000', // 透明背景：按钮直接浮在当前界面上，跟随任意主题
       symbolColor: '#6B655B',
       height: 40
     },
