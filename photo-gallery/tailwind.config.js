@@ -4,15 +4,15 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        bgPrimary: '#0a0a0a',
-        bgSecondary: '#141414',
-        textPrimary: '#f0ede8',
-        textSecondary: '#9a9791',
-        textDisabled: '#6b6864',
-        accent: '#c9955a',
-        borderColor: '#1e1e1e',
-        disabled: '#555555',
-        scrollbar: '#333333'
+        bgPrimary: '#FAF8F4',
+        bgSecondary: '#F1EDE6',
+        textPrimary: '#201C16',
+        textSecondary: '#6B645A',
+        textDisabled: '#B8AE9C',
+        accent: '#C75B39',
+        borderColor: '#E7E1D6',
+        disabled: '#C9C0B0',
+        scrollbar: '#D2CABA'
       },
       fontFamily: {
         sans: ['DM Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],

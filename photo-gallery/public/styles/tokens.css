@@ -3,25 +3,47 @@
   --sidebar-min-width: 200px;
   --sidebar-max-width: 400px;
 
-  --accent: #c9955a;
-  --accent-glow: rgba(201, 149, 90, .3);
-  --danger: #d96f73;
-  --success: #64d39a;
-  --focus-ring: #e8b878;
+  /* === 品牌与语义（v6 · 画廊纸感）=== */
+  /* 主强调：陶土橘（原暖金 #c9955a 升级） */
+  --accent: #C75B39;
+  --accent-glow: rgba(199, 91, 57, .28);
+  --danger: #B3372F;
+  --success: #2F7D53;
+  --focus-ring: #A8492B;
 
-  --bg-deep: #0a0a0a;
-  --bg-primary: #101214;
-  --bg-surface: #141414;
-  --bg-secondary: #17191c;
-  --bg-elevated: #1a1a1a;
+  /* === 新令牌 · 纸面色阶 === */
+  --paper: #FAF8F4;          /* 主工作面 */
+  --paper-sunk: #F1EDE6;     /* 下沉区 / 输入底 */
+  --card: #FFFFFF;           /* 卡片 / 面板 */
+  --clay: #C75B39;
+  --clay-strong: #A8492B;
+  --clay-soft: #F6E3DB;
+  --clay-ink: #FFF6F2;
+  --line: #E7E1D6;
+  --ink: #201C16;
+  --ink-2: #6B645A;
+  --ink-3: #8F887B;
+  /* 场景五色板（远景/中景/近景/特写/空镜） */
+  --sc-far: #2F6F6A;
+  --sc-mid: #C75B39;
+  --sc-near: #B08A2E;
+  --sc-close: #5B5F97;
+  --sc-empty: #7A8B6F;
 
-  --border-subtle: #2a2d31;
-  --border-color: #34383d;
+  /* === 兼容映射（旧变量名 → 纸感值，Phase 1 保持引用不变）=== */
+  --bg-deep: var(--paper);        /* 原：窗口最底层 → 主工作面 */
+  --bg-primary: var(--paper);     /* 原：工作区 */
+  --bg-surface: var(--card);      /* 原：卡片/面板 */
+  --bg-secondary: var(--paper-sunk); /* 原：次级面板 → 下沉区 */
+  --bg-elevated: var(--card);     /* 原：浮层 */
 
-  --text-primary: #f4f1eb;
-  --text-secondary: #b4b0aa;
-  --text-warm: #f0ede8;
-  --text-muted: #9a9791;
+  --border-subtle: var(--line);
+  --border-color: #D5CDBC;
+
+  --text-primary: var(--ink);
+  --text-secondary: var(--ink-2);
+  --text-warm: var(--ink);        /* 原：强调标题色 → 主墨色 */
+  --text-muted: var(--ink-3);
 
   --font-display: 'DM Serif Display', Georgia, serif;
   --space-1: 4px;
@@ -41,7 +63,7 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
   scroll-behavior: smooth;
 }
 
