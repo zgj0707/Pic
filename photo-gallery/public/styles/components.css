@@ -242,15 +242,32 @@
       to { opacity: 1; transform: scale(1) translateY(0); }
     }
     
-    .zoom-controls { 
-      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); 
-      display: flex; gap: 8px; z-index: 1002; 
-      background: rgba(255,255,255,0.92); 
+    .zoom-controls {
+      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 4px; z-index: 1002;
+      background: rgba(32, 28, 22, 0.88);
       backdrop-filter: blur(16px);
-      border: 1px solid rgba(32,28,22,0.06);
-      padding: 6px;
+      border: 1px solid rgba(250, 248, 244, 0.16);
+      border-radius: 999px;
+      padding: 6px 10px;
+      box-shadow: 0 10px 30px rgba(15, 12, 8, 0.35);
     }
-    
+    .zoom-controls .zoom-btn {
+      align-items: center; border-radius: 999px; color: #FAF8F4;
+      cursor: pointer; display: inline-flex; font-size: 12px; justify-content: center;
+      min-width: 34px; padding: 7px 10px; background: transparent; border: none;
+      transition: background 0.15s ease;
+    }
+    .zoom-controls .zoom-btn:hover { background: rgba(250, 248, 244, 0.16); }
+    .zoom-controls .zoom-btn:active { background: rgba(250, 248, 244, 0.26); }
+    .zoom-controls .zoom-level {
+      color: #FAF8F4; font-size: 12px; font-variant-numeric: tabular-nums;
+      min-width: 52px; text-align: center; letter-spacing: 0.02em;
+    }
+    .zoom-controls .zoom-divider {
+      width: 1px; height: 18px; background: rgba(250, 248, 244, 0.22); margin: 0 6px;
+    }
+
 /* === Photo item entrance animation === */
     .photo-item {
       animation: photoEntrance 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;

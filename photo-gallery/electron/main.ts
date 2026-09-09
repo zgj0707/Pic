@@ -12,7 +12,7 @@
  *   3. Creating the BrowserWindow and driving the content module's lifecycle
  */
 
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, nativeTheme } from 'electron'
 import { join } from 'path'
 import { existsSync } from 'fs'
 
@@ -73,14 +73,21 @@ function loadContentModule(): { exports: any; dir: string; isExternal: boolean }
 }
 
 function createWindow(): void {
+  // v6 纸感浅色主题：标题栏/窗口底色与内页一致，避免黑色外框突兀
+  nativeTheme.themeSource = 'light'
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 1000,
     minHeight: 600,
-    titleBarStyle: 'hiddenInset',
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#FAF8F4',
+      symbolColor: '#6B655B',
+      height: 40
+    },
     show: true,
-    backgroundColor: '#1c1c1c',
+    backgroundColor: '#FAF8F4',
     webPreferences: {
       preload: join(__dirname, '../preload/preload.js'),
       contextIsolation: true,

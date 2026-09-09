@@ -338,11 +338,12 @@
     <div id="imageContainer" class="flex items-center justify-center w-full h-full overflow-hidden">
       <img id="lightboxImage" src="" alt="" draggable="false">
     </div>
-    <div class="zoom-controls bg-bgSecondary rounded-full px-4 py-2">
-      <button id="zoomOut" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white" aria-label="缩小样片"><i class="fa-solid fa-minus"></i></button>
-      <span id="zoomLevel" class="px-3 py-1 text-white">100%</span>
-      <button id="zoomIn" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white" aria-label="放大样片"><i class="fa-solid fa-plus"></i></button>
-      <button id="zoomReset" class="px-3 py-1 bg-bgPrimary rounded hover:bg-accent/20 text-white ml-2">重置</button>
+    <div class="zoom-controls" role="group" aria-label="缩放控制">
+      <button id="zoomOut" class="zoom-btn" aria-label="缩小样片"><i class="fa-solid fa-minus"></i></button>
+      <span id="zoomLevel" class="zoom-level">100%</span>
+      <button id="zoomIn" class="zoom-btn" aria-label="放大样片"><i class="fa-solid fa-plus"></i></button>
+      <span class="zoom-divider" aria-hidden="true"></span>
+      <button id="zoomReset" class="zoom-btn" aria-label="重置缩放">重置</button>
     </div>
     <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 p-4 z-10">
       <div class="flex items-center justify-between">

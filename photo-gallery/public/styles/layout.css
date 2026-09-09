@@ -318,9 +318,16 @@
   display: flex;
   align-items: center;
   gap: 24px;
-  padding: 0 20px;
+  padding: 0 152px 0 20px; /* 右侧留出 Windows 标题栏按钮（titleBarOverlay）位置 */
   flex-shrink: 0;
   z-index: 20;
+  -webkit-app-region: drag;
+}
+
+.app-header button,
+.app-header input,
+.app-header .header-overflow-menu {
+  -webkit-app-region: no-drag;
 }
 
 .brand-lockup {
@@ -568,7 +575,7 @@
 .empty-state-actions { display: flex; align-items: center; justify-content: center; gap: 8px; }
 
 @media (max-width: 1240px) {
-  .app-header { gap: 12px; padding: 0 14px; }
+  .app-header { gap: 12px; padding: 0 152px 0 14px; }
   .header-project-context { display: none; }
   .header-primary-actions span { display: none; }
   .header-primary-actions .primary-action,
