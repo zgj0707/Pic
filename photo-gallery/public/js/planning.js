@@ -122,6 +122,7 @@ function openPlanningPanel() {
   closeMaterialBrowserPanel?.()
   document.getElementById('settingsModal')?.classList.add('hidden')
   document.getElementById('galleryPanel')?.classList.add('hidden')
+  document.getElementById('inboxPanel')?.classList.add('hidden')
   document.getElementById('planningPanel')?.classList.remove('hidden')
   currentPanel = 'planning'
   if (typeof updateToolbarForGallery === 'function') updateToolbarForGallery()

@@ -10,7 +10,7 @@ function navigateToWorkspace(workspace) {
   PicState.space = workspace;
   switch (workspace) {
     case 'inbox':
-      return showToast('收集箱将在 Phase 5 上线：截图与导入的样片会先落在这里', 'info');
+      return openInboxPanel();
     case 'gallery':
       return switchToGallery();
     case 'recycle':
@@ -214,6 +214,7 @@ function switchToGallery() {
   if (typeof closePlanningPanel === 'function') {
     document.getElementById('planningPanel')?.classList.add('hidden');
   }
+  document.getElementById('inboxPanel')?.classList.add('hidden');
   const settingsModal = document.getElementById('settingsModal');
   if (settingsModal) settingsModal.classList.add('hidden');
   isRecycleBinView = false;
@@ -235,6 +236,7 @@ function switchToGallery() {
 }
 
 function switchToRecycleBin() {
+  document.getElementById('inboxPanel')?.classList.add('hidden');
   isRecycleBinView = true;
   currentPanel = 'recycle';
   selectedPhotos.clear();

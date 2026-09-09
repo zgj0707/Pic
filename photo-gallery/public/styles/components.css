@@ -512,3 +512,129 @@
   .planning-shot-image-wrap { width: 76px; }
   .planning-header { flex-direction: column; }
 }
+
+/* === PIC v6 inbox triage space === */
+.inbox-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px 18px;
+  overflow: hidden;
+  background: var(--bg-primary, #FAF8F4);
+}
+.inbox-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-color, #D5CDBC);
+  flex-wrap: wrap;
+}
+.inbox-head h2 {
+  margin: 3px 0 4px;
+  font-family: 'DM Serif Display', serif;
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--text-warm);
+}
+.inbox-summary { margin: 0; color: var(--text-muted); font-size: 12.5px; }
+.inbox-tip {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 6px 14px;
+  white-space: nowrap;
+}
+.inbox-tip b { color: var(--clay-strong); }
+.inbox-tip kbd {
+  font-family: inherit;
+  font-size: 10.5px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0 4px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+.inbox-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+  align-content: start;
+  padding-top: 16px;
+}
+.inbox-empty {
+  grid-column: 1 / -1;
+  border: 2px dashed var(--border-color, #D5CDBC);
+  border-radius: 16px;
+  padding: 42px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.inbox-empty span { font-size: 12px; color: var(--ink-3); }
+.inbox-card {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-secondary, #F1EDE6);
+  box-shadow: 0 1px 3px rgba(32, 28, 22, .08);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.inbox-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(32, 28, 22, .14); }
+.inbox-thumb { display: block; width: 100%; height: 100%; object-fit: cover; }
+.inbox-src {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 10.5px;
+  color: #FFF6F2;
+  background: rgba(32, 28, 22, .55);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+.inbox-triage {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 8px;
+  background: linear-gradient(0deg, rgba(32, 28, 22, .74), transparent);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.inbox-card:hover .inbox-triage { opacity: 1; }
+.inbox-triage button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 27px;
+  padding: 0 9px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: rgba(250, 248, 244, .94);
+  color: var(--ink, #201C16);
+  cursor: pointer;
+}
+.inbox-triage button:hover { background: var(--clay); color: var(--clay-ink); }
+.inbox-key {
+  font-size: 9.5px;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  padding: 0 3px;
+}
+.inbox-triage button:hover .inbox-key { color: var(--clay-ink); border-color: rgba(255, 246, 242, .5); }
+.inbox-discard:hover { background: var(--danger) !important; color: #FFF6F2 !important; }

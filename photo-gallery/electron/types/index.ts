@@ -44,7 +44,7 @@ export interface ProjectMaterialReference {
   created_at: number
 }
 
-export type ReviewState = 'unreviewed' | 'pick' | 'reject'
+export type ReviewState = 'inbox' | 'unreviewed' | 'pick' | 'reject'
 
 export interface ProjectSelection {
   id: number
@@ -221,6 +221,8 @@ export interface PhotoFilter {
   camera?: string
   lens?: string
   reviewState?: ReviewState | 'all'
+  /** v6 收集箱：样片库默认排除 inbox 状态（inbox 只出现在收集箱空间） */
+  excludeReviewState?: ReviewState
   sourceType?: 'web' | 'local'
   sourceDomain?: string
   tagsAll?: string[]

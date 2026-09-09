@@ -119,6 +119,8 @@ export async function importPhotoToDatabase(
     height,
     created_at: createdAt,
     exif_json: exifJson,
+    // v6 收集箱：所有新入库样片（导入/截图/网页收集）先落入收集箱
+    review_state: 'inbox',
     ...normalizeSource(source)
   }
   if (projectId !== undefined && projectId !== null) {

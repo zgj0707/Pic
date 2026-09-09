@@ -60,6 +60,11 @@ function buildBackendPhotoFilter() {
     filter.projectId = currentProjectId;
   }
 
+  // v6 收集箱：样片库默认不显示 inbox 状态的样片（它们只出现在收集箱）
+  if (!isRecycleBinView) {
+    filter.excludeReviewState = 'inbox';
+  }
+
   if (search) filter.search = search;
 
   return filter;

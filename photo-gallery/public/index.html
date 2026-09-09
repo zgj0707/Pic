@@ -171,6 +171,18 @@
           </div>
         </section>
 
+        <section id="inboxPanel" class="inbox-panel hidden" aria-label="收集箱">
+          <div class="inbox-head">
+            <div>
+              <span class="section-eyebrow">先收集 · 再拍板</span>
+              <h2>收集箱</h2>
+              <p id="inboxSummary" class="inbox-summary">截图、拖入与网页收藏的样片先落在这里，hover 一键拍板到景别轨道</p>
+            </div>
+            <span class="inbox-tip">拍板：<b>远景</b> <kbd>1</kbd> · <b>中景</b> <kbd>2</kbd> · <b>近景</b> <kbd>3</kbd> · <b>特写</b> <kbd>4</kbd> · <b>空镜</b> <kbd>5</kbd> · 丢弃 <kbd>X</kbd></span>
+          </div>
+          <div class="inbox-grid custom-scrollbar" id="inboxGrid"></div>
+        </section>
+
         <section id="planningPanel" class="planning-panel hidden" aria-label="分镜板">
           <div class="planning-header">
             <div>
@@ -499,6 +511,7 @@
   <script src="js/ui.js"></script>
   <script src="js/enhancements.js"></script>
   <script src="js/planning.js"></script>
+  <script src="js/inbox.js"></script>
   <script src="js/dragdrop.js"></script>
   <script src="js/app.js"></script>
 </body>
