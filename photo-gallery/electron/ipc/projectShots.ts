@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { wrapHandler } from '../utils/ipcHandler'
 import {
+  copyProjectShot,
   createProjectShot,
   createShotsFromSelections,
   createShotGroup,
@@ -58,5 +59,9 @@ export function registerProjectShotsIpc(): void {
 
   ipcMain.handle('shots:remove', wrapHandler('shots:remove', (_event, projectId: number, shotId: number) => {
     return { success: removeProjectShot(projectId, shotId) }
+  }))
+
+  ipcMain.handle('shots:copy', wrapHandler('shots:copy', (_event, sourceProjectId: number, shotId: number, toProjectId: number, options?: { lane?: string }) => {
+    return { success: true, shot: copyProjectShot(shotId, toProjectId, options) }
   }))
 }

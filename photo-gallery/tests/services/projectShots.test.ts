@@ -4,6 +4,7 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { addProjectSelection, updateProjectSelectionMeta } from '../../electron/services/projectSelections'
 import {
+  copyProjectShot,
   createShotGroup,
   createProjectShot,
   createShotsFromSelections,
@@ -79,6 +80,27 @@ describe('project shot list (v6 five-lane storyboard)', () => {
     expect(listProjectShots(projectA)).toHaveLength(1)
     removeShotsForPhotos([photoA1])
     expect(listProjectShots(projectA)).toHaveLength(0)
+  })
+
+  it('copies a single shot across projects and keeps the source untouched', async () => {
+    await setupDatabase()
+    const shot = createProjectShot(projectA, photoA1, { chapter: '特写', title: '眼神特写', compositionNotes: '虹膜对焦' })
+
+    const copy = copyProjectShot(shot.id, projectB)
+    expect(copy).toMatchObject({ project_id: projectB, chapter: '特写', title: '眼神特写', photo_id: photoA1 })
+    // 源项目镜头保留
+    expect(listProjectShots(projectA)).toHaveLength(1)
+    expect(listProjectShots(projectB)).toHaveLength(1)
+
+    // 重复复制到同项目同轨道被拦截
+    expect(() => copyProjectShot(shot.id, projectB)).toThrow('已包含')
+
+    // 指定其他景别可再复制一份
+    const second = copyProjectShot(shot.id, projectB, { lane: '远景' })
+    expect(second.chapter).toBe('远景')
+
+    // 同项目内复制被拒绝
+    expect(() => copyProjectShot(shot.id, projectA)).toThrow('相同')
   })
 
   it('always exposes the five fixed lanes and supports reordering inside a lane', async () => {

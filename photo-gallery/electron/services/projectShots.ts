@@ -591,6 +591,68 @@ export function moveProjectShots(fromProjectId: number, toProjectId: number): vo
   moveProjectShotRows(fromProjectId, toProjectId)
 }
 
+export interface CopyProjectShotOptions {
+  lane?: string
+}
+
+/**
+ * v6 跨项目复制单个镜头（方案 B）：只复制镜头记录到目标项目的对应
+ * 景别轨道，照片归属与原文件不动，源镜头保留。同照片通过
+ * plan_references 在多个项目中各自持有引用。
+ */
+export function copyProjectShot(shotId: number, toProjectId: number, options: CopyProjectShotOptions = {}): ProjectShot {
+  assertProject(toProjectId)
+  const source = dbAdapter.get(`
+    SELECT si.*, sg.project_id AS source_project_id, sg.name AS chapter,
+           pr.asset_id AS photo_id, pr.source_kind, pr.source_url, pr.source_title, pr.captured_at
+    FROM shot_items si
+    JOIN shot_groups sg ON sg.id = si.group_id
+    JOIN plan_references pr ON pr.id = si.reference_id
+    WHERE si.id = ?
+  `, [shotId])
+  if (!source) throw new Error('源镜头不存在')
+  const fromProjectId = Number(source.source_project_id)
+  if (fromProjectId === toProjectId) throw new Error('目标项目与来源项目相同')
+
+  const lane = normalizeGroupName(options.lane || String(source.chapter || SHOT_LANES[0]))
+  const targetGroup = getOrCreateGroup(toProjectId, lane)
+  const existingReference = dbAdapter.get('SELECT id FROM plan_references WHERE project_id = ? AND asset_id = ?', [toProjectId, Number(source.photo_id)])
+  const referenceId = existingReference
+    ? Number(existingReference.id)
+    : dbAdapter.insert('plan_references', {
+      project_id: toProjectId,
+      asset_id: Number(source.photo_id),
+      source_kind: source.source_kind || 'unknown',
+      source_url: source.source_url ?? null,
+      source_title: source.source_title ?? null,
+      captured_at: source.captured_at ?? null,
+      created_at: Math.floor(Date.now() / 1000)
+    })
+  if (!referenceId) throw new Error('样片引用写入失败')
+  if (dbAdapter.get('SELECT id FROM shot_items WHERE group_id = ? AND reference_id = ?', [targetGroup.id, referenceId])) {
+    throw new Error('目标项目「' + targetGroup.name + '」轨道已包含这张样片')
+  }
+  const nextPosition = dbAdapter.get('SELECT COALESCE(MAX(position), -1) + 1 AS next_position FROM shot_items WHERE group_id = ?', [targetGroup.id])?.next_position ?? 0
+  const now = Math.floor(Date.now() / 1000)
+  const id = dbAdapter.insert('shot_items', {
+    group_id: targetGroup.id,
+    reference_id: referenceId,
+    position: Number(nextPosition),
+    title: source.title,
+    intent: source.intent ?? null,
+    composition_notes: source.composition_notes ?? null,
+    lighting_gear_notes: source.lighting_gear_notes ?? null,
+    status: source.status || 'planned',
+    created_at: now,
+    updated_at: now
+  })
+  if (!id) throw new Error('镜头复制写入失败')
+  saveDatabase()
+  const created = listProjectShots(toProjectId).find(shot => shot.id === id)
+  if (!created) throw new Error('镜头复制读取失败')
+  return created
+}
+
 export function copyProjectShots(fromProjectId: number, toProjectId: number): void {
   const groups = listShotGroups(fromProjectId)
   const groupMap = new Map<number, number>()

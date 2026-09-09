@@ -55,6 +55,7 @@ export interface ElectronAPI {
     update: (projectId: number, shotId: number, input: { chapter?: string; title?: string; intent?: string | null; compositionNotes?: string | null; lightingGearNotes?: string | null; status?: 'planned' | 'ready' | 'done' }) => Promise<{ success: boolean; shot?: ProjectShot; error?: string }>
     reorder: (projectId: number, shotIds: number[]) => Promise<{ success: boolean; shots?: ProjectShot[]; error?: string }>
     remove: (projectId: number, shotId: number) => Promise<{ success: boolean; error?: string }>
+    copy: (sourceProjectId: number, shotId: number, toProjectId: number, options?: { lane?: string }) => Promise<{ success: boolean; shot?: ProjectShot; error?: string }>
   }
   planningExports: {
     getAll: (projectId: number) => Promise<ProjectExport[]>
@@ -219,7 +220,8 @@ const api: ElectronAPI = {
     generateFromSelections: (projectId: number) => ipcRenderer.invoke('shots:generateFromSelections', projectId),
     update: (projectId: number, shotId: number, input: unknown) => ipcRenderer.invoke('shots:update', projectId, shotId, input),
     reorder: (projectId: number, shotIds: number[]) => ipcRenderer.invoke('shots:reorder', projectId, shotIds),
-    remove: (projectId: number, shotId: number) => ipcRenderer.invoke('shots:remove', projectId, shotId)
+    remove: (projectId: number, shotId: number) => ipcRenderer.invoke('shots:remove', projectId, shotId),
+    copy: (sourceProjectId: number, shotId: number, toProjectId: number, options?: { lane?: string }) => ipcRenderer.invoke('shots:copy', sourceProjectId, shotId, toProjectId, options)
   },
   planningExports: {
     getAll: (projectId: number) => ipcRenderer.invoke('planningExports:getAll', projectId),

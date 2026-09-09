@@ -362,10 +362,18 @@ function bindPlanningItemEvents(board) {
   board.querySelectorAll('.planning-shot-card').forEach(card => {
     card.addEventListener('dragstart', event => {
       card.classList.add('is-dragging')
+      const shot = planningShots.find(item => Number(item.id) === Number(card.dataset.shotId))
       if (event.dataTransfer) {
         event.dataTransfer.setData('text/plain', String(card.dataset.shotId || ''))
         event.dataTransfer.setData('application/x-pic-shot-lane', card.dataset.lane || '')
-        event.dataTransfer.effectAllowed = 'move'
+        // v6 跨项目复制载荷：拖到左侧项目分区上即复制镜头（原镜头保留）
+        event.dataTransfer.setData('application/x-pic-shot-copy', JSON.stringify({
+          sourceProjectId: Number(currentProjectId),
+          shotId: Number(card.dataset.shotId),
+          lane: shot?.chapter || card.dataset.lane || '',
+          shotName: shot?.photo?.filename || ''
+        }))
+        event.dataTransfer.effectAllowed = 'copyMove'
       }
     })
     card.addEventListener('dragend', () => card.classList.remove('is-dragging'))
