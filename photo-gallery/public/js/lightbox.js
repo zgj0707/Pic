@@ -1,6 +1,17 @@
 // 灯箱查看相关函数
 // 与 app.js / grid.js 共享全局状态变量
 
+// 标题栏按钮条（Windows WCO）随灯箱开合切换深浅，避免米白条压在深色预览上
+const CAPTION_OVERLAY_LIGHT = { color: '#FAF8F4', symbolColor: '#6B655B' }
+const CAPTION_OVERLAY_DARK = { color: '#211C16', symbolColor: '#FAF8F4' }
+
+function syncCaptionOverlay(theme) {
+  try {
+    const overlay = theme === 'dark' ? CAPTION_OVERLAY_DARK : CAPTION_OVERLAY_LIGHT;
+    window.electronAPI?.window?.setTitleBarOverlay?.(overlay);
+  } catch { /* 通道不可用时静默跳过 */ }
+}
+
 function openLightbox(photo, index) {
   currentPhotoIndex = index;
   lightboxImage.src = photo.filepath || photo.thumbnail_path || '';
@@ -24,11 +35,13 @@ function openLightbox(photo, index) {
     });
   }
   lightbox.classList.remove('hidden');
+  syncCaptionOverlay('dark');
   resetZoom();
 }
 
 function closeLightbox() {
   lightbox.classList.add('hidden');
+  syncCaptionOverlay('light');
   resetZoom();
 }
 

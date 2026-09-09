@@ -329,6 +329,17 @@ function registerGenericHandlers(c: ContentContext): void {
   }))
   ipcMain.handle('window:close', wrapHandler('window:close', () => c.getMainWindow()?.close()))
   ipcMain.handle('window:isMaximized', wrapHandler('window:isMaximized', () => c.getMainWindow()?.isMaximized() ?? false))
+  ipcMain.handle('window:reload', wrapHandler('window:reload', () => c.getMainWindow()?.webContents.reload()))
+  ipcMain.handle('window:setTitleBarOverlay', wrapHandler('window:setTitleBarOverlay', (_e, overlay: { color?: string; symbolColor?: string; height?: number }) => {
+    const win = c.getMainWindow()
+    if (!win) return
+    try {
+      // Windows WCO 专用：随界面主题切换标题条深浅色，其他平台静默跳过
+      if (process.platform === 'win32' && typeof win.setTitleBarOverlay === 'function') {
+        win.setTitleBarOverlay(overlay)
+      }
+    } catch { /* overlay 未启用时忽略 */ }
+  }))
 
   // ─── Photo file helpers ───
   ipcMain.handle('photos:copyImageToClipboard', wrapAsyncHandler('photos:copyImageToClipboard',

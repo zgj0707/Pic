@@ -446,6 +446,11 @@ document.getElementById('permanentDeleteBtn').addEventListener('click', permanen
 
 document.getElementById('selectAllBtn')?.addEventListener('click', () => { void toggleSelectAllPhotos(); });
 
+// ─── 刷新界面（标题栏隐藏后的 reload 入口，快捷键 F5 / Ctrl+R）───
+document.getElementById('uiReloadBtn').addEventListener('click', () => {
+  window.electronAPI?.window?.reload?.();
+});
+
 // ─── 设置 ───
 document.getElementById('settingsBtn').addEventListener('click', async () => {
   document.getElementById('settingsModal').classList.remove('hidden');

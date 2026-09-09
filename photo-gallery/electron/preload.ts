@@ -171,6 +171,8 @@ export interface ElectronAPI {
     maximize: () => Promise<void>
     close: () => Promise<void>
     isMaximized: () => Promise<boolean>
+    reload: () => Promise<void>
+    setTitleBarOverlay: (overlay: { color?: string; symbolColor?: string; height?: number }) => Promise<void>
   }
 }
 
@@ -347,7 +349,10 @@ const api: ElectronAPI = {
     minimize: () => ipcRenderer.invoke('window:minimize'),
     maximize: () => ipcRenderer.invoke('window:maximize'),
     close: () => ipcRenderer.invoke('window:close'),
-    isMaximized: () => ipcRenderer.invoke('window:isMaximized')
+    isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+    reload: () => ipcRenderer.invoke('window:reload'),
+    setTitleBarOverlay: (overlay: { color?: string; symbolColor?: string; height?: number }) =>
+      ipcRenderer.invoke('window:setTitleBarOverlay', overlay)
   }
 }
 

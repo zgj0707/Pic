@@ -113,6 +113,7 @@ async function main() {
     'shell:showItemInFolder', 'shell:openPath', 'app:getVersionInfo', 'app:getChangelog',
     'cache:getStats', 'cache:clearAll', 'cache:cleanOld', 'cache:enforceLimit',
     'window:minimize', 'window:maximize', 'window:close', 'window:isMaximized',
+    'window:reload', 'window:setTitleBarOverlay',
     'photos:copyImageToClipboard',
     'photos:exportToPdf',
     'projects:movePhotos'

@@ -99,6 +99,17 @@ function createWindow(): void {
     }
   })
 
+  // F5 / Ctrl+R 界面重载（标题栏隐藏后无系统 reload 入口；主进程级监听，
+  // 渲染层卡死时依然可用）
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return
+    const key = typeof input.key === 'string' ? input.key.toLowerCase() : ''
+    if (input.key === 'F5' || (input.control && key === 'r')) {
+      event.preventDefault()
+      mainWindow?.webContents.reload()
+    }
+  })
+
   // In dev, electron-vite sets ELECTRON_RENDERER_URL → prefer live dev server.
   const devServerUrl = process.env.ELECTRON_RENDERER_URL
   if (devServerUrl && !app.isPackaged) {
